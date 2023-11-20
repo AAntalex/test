@@ -1,0 +1,57 @@
+database:
+  driver: oracle.jdbc.driver.OracleDriver
+  url: jdbc:oracle:thin:@localhost:1521/eks
+  user: IBS
+  pass: IBS
+
+hibernate:
+  dialect: org.hibernate.dialect.Oracle10gDialect
+  jdbc.batch_size: 10000
+  order_inserts: true
+  order_updates: true
+  enable_lazy_load_no_trans: true
+  show_sql: false
+  format_sql: false
+  id.new_generator_mappings: false
+
+spring:
+  liquibase:
+      enabled: false
+
+logging:
+  level:
+    org.hibernate.type:
+      descriptor:
+        sql.BasicBinder: INFO
+
+dbConfig:
+  clasters:
+    - name: MAIN
+      default: true
+      shards:
+        - database:
+            main: true
+            driver: oracle.jdbc.driver.OracleDriver
+            url: jdbc:oracle:thin:@localhost:1521/eks
+            user: IBS
+            pass: IBS
+        - database:
+            driver: oracle.jdbc.driver.OracleDriver
+            url: jdbc:oracle:thin:@localhost:1521/eks
+            user: IBS
+            pass: IBS
+    - name: RAW
+      shards:
+        - database:
+            driver: oracle.jdbc.driver.OracleDriver
+            url: jdbc:oracle:thin:@localhost:1521/eks
+            user: IBS
+            pass: IBS
+    - name: INEGRATION
+      shards:
+        - database:
+            driver: oracle.jdbc.driver.OracleDriver
+            url: jdbc:oracle:thin:@localhost:1521/eks
+            user: IBS
+            pass: IBS
+
