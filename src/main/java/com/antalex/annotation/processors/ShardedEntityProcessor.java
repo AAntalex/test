@@ -1,95 +1,85 @@
 package com.antalex.annotation.processors;
 
 import com.antalex.annotation.ShardEntity;
+import com.antalex.model.dto.ClassDto;
+import com.antalex.model.dto.FieldDto;
 import com.google.auto.service.AutoService;
 
 import javax.annotation.processing.*;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.TypeElement;
-import javax.lang.model.type.TypeMirror;
+import javax.tools.JavaFileObject;
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @SupportedAnnotationTypes("com.antalex.annotation.ShardEntity")
 @SupportedSourceVersion(SourceVersion.RELEASE_8)
 @AutoService(Processor.class)
 public class ShardedEntityProcessor extends AbstractProcessor {
+    private static final String CLASS_POSTFIX = "Tbl$";
+
     @Override
     public boolean process(Set<? extends TypeElement> set, RoundEnvironment roundEnvironment) {
         for (TypeElement annotation : set) {
             for (Element annotatedElement : roundEnvironment.getElementsAnnotatedWith(annotation)) {
-                final TypeMirror mirror = annotatedElement.asType();
                 final String annotatedElementName = annotatedElement.getSimpleName().toString();
                 final ShardEntity settings = annotatedElement.getAnnotation(ShardEntity.class);
 
-                /*
-                final String newClassName = annotatedElementName + settings.postfix();
-                final Set fields = annotatedElement.getEnclosedElements().stream()
-                        .filter(this::isField)
-                        .map(
-                                element -> {
-                                    final String fieldName = element.getSimpleName().toString();
-                                    final String fieldStringName = CaseFormat.LOWER_CAMEL.to(CaseFormat.UPPER_UNDERSCORE, fieldName);
-                                    return FieldDto.of(fieldStringName, fieldName);
-                                }
-                        ).collect(Collectors.toSet());
-
-                final ClassDto newClass = new ClassDto();
-                newClass.setClassName(newClassName);
-                newClass.setFields(fields);
-                newClass.setClassPackage(getPackage(mirror));
-                ClassCreator.record(newClass, processingEnv);
-*/
-/*
                 try {
-                    writeBuilderFile(className, stringGetters);
+                    writeBuilderFile(
+                            ClassDto
+                                    .builder()
+                                    .className(annotatedElementName + CLASS_POSTFIX)
+                                    .classPackage(getPackage(annotatedElement.asType().toString()))
+                                    .fields(
+                                            annotatedElement.getEnclosedElements().stream()
+                                                    .filter(this::isField)
+                                                    .map(
+                                                            element ->
+                                                                    FieldDto
+                                                                            .builder()
+                                                                            .fieldName(element.getSimpleName().toString())
+                                                                            .build()
+                                                    )
+                                                    .collect(Collectors.toList())
+                                    )
+                                    .build()
+                    );
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
-*/
             }
         }
         return true;
     }
-/*
-    private void writeBuilderFile(String className) throws IOException {
 
-        String packageName = null;
-        int lastDot = className.lastIndexOf('.');
-        if (lastDot > 0) {
-            packageName = className.substring(0, lastDot);
-        }
+    private boolean isField(Element element) {
+        return element != null && element.getKind().isField();
+    }
 
-        String simpleClassName = className.substring(lastDot + 1);
-        String toStringsClassName = "ToStrings";
+    private static String getPackage(String className) {
+        return Optional.of(className.lastIndexOf('.'))
+                .filter(it -> it > 0)
+                .map(it -> className.substring(0, it))
+                .orElse(null);
+    }
 
-        JavaFileObject builderFile = processingEnv.getFiler().createSourceFile(toStringsClassName);
+    private void writeBuilderFile(ClassDto classDto) throws IOException {
+        JavaFileObject builderFile = processingEnv.getFiler().createSourceFile(classDto.getClassName());
         try (PrintWriter out = new PrintWriter(builderFile.openWriter())) {
-
-            if (packageName != null) {
-                out.print("package ");
-                out.print(packageName);
-                out.println(";");
-                out.println();
-            }
-
-            out.print("public class ");
-            out.print(toStringsClassName);
-            out.println(" {");
+            out.println("package " + classDto.getClassPackage() + ";");
+            out.println();
+            out.print("public class " + classDto.getClassName() + " {");
+            out.println();
             out.println();
 
-            out.print(" public static String toString("+simpleClassName+" cat){");
             out.println();
-            out.print(" return ");
-
-            String result = getters.stream().map(m -> "cat." + m + "()").collect(Collectors.joining("+\",\"+"));
-            out.println(result + ";");
-
-            out.println("    }");
             out.println("}");
-
+            out.println();
         }
     }
-    */
 }
