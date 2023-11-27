@@ -1,7 +1,7 @@
 package com.antalex.domain.persistence.entity;
 
+
 import com.antalex.annotation.ShardEntity;
-import lombok.Data;
 
 import javax.persistence.*;
 

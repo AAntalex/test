@@ -1,6 +1,6 @@
-import com.antalex.prifiler.service.ProfilerService;
 import com.antalex.optimizer.OptimizerApplication;
 import com.antalex.domain.persistence.entity.AdditionalParameterEntity;
+import com.antalex.profiler.service.ProfilerService;
 import com.antalex.service.AdditionalParameterService;
 import org.junit.Test;
 import org.junit.runner.RunWith;
