@@ -29,6 +29,8 @@
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="library" name="Maven: com.antalex:optimizer:1.0-SNAPSHOT" level="project" />
     <orderEntry type="library" name="Maven: com.antalex:optimizer:1.0-SNAPSHOT" level="project" />
+    <orderEntry type="library" name="Maven: com.antalex:shard-db:1.0-SNAPSHOT" level="project" />
+    <orderEntry type="library" name="Maven: com.antalex:optimizer:1.0-SNAPSHOT" level="project" />
     <orderEntry type="library" name="Maven: org.springframework.boot:spring-boot-starter-web:2.1.4.RELEASE" level="project" />
     <orderEntry type="library" name="Maven: org.springframework.boot:spring-boot-starter:2.1.4.RELEASE" level="project" />
     <orderEntry type="library" name="Maven: org.springframework.boot:spring-boot:2.1.4.RELEASE" level="project" />

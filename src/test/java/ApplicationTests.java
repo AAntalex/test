@@ -25,7 +25,7 @@ public class ApplicationTests {
 
 		List<AdditionalParameterEntity> additionalParameterEntities
 				= additionalParameterService.generate(10000, "TEST", "С_CODE2", "VALUE2");
-		additionalParameterService.save(additionalParameterEntities);
+		additionalParameterService.saveJPA(additionalParameterEntities);
 
 		profiler.stop();
 

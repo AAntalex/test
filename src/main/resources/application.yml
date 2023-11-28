@@ -1,6 +1,6 @@
 database:
   driver: oracle.jdbc.driver.OracleDriver
-  url: jdbc:oracle:thin:@localhost:1521/eks
+  url: jdbc:oracle:thin:@d5cftm-apc005ln.corp.dev.vtb:1521/ELVIS
   user: IBS
   pass: IBS
 

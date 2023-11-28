@@ -1,4 +1,4 @@
-package com.antalex.domain.abstractive;
+package com.antalex.domain.abstraction;
 
 import java.util.Objects;
 
