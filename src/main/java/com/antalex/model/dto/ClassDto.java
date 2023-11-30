@@ -10,5 +10,6 @@ import java.util.List;
 public class ClassDto {
     private String className;
     private String classPackage;
+    private String targetClassName;
     private List<FieldDto> fields;
 }

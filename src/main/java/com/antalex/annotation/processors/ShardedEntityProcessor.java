@@ -1,9 +1,11 @@
 package com.antalex.annotation.processors;
 
 import com.antalex.annotation.ShardEntity;
+import com.antalex.dao.ShardEntityRepository;
 import com.antalex.model.dto.ClassDto;
 import com.antalex.model.dto.FieldDto;
 import com.google.auto.service.AutoService;
+import org.springframework.stereotype.Repository;
 
 import javax.annotation.processing.*;
 import javax.lang.model.SourceVersion;
@@ -20,7 +22,7 @@ import java.util.stream.Collectors;
 @SupportedSourceVersion(SourceVersion.RELEASE_8)
 @AutoService(Processor.class)
 public class ShardedEntityProcessor extends AbstractProcessor {
-    private static final String CLASS_POSTFIX = "Tbl$";
+    private static final String CLASS_POSTFIX = "RepositoryImpl$";
 
     @Override
     public boolean process(Set<? extends TypeElement> set, RoundEnvironment roundEnvironment) {
@@ -34,6 +36,7 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                             ClassDto
                                     .builder()
                                     .className(annotatedElementName + CLASS_POSTFIX)
+                                    .targetClassName(annotatedElementName)
                                     .classPackage(getPackage(annotatedElement.asType().toString()))
                                     .fields(
                                             annotatedElement.getEnclosedElements().stream()
@@ -73,8 +76,22 @@ public class ShardedEntityProcessor extends AbstractProcessor {
         try (PrintWriter out = new PrintWriter(builderFile.openWriter())) {
             out.println("package " + classDto.getClassPackage() + ";");
             out.println();
-            out.print("public class " + classDto.getClassName() + " {");
+            out.println("import " + ShardEntityRepository.class.getCanonicalName() + ";");
+            out.println("import " + Repository.class.getCanonicalName() + ";");
             out.println();
+            out.println("@Repository");
+            out.println("public class " +
+                    classDto.getClassName() +
+                    " implements ShardEntityRepository<" +
+                    classDto.getTargetClassName() + "> {"
+            );
+            out.println();
+            out.println("    @Override");
+            out.println("    public " + classDto.getTargetClassName() +
+                    " save(" + classDto.getTargetClassName() + " entity) {"
+            );
+            out.println("       return null;");
+            out.println("   }");
             out.println();
 
             out.println();

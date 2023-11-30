@@ -11,7 +11,7 @@ import java.util.Map;
 
 @Component
 @Primary
-public class ShardEntityManeger {
+public class ShardEntityManager {
     private static final Map<Class<?>, ShardEntityRepository> REPOSITORIES = new HashMap<>();
     private ShardEntityRepository<?> currentShardEntityRepository;
     private Class<?> currentSourceClass;
