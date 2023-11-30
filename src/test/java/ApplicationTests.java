@@ -1,3 +1,4 @@
+import com.antalex.dao.ShardEntityManeger;
 import com.antalex.optimizer.OptimizerApplication;
 import com.antalex.domain.persistence.entity.AdditionalParameterEntity;
 import com.antalex.profiler.service.ProfilerService;
@@ -19,13 +20,18 @@ public class ApplicationTests {
 	@Autowired
 	private AdditionalParameterService additionalParameterService;
 
+	@Autowired
+	private ShardEntityManeger entityManeger;
+
 	@Test
 	public void ins() {
 		profiler.start("Тест");
 
 		List<AdditionalParameterEntity> additionalParameterEntities
 				= additionalParameterService.generate(10000, "TEST", "С_CODE2", "VALUE2");
-		additionalParameterService.saveJPA(additionalParameterEntities);
+		additionalParameterService.save(additionalParameterEntities);
+
+//		entityManeger.save(additionalParameterEntities);
 
 		profiler.stop();
 
