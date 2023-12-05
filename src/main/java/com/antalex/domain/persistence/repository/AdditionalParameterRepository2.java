@@ -1,15 +1,15 @@
 package com.antalex.domain.persistence.repository;
 
-import com.antalex.dao.ShardEntityRepository;
-import com.antalex.domain.persistence.entity.AdditionalParameterEntity;
+import com.antalex.db.service.ShardEntityRepository;
+import com.antalex.domain.persistence.entity.AdditionalParameterEntity2;
 import org.springframework.stereotype.Repository;
 
 
 @Repository
-public class AdditionalParameterRepository2 implements ShardEntityRepository<AdditionalParameterEntity> {
+public class AdditionalParameterRepository2 implements ShardEntityRepository<AdditionalParameterEntity2> {
 
     @Override
-    public AdditionalParameterEntity save(AdditionalParameterEntity entity) {
+    public AdditionalParameterEntity2 save(AdditionalParameterEntity2 entity) {
 
         return null;
     }
