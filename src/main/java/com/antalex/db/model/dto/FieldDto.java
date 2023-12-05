@@ -1,4 +1,4 @@
-package com.antalex.model.dto;
+package com.antalex.db.model.dto;
 
 import lombok.Builder;
 import lombok.Data;

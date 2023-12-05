@@ -1,5 +1,8 @@
-package com.antalex.dao;
+package com.antalex.db.service.impl;
 
+import com.antalex.db.entity.abstraction.ShardedEntity;
+import com.antalex.db.service.ShardEntityManager;
+import com.antalex.db.service.ShardEntityRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Primary;
 import org.springframework.core.GenericTypeResolver;
@@ -8,10 +11,11 @@ import org.springframework.stereotype.Component;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 @Component
 @Primary
-public class ShardEntityManager {
+public class ShardEntityManagerImpl implements ShardEntityManager {
     private static final Map<Class<?>, ShardEntityRepository> REPOSITORIES = new HashMap<>();
     private ShardEntityRepository<?> currentShardEntityRepository;
     private Class<?> currentSourceClass;
@@ -21,11 +25,13 @@ public class ShardEntityManager {
         for (ShardEntityRepository<?> shardEntityRepository : entityRepositories) {
             Class<?>[] classes = GenericTypeResolver
                     .resolveTypeArguments(shardEntityRepository.getClass(), ShardEntityRepository.class);
-            REPOSITORIES.putIfAbsent(classes[0], shardEntityRepository);
+            if (Objects.nonNull(classes) && classes.length > 0) {
+                REPOSITORIES.putIfAbsent(classes[0], shardEntityRepository);
+            }
         }
     }
 
-    private <T> ShardEntityRepository<T> getEntityRepository(T entity) {
+    private <T extends ShardedEntity> ShardEntityRepository<T> getEntityRepository(T entity) {
         if (entity == null) {
             return null;
         }
@@ -42,15 +48,19 @@ public class ShardEntityManager {
         return (ShardEntityRepository<T>) currentShardEntityRepository;
     }
 
-    public <T> T save(T entity) {
-        if (entity == null) {
+    @Override
+    public <T extends ShardedEntity> T save(T entity) {
+        if (Objects.isNull(entity)) {
             return null;
         }
         return getEntityRepository(entity).save(entity);
     }
 
-    public <T> Iterable save(Iterable<T> entities) {
-        entities.forEach(it -> it = save(it));
+    @Override
+    public <T extends ShardedEntity> Iterable save(Iterable<T> entities) {
+        if (Objects.nonNull(entities)) {
+            entities.forEach(it -> it = save(it));
+        }
         return entities;
     }
 }

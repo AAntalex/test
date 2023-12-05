@@ -1,4 +1,4 @@
-package com.antalex.model.enums;
+package com.antalex.db.model.enums;
 
 /**
  * Тип шардирования

@@ -1,9 +1,9 @@
-package com.antalex.annotation.processors;
+package com.antalex.db.annotation.processors;
 
-import com.antalex.annotation.ShardEntity;
-import com.antalex.dao.ShardEntityRepository;
-import com.antalex.model.dto.ClassDto;
-import com.antalex.model.dto.FieldDto;
+import com.antalex.db.annotation.ShardEntity;
+import com.antalex.db.service.ShardEntityRepository;
+import com.antalex.db.model.dto.ClassDto;
+import com.antalex.db.model.dto.FieldDto;
 import com.google.auto.service.AutoService;
 import org.springframework.stereotype.Repository;
 
@@ -18,7 +18,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-@SupportedAnnotationTypes("com.antalex.annotation.ShardEntity")
+@SupportedAnnotationTypes("ShardEntity")
 @SupportedSourceVersion(SourceVersion.RELEASE_8)
 @AutoService(Processor.class)
 public class ShardedEntityProcessor extends AbstractProcessor {

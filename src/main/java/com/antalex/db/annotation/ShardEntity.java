@@ -1,6 +1,6 @@
-package com.antalex.annotation;
+package com.antalex.db.annotation;
 
-import com.antalex.model.enums.ShardType;
+import com.antalex.db.model.enums.ShardType;
 
 import java.lang.annotation.*;
 
