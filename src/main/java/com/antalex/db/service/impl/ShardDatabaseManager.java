@@ -17,12 +17,15 @@ public class ShardDatabaseManager implements DataBaseManager {
     private static final int MAX_SHARDS = 63;
     private static final int MAX_CLASTERS = 99;
 
+    private static final String CLUSTER_NAME = "dbConfig.clusters[%].name";
+
+
     ShardDatabaseManager() {
-        while () {
+        while (String.format()) {
 
         }
         env.getProperty("database.driver")
 
-        "dbConfig.clasters[0].shards[0].database.url"
+        "dbConfig.clusters[0].shards[0].database.url"
     }
 }
