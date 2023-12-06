@@ -1,0 +1,26 @@
+databaseChangeLog:
+- changeSet:
+    id: '09/09/2019 13:00:00'
+    author: Antalex
+    preConditions:
+      onFail: mark_ran
+      not:
+        tableExists:
+          tableName: APP_USER
+    changes:
+    - createTable:
+        tableName: APP_USER
+        columns:
+        - column:
+            name: USERNAME
+            type: VARCHAR2(30)
+            constraints:
+              primaryKey: true
+              nullable: false
+              primaryKeyName: PK_AUTH_USERS
+        - column:
+            name: NAME
+            type: VARCHAR2(255)
+        - column:
+            name: PASSWORD
+            type: VARCHAR2(2000)

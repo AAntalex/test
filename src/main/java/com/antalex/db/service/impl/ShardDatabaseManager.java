@@ -3,6 +3,13 @@ package com.antalex.db.service.impl;
 import com.antalex.db.model.Cluster;
 import com.antalex.db.model.Shard;
 import com.antalex.db.service.DataBaseManager;
+import liquibase.Contexts;
+import liquibase.LabelExpression;
+import liquibase.Liquibase;
+import liquibase.database.Database;
+import liquibase.database.DatabaseFactory;
+import liquibase.database.jvm.JdbcConnection;
+import liquibase.resource.ClassLoaderResourceAccessor;
 import org.springframework.core.env.Environment;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.stereotype.Service;
@@ -167,6 +174,19 @@ public class ShardDatabaseManager implements DataBaseManager {
                         .map(it -> it.get(shardId))
                         .orElse(null)
         );
+    }
+
+    private void runLiquibase() throws Exception {
+        Database database = DatabaseFactory.getInstance().findCorrectDatabaseImplementation(
+                new JdbcConnection(getConnection())
+        );
+        Liquibase liquibase = new liquibase.Liquibase(
+                "database/db.changelog-main.xml",
+                new ClassLoaderResourceAccessor(),
+                database
+
+        );
+        liquibase.update(new Contexts(), new LabelExpression());
     }
 
     @Override
