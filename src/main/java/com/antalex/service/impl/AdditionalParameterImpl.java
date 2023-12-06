@@ -7,9 +7,7 @@ import com.antalex.service.AdditionalParameterService;
 import org.springframework.stereotype.Service;
 
 import javax.sql.DataSource;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
+import java.sql.*;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -40,6 +38,7 @@ public class AdditionalParameterImpl implements AdditionalParameterService {
             Connection connection = dataSource.getConnection();
             connection.setAutoCommit(false);
             PreparedStatement preparedStatement = connection.prepareStatement(INS_QUERY);
+
             entities.forEach(
                     entity -> {
                         try {

@@ -12,7 +12,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.util.List;
-import java.util.Properties;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes = OptimizerApplication.class)
@@ -35,13 +34,10 @@ public class ApplicationTests {
 
 	@Test
 	public void ins() {
-        Properties properties = databaseManager.getProperties();
-
-
         profiler.start("Тест");
 
 		List<AdditionalParameterEntity> additionalParameterEntities
-				= additionalParameterService.generate(100, "TEST", "С_CODE2", "VALUE2");
+				= additionalParameterService.generate(10000, "TEST", "С_CODE2", "VALUE2");
 
         AdditionalParameterEntity entity = additionalParameterEntities.get(1);
 

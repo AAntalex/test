@@ -1,5 +1,6 @@
 package com.antalex.config;
 
+import com.antalex.db.service.DataBaseManager;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -21,7 +22,9 @@ import java.util.Properties;
 public class SpringJdbcConfig {
     @Autowired
     private Environment env;
-    private EntityManager entityManager;
+
+    @Autowired
+    private DataBaseManager dataBaseManager;
 
     @Bean(name="entityManagerFactory")
     public LocalContainerEntityManagerFactoryBean getEntityManagerFactoryBean() {
@@ -38,17 +41,11 @@ public class SpringJdbcConfig {
         return adapter;
     }
 
-
-
     @Bean
     public DataSource getDataSource() {
-        DriverManagerDataSource dataSource = new DriverManagerDataSource();
-        dataSource.setDriverClassName(env.getProperty("database.driver"));
-        dataSource.setUrl(env.getProperty("database.url"));
-        dataSource.setUsername(env.getProperty("database.user"));
-        dataSource.setPassword(env.getProperty("database.pass"));
-        return dataSource;
+        return dataBaseManager.getDataSource();
     }
+
     @Bean(name="transactionManager")
     public PlatformTransactionManager txManager(){
         JpaTransactionManager jpaTransactionManager = new JpaTransactionManager(

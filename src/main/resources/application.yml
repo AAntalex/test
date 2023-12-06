@@ -1,9 +1,3 @@
-database:
-  driver: oracle.jdbc.driver.OracleDriver
-  url: jdbc:oracle:thin:@d5cftm-apc005ln.corp.dev.vtb:1521/ELVIS
-  user: IBS
-  pass: IBS
-
 hibernate:
   dialect: org.hibernate.dialect.Oracle10gDialect
   jdbc.batch_size: 10000
@@ -25,14 +19,13 @@ logging:
         sql.BasicBinder: INFO
 
 dbConfig:
-  clasters:
+  clusters:
     - name: MAIN
       default: true
       shards:
         - database:
-            main: true
             driver: oracle.jdbc.driver.OracleDriver
-            url: jdbc:oracle:thin:@localhost:1521/eks
+            url: jdbc:oracle:thin:@d5cftm-apc005ln.corp.dev.vtb:1521/ELVIS
             user: IBS
             pass: IBS
         - database:
@@ -40,18 +33,14 @@ dbConfig:
             url: jdbc:oracle:thin:@localhost:1521/eks
             user: IBS
             pass: IBS
+          main: true
+          id: 1
     - name: RAW
+      id: 3
       shards:
         - database:
             driver: oracle.jdbc.driver.OracleDriver
-            url: jdbc:oracle:thin:@localhost:1521/eks
-            user: IBS
-            pass: IBS
-    - name: INEGRATION
-      shards:
-        - database:
-            driver: oracle.jdbc.driver.OracleDriver
-            url: jdbc:oracle:thin:@localhost:1521/eks
+            url: jdbc:oracle:thin:@d5ubss-or5001lk.corp.dev.vtb:1521/TARIFA
             user: IBS
             pass: IBS
 
