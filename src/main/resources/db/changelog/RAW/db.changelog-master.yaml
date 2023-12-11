@@ -1,3 +1,0 @@
-databaseChangeLog:
-  - include:
-      file: db/changelog/RAW/init/APP_USER_init.yml

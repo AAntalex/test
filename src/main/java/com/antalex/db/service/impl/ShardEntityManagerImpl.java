@@ -31,7 +31,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
         }
     }
 
-    private <T extends ShardedEntity> ShardEntityRepository<T> getEntityRepository(T entity) {
+    private synchronized <T extends ShardedEntity> ShardEntityRepository<T> getEntityRepository(T entity) {
         if (entity == null) {
             return null;
         }

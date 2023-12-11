@@ -1,0 +1,44 @@
+databaseChangeLog:
+- changeSet:
+    id: '08 01/12/2023 12:00:00'
+    author: Antalex
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+        - tableExists:
+            tableName: APP_SEQUENCE
+    changes:
+      - createTable:
+          tableName: APP_SEQUENCE
+          columns:
+          - column:
+              name: SEQUENCE
+              type: VARCHAR(40)
+              constraints:
+                primaryKey: true
+                nullable: false
+                primaryKeyName: PK_SEQUENCE
+          - column:
+              name: VALUE
+              type: bigint
+          - column:
+              name: CACHE_SIZE
+              type: bigint
+          - column:
+              name: MIN_VALUE
+              type: bigint
+          - column:
+              name: MAX_VALUE
+              type: bigint
+      - insert:
+          tableName: APP_SEQUENCE
+          columns:
+            - column:
+                name: SEQUENCE
+                value: SEQ_ID
+            - column:
+                name: CACHE_SIZE
+                value: 1000
+            - column:
+                name: MIN_VALUE
+                value: 1

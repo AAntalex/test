@@ -10,6 +10,7 @@ import liquibase.database.Database;
 import liquibase.database.DatabaseFactory;
 import liquibase.database.jvm.JdbcConnection;
 import liquibase.resource.ClassLoaderResourceAccessor;
+import liquibase.snapshot.JdbcDatabaseSnapshot;
 import org.springframework.core.env.Environment;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.stereotype.Service;
@@ -18,18 +19,13 @@ import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class ShardDatabaseManager implements DataBaseManager {
-    private final Environment env;
-
-    private Cluster defaultCluster;
-    private Map<String, Cluster> clusters = new HashMap<>();
-    private Map<Short, Cluster> clusterIds = new HashMap<>();
-
     private static final int MAX_SHARDS = 63;
     private static final int MAX_CLUSTERS = 99;
-
+    private static final String CHANGE_LOG = "db/core/db.changelog-master.yaml";
     private static final String CLUSTER_NAME = "dbConfig.clusters[%d].name";
     private static final String CLUSTER_ID = "dbConfig.clusters[%d].id";
     private static final String CLUSTER_DEFAULT = "dbConfig.clusters[%d].default";
@@ -39,10 +35,15 @@ public class ShardDatabaseManager implements DataBaseManager {
     private static final String SHARD_DB_URL = "dbConfig.clusters[%d].shards[%d].database.url";
     private static final String SHARD_DB_USER = "dbConfig.clusters[%d].shards[%d].database.user";
     private static final String SHARD_DB_PASS = "dbConfig.clusters[%d].shards[%d].database.pass";
+    private final Environment env;
+    private Cluster defaultCluster;
+    private Map<String, Cluster> clusters = new HashMap<>();
+    private Map<Short, Cluster> clusterIds = new HashMap<>();
 
     ShardDatabaseManager(Environment env) {
         this.env = env;
         getProperties();
+        runInitLiquibase();
     }
 
     private void getProperties() {
@@ -52,8 +53,7 @@ public class ShardDatabaseManager implements DataBaseManager {
             Cluster cluster = new Cluster();
             cluster.setName(clusterName);
             if (Objects.isNull(defaultCluster) ||
-                    Boolean.valueOf(env.getProperty(String.format(CLUSTER_DEFAULT, clusterCount))))
-            {
+                    Boolean.valueOf(env.getProperty(String.format(CLUSTER_DEFAULT, clusterCount)))) {
                 defaultCluster = cluster;
             }
             cluster.setId(
@@ -86,8 +86,7 @@ public class ShardDatabaseManager implements DataBaseManager {
                 );
                 this.addShardToCluster(shard, cluster);
                 if (Objects.isNull(cluster.getMainShard()) ||
-                        Boolean.valueOf(env.getProperty(String.format(SHARD_MAIN, clusterCount, shardCount))))
-                {
+                        Boolean.valueOf(env.getProperty(String.format(SHARD_MAIN, clusterCount, shardCount)))) {
                     cluster.setMainShard(shard);
                 }
                 cluster.getShards().add(shard);
@@ -176,18 +175,76 @@ public class ShardDatabaseManager implements DataBaseManager {
         );
     }
 
-    private void runLiquibase() throws Exception {
-        Database database = DatabaseFactory.getInstance().findCorrectDatabaseImplementation(
-                new JdbcConnection(getConnection())
-        );
-        Liquibase liquibase = new liquibase.Liquibase(
-                "database/db.changelog-main.xml",
-                new ClassLoaderResourceAccessor(),
-                database
+    private void runInitLiquibase() {
+        System.out.println(Thread.currentThread().getName() + " AAA runInitLiquibase START");
+        clusters.entrySet()
+                .stream()
+                .map(Map.Entry::getValue)
+                .map(Cluster::getShards)
+                .forEach(shards ->
+                        shards.forEach(shard -> {
 
-        );
-        liquibase.update(new Contexts(), new LabelExpression());
+                                    try {
+                                        System.out.println(Thread.currentThread().getName() + " AAA : " + shard.getId());
+                                        runInitLiquibase(getConnection(shard));
+                                        System.out.println(Thread.currentThread().getName() + " AAA runInitLiquibase!");
+                                    } catch (Exception err) {
+
+                                        System.out.println(Thread.currentThread().getName() + " AAA err : " + err);
+
+                                        throw new RuntimeException(err);
+                                    }
+                                }
+
+/*
+                                new Thread(() -> {
+                                    try {
+                                        System.out.println(Thread.currentThread().getName() + " AAA : " + shard.getId());
+                                        runInitLiquibase(getConnection(shard));
+                                        System.out.println(Thread.currentThread().getName() + " AAA runInitLiquibase!");
+                                    } catch (Exception err) {
+
+                                        System.out.println(Thread.currentThread().getName() + " AAA err : " + err);
+
+                                        throw new RuntimeException(err);
+                                    }
+                                }
+                                ).start()
+*/
+                        )
+                );
+        System.out.println(Thread.currentThread().getName() + " AAA runInitLiquibase STOP");
     }
+
+    private void runInitLiquibase(Connection connection) {
+        try {
+            Database database = DatabaseFactory.getInstance().findCorrectDatabaseImplementation(
+                    new JdbcConnection(connection)
+            );
+
+            System.out.println(Thread.currentThread().getName() + " AAA connection : " + connection);
+
+            System.out.println(Thread.currentThread().getName() + " AAA database : " + database);
+
+            Liquibase liquibase = new liquibase.Liquibase(
+                    CHANGE_LOG,
+                    new ClassLoaderResourceAccessor(),
+                    database
+
+            );
+
+            System.out.println(Thread.currentThread().getName() + " AAA liquibase : " + liquibase);
+
+            liquibase.update(new Contexts(), new LabelExpression());
+
+            System.out.println(Thread.currentThread().getName() + " AAA UPDATE");
+
+        } catch (Exception err) {
+            System.out.println(Thread.currentThread().getName() + " AAA err0 : " + err);
+            throw new RuntimeException(err);
+        }
+    }
+
 
     @Override
     public Connection getConnection() throws SQLException {
