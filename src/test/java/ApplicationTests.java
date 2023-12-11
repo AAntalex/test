@@ -5,6 +5,7 @@ import com.antalex.optimizer.OptimizerApplication;
 import com.antalex.domain.persistence.entity.AdditionalParameterEntity;
 import com.antalex.profiler.service.ProfilerService;
 import com.antalex.service.AdditionalParameterService;
+import liquibase.precondition.core.PreconditionContainer;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
