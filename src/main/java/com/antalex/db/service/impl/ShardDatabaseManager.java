@@ -230,7 +230,7 @@ public class ShardDatabaseManager implements DataBaseManager {
             } catch (Exception err) {
                 throw new RuntimeException(err);
             }
-        });
+        }).start();
     }
 
     private void runLiquibase(Cluster cluster, String changeLog) {
