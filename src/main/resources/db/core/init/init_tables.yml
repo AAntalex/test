@@ -1,0 +1,56 @@
+databaseChangeLog:
+- changeSet:
+    id: 'init$001'
+    author: Antalex
+    changes:
+      - createTable:
+          tableName: APP_SEQUENCE
+          columns:
+          - column:
+              name: SEQUENCE
+              type: VARCHAR(40)
+              constraints:
+                primaryKey: true
+                nullable: false
+                primaryKeyName: PK_SEQUENCE
+          - column:
+              name: VALUE
+              type: bigint
+          - column:
+              name: CACHE_SIZE
+              type: bigint
+          - column:
+              name: MIN_VALUE
+              type: bigint
+          - column:
+              name: MAX_VALUE
+              type: bigint
+      - createTable:
+          tableName: CLUSTER
+          columns:
+          - column:
+              name: ID
+              type: tinyint
+              constraints:
+                primaryKey: true
+                nullable: false
+                primaryKeyName: PK_CLUSTER_ID
+          - column:
+              name: NAME
+              type: VARCHAR(128)
+      - createTable:
+          tableName: SHARD
+          columns:
+          - column:
+              name: ID
+              type: tinyint
+              constraints:
+                primaryKey: true
+                nullable: false
+                primaryKeyName: PK_SHARD_ID
+          - column:
+              name: IS_MAIN
+              type: boolean
+          - column:
+              name: CLUSTER
+              type: tinyint

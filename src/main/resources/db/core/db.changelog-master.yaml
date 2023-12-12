@@ -1,3 +1,0 @@
-databaseChangeLog:
-  - include:
-      file: db/core/init/SEQUENCE_init.yml
