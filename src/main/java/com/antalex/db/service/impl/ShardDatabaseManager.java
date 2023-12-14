@@ -5,13 +5,12 @@ import com.antalex.db.model.Shard;
 import com.antalex.db.service.DataBaseManager;
 import com.antalex.db.service.LiquibaseManager;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.tuple.ImmutablePair;
-import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.core.env.Environment;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.stereotype.Service;
 
 import javax.sql.DataSource;
+import java.io.File;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.*;
@@ -23,6 +22,8 @@ public class ShardDatabaseManager implements DataBaseManager {
     private static final int MAX_CLUSTERS = 100;
 
     private static final String INIT_CHANGE_LOG = "db/core/db.changelog-init.yaml";
+    private static final String CHANGE_LOG_PATH = "db/changelog";
+    private static final String CHANGE_LOG_NAME = "db.changelog-master.yaml";
 
     private static final String CLUSTER_NAME = "dbConfig.clusters[%d].name";
     private static final String CLUSTER_ID = "dbConfig.clusters[%d].id";
@@ -40,14 +41,14 @@ public class ShardDatabaseManager implements DataBaseManager {
     private Cluster defaultCluster;
     private Map<String, Cluster> clusters = new HashMap<>();
     private Map<Short, Cluster> clusterIds = new HashMap<>();
-    private Map<Shard, Pair<Thread, String>> liquibaseRuns = new HashMap<>();
+    private String changLogPath;
+    private String changLogName;
 
     ShardDatabaseManager(
-            Environment env,
-            LiquibaseManager liquibaseManager)
+            Environment env)
     {
         this.env = env;
-        this.liquibaseManager = liquibaseManager;
+        this.liquibaseManager = new LiquibaseManagerImpl();
 
         getProperties();
         runInitLiquibase();
@@ -55,6 +56,8 @@ public class ShardDatabaseManager implements DataBaseManager {
 
     private void getProperties() {
         int clusterCount = 0;
+
+
         String clusterName = env.getProperty(String.format(CLUSTER_NAME, clusterCount));
         while (Objects.nonNull(clusterName)) {
             Cluster cluster = new Cluster();
@@ -100,6 +103,9 @@ public class ShardDatabaseManager implements DataBaseManager {
 
                 shardCount++;
                 shardUrl = env.getProperty(String.format(SHARD_DB_URL, clusterCount, shardCount));
+            }
+            if (shardCount == 0) {
+                throw new IllegalArgumentException("Property 'dbConfig.clusters.shards' must not be empty");
             }
             if (shardCount > MAX_SHARDS) {
                 throw new IllegalArgumentException(
@@ -188,49 +194,12 @@ public class ShardDatabaseManager implements DataBaseManager {
         );
     }
 
-    private synchronized void beforeRunLiquibase(Shard shard, String changeLog) {
-        if (liquibaseRuns.containsKey(shard)) {
-            throw new RuntimeException(
-                    String.format("Cannot run %s for shard %s because %s is still running", changeLog, shard, liquibaseRuns.get(shard).getValue())
-            );
-        } else {
-            liquibaseRuns.put(shard, ImmutablePair.of(Thread.currentThread(), changeLog));
-        }
-    }
-
-    private synchronized void afterRunLiquibase(Shard shard, String changeLog) {
-        liquibaseRuns.remove(shard);
-    }
-
-    private synchronized void waitRunLiquibase() {
-        liquibaseRuns.entrySet()
-                .stream()
-                .findAny()
-                .map(Map.Entry::getValue)
-                .map(Pair::getKey)
-                .ifPresent(it -> {
-                    try {
-                        log.info(String.format("Waiting thread %s ...", it));
-                        it.join();
-                    } catch (InterruptedException err) {
-                        log.info(String.format("Thread %s is Interrupted", it));
-                    }
-                });
-    }
-
     private void runLiquibase(Shard shard, String changeLog) {
-
-        System.out.println(String.format("AAA START! %s для %s", changeLog, shard));
-
-        new Thread(() -> {
-            try {
-                this.beforeRunLiquibase(shard, changeLog);
-                liquibaseManager.run(getConnection(shard), changeLog);
-                this.afterRunLiquibase(shard, changeLog);
-            } catch (Exception err) {
-                throw new RuntimeException(err);
-            }
-        }).start();
+        try {
+            liquibaseManager.runThread(getConnection(shard), shard, changeLog);
+        } catch (Exception err) {
+            throw new RuntimeException(err);
+        }
     }
 
     private void runLiquibase(Cluster cluster, String changeLog) {
@@ -248,7 +217,17 @@ public class ShardDatabaseManager implements DataBaseManager {
 
     private void runInitLiquibase() {
         runLiquibase(INIT_CHANGE_LOG);
-        waitRunLiquibase();
+        liquibaseManager.waitAll();
+    }
+
+    private void runLiquibase() {
+        if (new File(this.changLogPath).isDirectory()) {
+            String changeLog = this.changLogPath + File.pathSeparator + this.changLogName;
+            if (new File(changeLog).isFile()) {
+                runLiquibase(changeLog);
+            }
+        }
+        liquibaseManager.waitAll();
     }
 
     @Override

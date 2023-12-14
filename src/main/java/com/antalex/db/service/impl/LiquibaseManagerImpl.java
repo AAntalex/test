@@ -8,12 +8,18 @@ import liquibase.database.Database;
 import liquibase.database.DatabaseFactory;
 import liquibase.database.jvm.JdbcConnection;
 import liquibase.resource.ClassLoaderResourceAccessor;
-import org.springframework.stereotype.Component;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.apache.commons.lang3.tuple.Pair;
 
 import java.sql.Connection;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
 
-@Component
+@Slf4j
 public class LiquibaseManagerImpl implements LiquibaseManager {
+    private Map<Object, Pair<Thread, String>> liquibaseRuns = new HashMap<>();
 
     @Override
     public void run(Connection connection, String changeLog) {
@@ -32,4 +38,53 @@ public class LiquibaseManagerImpl implements LiquibaseManager {
             throw new RuntimeException(err);
         }
     }
+
+    @Override
+    public void wait(Object o) {
+        Optional.ofNullable(o)
+                .map(liquibaseRuns::get)
+                .ifPresent(it -> {
+                    try {
+                        log.debug(
+                                String.format(
+                                        "Waiting thread %s for changelog \"%s\"...",
+                                        it.getKey().getName(),
+                                        it.getValue()
+                                )
+                        );
+                        it.getKey().join();
+                        liquibaseRuns.remove(o);
+                    } catch (InterruptedException err) {
+                        throw new RuntimeException(err);
+                    }
+                });
+    }
+
+    @Override
+    public void waitAll() {
+        while (!liquibaseRuns.isEmpty()) {
+            this.wait(
+                    liquibaseRuns.entrySet()
+                            .stream()
+                            .findAny()
+                            .map(Map.Entry::getKey)
+                            .orElse(null)
+            );
+        }
+    }
+
+    @Override
+    public void runThread(Connection connection, Object o, String changeLog) {
+        Thread thread = new Thread(() -> {
+            try {
+                run(connection, changeLog);
+            } catch (Exception err) {
+                throw new RuntimeException(err);
+            }
+        });
+        this.wait(o);
+        liquibaseRuns.put(o, ImmutablePair.of(thread, changeLog));
+        thread.start();
+    }
+
 }

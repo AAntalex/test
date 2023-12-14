@@ -26,7 +26,7 @@ databaseChangeLog:
               name: MAX_VALUE
               type: bigint
       - createTable:
-          tableName: CLUSTER
+          tableName: APP_CLUSTER
           columns:
           - column:
               name: ID
@@ -39,7 +39,7 @@ databaseChangeLog:
               name: NAME
               type: VARCHAR(128)
       - createTable:
-          tableName: SHARD
+          tableName: APP_SHARD
           columns:
           - column:
               name: ID

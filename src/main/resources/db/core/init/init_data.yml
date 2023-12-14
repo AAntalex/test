@@ -5,7 +5,7 @@ databaseChangeLog:
     preConditions:
       - onFail: MARK_RAN
       - sqlCheck:
-          expectedResult: 1
+          expectedResult: 0
           sql: "select count(*) from APP_SEQUENCE where SEQUENCE = 'SEQ_ID'"
     changes:
       - insert:
@@ -19,4 +19,4 @@ databaseChangeLog:
                 value: 1000
             - column:
                 name: MIN_VALUE
-                value: 1
+                value: 0
