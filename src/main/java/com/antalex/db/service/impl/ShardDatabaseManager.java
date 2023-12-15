@@ -6,6 +6,8 @@ import com.antalex.db.service.DataBaseManager;
 import com.antalex.db.service.LiquibaseManager;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.env.Environment;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.ResourceLoader;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.stereotype.Service;
 
@@ -22,9 +24,13 @@ public class ShardDatabaseManager implements DataBaseManager {
     private static final int MAX_CLUSTERS = 100;
 
     private static final String INIT_CHANGE_LOG = "db/core/db.changelog-init.yaml";
-    private static final String CHANGE_LOG_PATH = "db/changelog";
-    private static final String CHANGE_LOG_NAME = "db.changelog-master.yaml";
+    private static final String DEFAULT_CHANGE_LOG_PATH = "classpath:db/changelog";
+    private static final String DEFAULT_CHANGE_LOG_NAME = "db.changelog-master.yaml";
+    private static final String CLUSTERS_PATH = "clusters";
+    private static final String SHARDS_PATH = "shards";
 
+    private static final String CHANGE_LOG_PATH = "dbConfig.liquibase.change-log-src";
+    private static final String CHANGE_LOG_NAME = "dbConfig.liquibase.change-log-name";
     private static final String CLUSTER_NAME = "dbConfig.clusters[%d].name";
     private static final String CLUSTER_ID = "dbConfig.clusters[%d].id";
     private static final String CLUSTER_DEFAULT = "dbConfig.clusters[%d].default";
@@ -36,6 +42,7 @@ public class ShardDatabaseManager implements DataBaseManager {
     private static final String SHARD_DB_PASS = "dbConfig.clusters[%d].shards[%d].database.pass";
 
     private final Environment env;
+    private final ResourceLoader resourceLoader;
     private final LiquibaseManager liquibaseManager;
 
     private Cluster defaultCluster;
@@ -45,19 +52,24 @@ public class ShardDatabaseManager implements DataBaseManager {
     private String changLogName;
 
     ShardDatabaseManager(
-            Environment env)
+            Environment env,
+            ResourceLoader resourceLoader)
     {
         this.env = env;
         this.liquibaseManager = new LiquibaseManagerImpl();
+        this.resourceLoader = resourceLoader;
 
         getProperties();
-        runInitLiquibase();
+
+        runLiquibase();
+        //runInitLiquibase();
     }
 
     private void getProperties() {
+        this.changLogPath = env.getProperty(CHANGE_LOG_PATH, DEFAULT_CHANGE_LOG_PATH);
+        this.changLogName = env.getProperty(CHANGE_LOG_NAME, DEFAULT_CHANGE_LOG_NAME);
+
         int clusterCount = 0;
-
-
         String clusterName = env.getProperty(String.format(CLUSTER_NAME, clusterCount));
         while (Objects.nonNull(clusterName)) {
             Cluster cluster = new Cluster();
@@ -220,13 +232,64 @@ public class ShardDatabaseManager implements DataBaseManager {
         liquibaseManager.waitAll();
     }
 
+    private String getChangeLogFileName(String path) {
+        return path + File.pathSeparator + this.changLogName;
+    }
+
+    private void runLiquibaseFromPath(String path, Shard shard) {
+        Optional.of(path + File.separatorChar + this.changLogName)
+                .filter(src -> resourceLoader.getResource(src).exists())
+                .ifPresent(changeLog -> runLiquibase(shard, changeLog));
+    }
+
+    private void runLiquibaseFromPath(String path, Cluster cluster) {
+        Optional.of(path + File.separatorChar + this.changLogName)
+                .filter(src -> resourceLoader.getResource(src).exists())
+                .ifPresent(changeLog -> runLiquibase(cluster, changeLog));
+    }
+
+    private void runLiquibaseFromPath(String path) {
+        Optional.of(path + File.separatorChar + this.changLogName)
+                .filter(src -> resourceLoader.getResource(src).exists())
+                .ifPresent(this::runLiquibase);
+    }
+
     private void runLiquibase() {
-        if (new File(this.changLogPath).isDirectory()) {
-            String changeLog = this.changLogPath + File.pathSeparator + this.changLogName;
-            if (new File(changeLog).isFile()) {
-                runLiquibase(changeLog);
-            }
-        }
+        Optional.of(this.changLogPath)
+                .filter(src -> resourceLoader.getResource(src).exists())
+                .ifPresent(path -> {
+                    Optional.of(path + File.separatorChar + CLUSTERS_PATH)
+                            .filter(src -> resourceLoader.getResource(src).exists())
+                            .ifPresent(clustersPath -> {
+                                runLiquibaseFromPath(clustersPath);
+                                clusters.forEach((clusterName, cluster) -> {
+                                    Optional.of(clustersPath + File.separatorChar + clusterName)
+                                            .filter(src -> resourceLoader.getResource(src).exists())
+                                            .ifPresent(clusterPath -> {
+
+
+                                                Optional.of(clusterPath + File.separatorChar + SHARDS_PATH)
+                                                        .filter(src -> resourceLoader.getResource(src).exists())
+                                                        .ifPresent(shardsPath -> {
+                                                            runLiquibaseFromPath(shardsPath, cluster);
+                                                            cluster
+                                                                    .getShards()
+                                                                    .forEach(shard ->
+                                                                            runLiquibaseFromPath(
+                                                                                    shardsPath +
+                                                                                            File.separatorChar +
+                                                                                            shard.getId()
+                                                                                    , shard
+                                                                            )
+                                                                    );
+                                                        });
+                                                runLiquibaseFromPath(clusterPath, cluster.getMainShard());
+                                            });
+                                });
+                            });
+                    runLiquibaseFromPath(path, defaultCluster.getMainShard());
+                });
+
         liquibaseManager.waitAll();
     }
 
