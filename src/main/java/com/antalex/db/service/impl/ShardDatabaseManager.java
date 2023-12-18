@@ -66,7 +66,9 @@ public class ShardDatabaseManager implements DataBaseManager {
 
         getProperties();
 
-        runLiquibase();
+        Long id = getNextId(defaultCluster);
+
+        //runLiquibase();
         //runInitLiquibase();
     }
 
