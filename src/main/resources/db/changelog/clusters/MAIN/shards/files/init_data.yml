@@ -1,0 +1,14 @@
+databaseChangeLog:
+- changeSet:
+    id: 'test$shards$main_001'
+    author: Antalex
+    changes:
+      - insert:
+          tableName: APP_TEST
+          columns:
+            - column:
+                name: ID
+                value: 2
+            - column:
+                name: VALUE
+                value: IS_MAIN

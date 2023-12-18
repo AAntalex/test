@@ -10,7 +10,7 @@ hibernate:
 
 spring:
   liquibase:
-      enabled: false
+      enabled: true
 
 logging:
   level:
@@ -34,7 +34,7 @@ dbConfig:
             user: IBS
             pass: IBS
           main: true
-          id: 1
+          id: 2
     - name: RAW
       id: 3
       shards:

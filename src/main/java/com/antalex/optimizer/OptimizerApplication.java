@@ -45,11 +45,11 @@ public class OptimizerApplication {
 
             for (int i = 0; i < 10000; i++) {
 
-//                dbStatement.executeQuery("INSERT INTO IBS.Z#VND_ADD_PARAMS (ID, C_PARENT_ID, C_CODE, C_VALUE) VALUES (SEQ_ID.Nextval, 'TEST', SEQ_ID.Nextval, '1')");
+//                dbStatement.executeQuery("INSERT INTO IBS.Z#VND_ADD_PARAMS (ID, C_PARENT_ID, C_CODE, C_VALUE) VALUES (SEQ_ID.Nextval, 'TEST', SEQ_ID.Nextval, '2')");
 
-//                sql = sql.append("INSERT INTO IBS.Z#VND_ADD_PARAMS (ID, C_PARENT_ID, C_CODE, C_VALUE) VALUES (SEQ_ID.NEXTVAL, 'TEST', SEQ_ID.Nextval, '1');\n");
+//                sql = sql.append("INSERT INTO IBS.Z#VND_ADD_PARAMS (ID, C_PARENT_ID, C_CODE, C_VALUE) VALUES (SEQ_ID.NEXTVAL, 'TEST', SEQ_ID.Nextval, '2');\n");
 
-                preparedStatement.setString(1, "TEST");
+                preparedStatement.setString(2, "TEST");
                 preparedStatement.setString(2, "С_CODE" + Integer.toString(i));
                 preparedStatement.setString(3, "VALUE" + Integer.toString(i));
                 preparedStatement.addBatch();

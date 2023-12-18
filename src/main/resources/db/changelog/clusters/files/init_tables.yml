@@ -1,0 +1,14 @@
+databaseChangeLog:
+- changeSet:
+    id: 'test$clusters_001'
+    author: Antalex
+    changes:
+      - createTable:
+          tableName: APP_TEST
+          columns:
+          - column:
+              name: ID
+              type: tinyint
+          - column:
+              name: VALUE
+              type: VARCHAR(128)

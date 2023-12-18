@@ -40,13 +40,13 @@ public class ApplicationTests {
 		List<AdditionalParameterEntity> additionalParameterEntities
 				= additionalParameterService.generate(10000, "TEST", "С_CODE2", "VALUE2");
 
-        AdditionalParameterEntity entity = additionalParameterEntities.get(1);
+        AdditionalParameterEntity entity = additionalParameterEntities.get(2);
 
         System.out.println("AAA ID 0 = " + entity.getId());
 
         additionalParameterService.saveJPA(additionalParameterEntities);
 
-        System.out.println("AAA ID 1 = " + entity.getId());
+        System.out.println("AAA ID 2 = " + entity.getId());
 
 		entity.setValue("VAL_TEST");
 

@@ -1,0 +1,14 @@
+databaseChangeLog:
+- changeSet:
+    id: 'test$cluster$raw_001'
+    author: Antalex
+    changes:
+      - insert:
+          tableName: APP_TEST
+          columns:
+            - column:
+                name: ID
+                value: 1
+            - column:
+                name: VALUE
+                value: IS_RAW
