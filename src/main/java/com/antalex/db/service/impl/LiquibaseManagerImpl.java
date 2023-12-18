@@ -45,7 +45,7 @@ public class LiquibaseManagerImpl implements LiquibaseManager {
                 .map(liquibaseRuns::get)
                 .ifPresent(it -> {
                     try {
-                        log.debug(
+                        log.info(
                                 String.format(
                                         "Waiting thread %s for changelog \"%s\"...",
                                         it.getKey().getName(),

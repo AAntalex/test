@@ -15,5 +15,4 @@ public class Cluster {
     private Shard mainShard;
     private List<Shard> shards = new ArrayList<>();
     private Map<Short, Shard> shardMap = new HashMap<>();
-    private SequenceGenerator shardSequence;
 }

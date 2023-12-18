@@ -14,16 +14,16 @@ databaseChangeLog:
                 nullable: false
                 primaryKeyName: PK_SEQUENCE
           - column:
-              name: VALUE
+              name: C_VALUE
               type: bigint
           - column:
-              name: CACHE_SIZE
+              name: C_CACHE_SIZE
               type: bigint
           - column:
-              name: MIN_VALUE
+              name: C_MIN_VALUE
               type: bigint
           - column:
-              name: MAX_VALUE
+              name: C_MAX_VALUE
               type: bigint
       - createTable:
           tableName: APP_CLUSTER
@@ -36,7 +36,7 @@ databaseChangeLog:
                 nullable: false
                 primaryKeyName: PK_CLUSTER_ID
           - column:
-              name: NAME
+              name: C_NAME
               type: VARCHAR(128)
       - createTable:
           tableName: APP_SHARD
@@ -49,8 +49,8 @@ databaseChangeLog:
                 nullable: false
                 primaryKeyName: PK_SHARD_ID
           - column:
-              name: IS_MAIN
+              name: C_IS_MAIN
               type: boolean
           - column:
-              name: CLUSTER
+              name: C_CLUSTER
               type: tinyint

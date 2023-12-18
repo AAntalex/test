@@ -4,9 +4,9 @@ import com.antalex.db.model.Cluster;
 import com.antalex.db.model.Shard;
 import com.antalex.db.service.DataBaseManager;
 import com.antalex.db.service.LiquibaseManager;
+import com.antalex.db.service.SequenceGenerator;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.env.Environment;
-import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.stereotype.Service;
@@ -24,6 +24,7 @@ public class ShardDatabaseManager implements DataBaseManager {
     private static final int MAX_CLUSTERS = 100;
 
     private static final String INIT_CHANGE_LOG = "db/core/db.changelog-init.yaml";
+    private static final String CLASSPATH = "classpath:";
     private static final String DEFAULT_CHANGE_LOG_PATH = "classpath:db/changelog";
     private static final String DEFAULT_CHANGE_LOG_NAME = "db.changelog-master.yaml";
     private static final String CLUSTERS_PATH = "clusters";
@@ -48,6 +49,10 @@ public class ShardDatabaseManager implements DataBaseManager {
     private Cluster defaultCluster;
     private Map<String, Cluster> clusters = new HashMap<>();
     private Map<Short, Cluster> clusterIds = new HashMap<>();
+    private Map<Cluster, SequenceGenerator> shardSequences = new HashMap<>();
+    private Map<Cluster, SequenceGenerator> sequences = new HashMap<>();
+
+
     private String changLogPath;
     private String changLogName;
 
@@ -63,6 +68,17 @@ public class ShardDatabaseManager implements DataBaseManager {
 
         runLiquibase();
         //runInitLiquibase();
+    }
+
+    public Long getNextId(Cluster cluster) {
+        if (Objects.isNull(cluster)) {
+            return null;
+        }
+        if (!sequences.containsKey(cluster)) {
+            SequenceGenerator sequenceGenerator = new ApplicationSequenceGenerator("SEQ_ID", cluster.getMainShard().getDataSource());
+            sequences.put(cluster, sequenceGenerator);
+        }
+        return sequences.get(cluster).nextValue();
     }
 
     private void getProperties() {
@@ -124,7 +140,7 @@ public class ShardDatabaseManager implements DataBaseManager {
                         "Number of shards in cluster cannot be more than " + MAX_SHARDS
                 );
             }
-            cluster.setShardSequence(new SimpleSequenceGenerator(1L, (long) MAX_SHARDS));
+            shardSequences.put(cluster, new SimpleSequenceGenerator(1L, (long) MAX_SHARDS));
             this.addCluster(clusterName, cluster);
 
             clusterCount++;
@@ -208,7 +224,11 @@ public class ShardDatabaseManager implements DataBaseManager {
 
     private void runLiquibase(Shard shard, String changeLog) {
         try {
-            liquibaseManager.runThread(getConnection(shard), shard, changeLog);
+            liquibaseManager.runThread(
+                    getConnection(shard),
+                    shard,
+                    changeLog.startsWith(CLASSPATH) ? changeLog.substring(CLASSPATH.length()) : changeLog
+            );
         } catch (Exception err) {
             throw new RuntimeException(err);
         }
@@ -255,7 +275,7 @@ public class ShardDatabaseManager implements DataBaseManager {
     }
 
     private void runLiquibase() {
-        Optional.of(this.changLogPath)
+        Optional.ofNullable(this.changLogPath)
                 .filter(src -> resourceLoader.getResource(src).exists())
                 .ifPresent(path -> {
                     Optional.of(path + File.separatorChar + CLUSTERS_PATH)
@@ -266,8 +286,7 @@ public class ShardDatabaseManager implements DataBaseManager {
                                     Optional.of(clustersPath + File.separatorChar + clusterName)
                                             .filter(src -> resourceLoader.getResource(src).exists())
                                             .ifPresent(clusterPath -> {
-
-
+                                                runLiquibaseFromPath(clusterPath, cluster);
                                                 Optional.of(clusterPath + File.separatorChar + SHARDS_PATH)
                                                         .filter(src -> resourceLoader.getResource(src).exists())
                                                         .ifPresent(shardsPath -> {
@@ -283,7 +302,6 @@ public class ShardDatabaseManager implements DataBaseManager {
                                                                             )
                                                                     );
                                                         });
-                                                runLiquibaseFromPath(clusterPath, cluster.getMainShard());
                                             });
                                 });
                             });
