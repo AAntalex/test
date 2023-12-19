@@ -7,7 +7,7 @@ databaseChangeLog:
           tableName: APP_SEQUENCE
           columns:
           - column:
-              name: SEQUENCE
+              name: C_SEQUENCE
               type: VARCHAR(40)
               constraints:
                 primaryKey: true

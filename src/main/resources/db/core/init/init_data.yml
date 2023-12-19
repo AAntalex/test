@@ -6,7 +6,7 @@ databaseChangeLog:
       - onFail: MARK_RAN
       - sqlCheck:
           expectedResult: 0
-          sql: "select count(*) from APP_SEQUENCE where SEQUENCE = 'SEQ_ID'"
+          sql: "select count(*) from APP_SEQUENCE where C_SEQUENCE = 'SEQ_ID'"
     changes:
       - insert:
           tableName: APP_SEQUENCE

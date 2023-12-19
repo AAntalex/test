@@ -66,10 +66,10 @@ public class ShardDatabaseManager implements DataBaseManager {
 
         getProperties();
 
-        Long id = getNextId(defaultCluster);
+        runInitLiquibase();
+//        Long id = getNextId(defaultCluster);
 
         //runLiquibase();
-        //runInitLiquibase();
     }
 
     public Long getNextId(Cluster cluster) {
@@ -77,7 +77,10 @@ public class ShardDatabaseManager implements DataBaseManager {
             return null;
         }
         if (!sequences.containsKey(cluster)) {
-            SequenceGenerator sequenceGenerator = new ApplicationSequenceGenerator("SEQ_ID", cluster.getMainShard().getDataSource());
+            SequenceGenerator sequenceGenerator = new ApplicationSequenceGenerator(
+                    "SEQ_ID",
+                    cluster.getMainShard().getDataSource()
+            );
             sequences.put(cluster, sequenceGenerator);
         }
         return sequences.get(cluster).nextValue();

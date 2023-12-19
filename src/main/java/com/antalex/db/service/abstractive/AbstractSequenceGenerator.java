@@ -25,9 +25,7 @@ public abstract class AbstractSequenceGenerator implements SequenceGenerator {
                 || Objects.nonNull(this.maxValue) && Long.compare(this.value, this.maxValue) > 0)
         {
             init();
-        } else {
-            this.value++;
         }
-        return this.value;
+        return this.value++;
     }
 }
