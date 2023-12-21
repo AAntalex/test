@@ -11,12 +11,11 @@ import java.util.Objects;
 import java.util.Optional;
 
 public class ApplicationSequenceGenerator extends AbstractSequenceGenerator {
-    private static final String QUERY_LOCK = "SELECT C_VALUE, C_MIN_VALUE, C_CACHE_SIZE\n" +
+    private static final String QUERY_LOCK = "SELECT LAST_VALUE,MIN_VALUE,CACHE_SIZE,MAX_VALUE,CYCLE_FLAG\n" +
             "  FROM APP_SEQUENCE\n" +
-            "WHERE C_SEQUENCE = ? FOR UPDATE\n";
+            "WHERE SEQUENCE_NAME = ? FOR UPDATE";
 
-    private static final String QUERY_UPDATE = "UPDATE APP_SEQUENCE \n" +
-            "   SET C_VALUE = ? WHERE C_SEQUENCE = ?";
+    private static final String QUERY_UPDATE = "UPDATE APP_SEQUENCE SET LAST_VALUE = ? WHERE SEQUENCE_NAME = ?";
 
     private String name;
     private DataSource dataSource;
@@ -54,15 +53,36 @@ public class ApplicationSequenceGenerator extends AbstractSequenceGenerator {
                 }
                 this.maxValue = Optional.ofNullable(cacheSize)
                         .map(it -> this.value + it)
-                        .orElse(this.value + resultSet.getLong(3));
-            }
-            preparedStatement = connection.prepareStatement(QUERY_UPDATE);
-            preparedStatement.setLong(1, this.maxValue);
-            preparedStatement.setString(2, this.name);
-            if (preparedStatement.executeUpdate() == 0) {
-                throw new RuntimeException(String.format("Ошбка инициализации счетчика \"%s\"", this.name));
-            }
+                        .orElse(this.value + Long.max(resultSet.getLong(3), 1L));
 
+                preparedStatement = connection.prepareStatement(QUERY_UPDATE);
+
+                Long sequenceMaxValue = resultSet.getLong(4);
+                if (!resultSet.wasNull() && this.maxValue.compareTo(sequenceMaxValue) > 0) {
+                    this.maxValue = sequenceMaxValue;
+                    if (resultSet.getBoolean(5)) {
+                        preparedStatement.setLong(1, resultSet.getLong(2));
+                    } else {
+                        if (this.value.compareTo(this.maxValue) >= 0) {
+                            connection.rollback();
+                            throw new RuntimeException(
+                                    String.format(
+                                            "Достигли придельнго значения счетчика \"%s\" - %d",
+                                            this.name,
+                                            this.maxValue
+                                    )
+                            );
+                        }
+                    }
+                } else {
+                    preparedStatement.setLong(1, this.maxValue);
+                }
+                preparedStatement.setString(2, this.name);
+                if (preparedStatement.executeUpdate() == 0) {
+                    connection.rollback();
+                    throw new RuntimeException(String.format("Ошбка инициализации счетчика \"%s\"", this.name));
+                }
+            }
             connection.commit();
         } catch (Exception err) {
             throw new RuntimeException(err);

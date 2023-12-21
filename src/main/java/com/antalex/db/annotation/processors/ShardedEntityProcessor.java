@@ -8,9 +8,10 @@ import com.google.auto.service.AutoService;
 import org.springframework.stereotype.Repository;
 
 import javax.annotation.processing.*;
-import javax.lang.model.SourceVersion;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.TypeElement;
+import javax.persistence.Column;
+import javax.persistence.Table;
 import javax.tools.JavaFileObject;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -18,18 +19,20 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-@SupportedAnnotationTypes("ShardEntity")
-@SupportedSourceVersion(SourceVersion.RELEASE_8)
+@SupportedAnnotationTypes("com.antalex.db.annotation.ShardEntity")
 @AutoService(Processor.class)
 public class ShardedEntityProcessor extends AbstractProcessor {
     private static final String CLASS_POSTFIX = "RepositoryImpl$";
+    private static final String TABLE_PREFIX = "T_";
+    private static final String COLUMN_PREFIX = "C_";
 
     @Override
     public boolean process(Set<? extends TypeElement> set, RoundEnvironment roundEnvironment) {
         for (TypeElement annotation : set) {
             for (Element annotatedElement : roundEnvironment.getElementsAnnotatedWith(annotation)) {
                 final String annotatedElementName = annotatedElement.getSimpleName().toString();
-                final ShardEntity settings = annotatedElement.getAnnotation(ShardEntity.class);
+                final ShardEntity shardEntity = annotatedElement.getAnnotation(ShardEntity.class);
+                final Table table = annotatedElement.getAnnotation(Table.class);
 
                 try {
                     writeBuilderFile(
@@ -37,27 +40,47 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                                     .builder()
                                     .className(annotatedElementName + CLASS_POSTFIX)
                                     .targetClassName(annotatedElementName)
+                                    .tableName(
+                                            Optional.ofNullable(annotatedElement.getAnnotation(Table.class))
+                                                    .map(Table::name)
+                                                    .orElse(TABLE_PREFIX + annotatedElementName.toUpperCase())
+                                    )
                                     .classPackage(getPackage(annotatedElement.asType().toString()))
                                     .fields(
                                             annotatedElement.getEnclosedElements().stream()
                                                     .filter(this::isField)
                                                     .map(
-                                                            element ->
+                                                            e ->
                                                                     FieldDto
                                                                             .builder()
-                                                                            .fieldName(element.getSimpleName().toString())
+                                                                            .fieldName(
+                                                                                    e.getSimpleName().toString()
+                                                                            )
+                                                                            .columnName(
+                                                                                    Optional.ofNullable(
+                                                                                            e.getAnnotation(
+                                                                                                    Column.class
+                                                                                            )
+                                                                                    )
+                                                                                            .map(Column::name)
+                                                                                            .orElse(getColumnName(e))
+                                                                            )
                                                                             .build()
                                                     )
                                                     .collect(Collectors.toList())
                                     )
                                     .build()
                     );
-                } catch (IOException e) {
-                    e.printStackTrace();
+                } catch (IOException err) {
+                    err.printStackTrace();
                 }
             }
         }
         return true;
+    }
+
+    private String getColumnName(Element element) {
+        return COLUMN_PREFIX + element.getSimpleName().toString().toUpperCase();
     }
 
     private boolean isField(Element element) {

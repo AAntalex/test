@@ -8,4 +8,5 @@ import javax.sql.DataSource;
 public class Shard {
     private Short id;
     private DataSource dataSource;
+    private DataBaseInfo dataBaseInfo;
 }

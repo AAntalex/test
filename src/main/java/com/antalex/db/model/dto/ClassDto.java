@@ -11,5 +11,6 @@ public class ClassDto {
     private String className;
     private String classPackage;
     private String targetClassName;
+    private String tableName;
     private List<FieldDto> fields;
 }

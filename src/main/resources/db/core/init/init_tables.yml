@@ -7,50 +7,42 @@ databaseChangeLog:
           tableName: APP_SEQUENCE
           columns:
           - column:
-              name: C_SEQUENCE
+              name: SEQUENCE_NAME
               type: VARCHAR(40)
               constraints:
                 primaryKey: true
                 nullable: false
-                primaryKeyName: PK_SEQUENCE
+                primaryKeyName: PK_SEQUENCE_NAME
           - column:
-              name: C_VALUE
+              name: LAST_VALUE
               type: bigint
           - column:
-              name: C_CACHE_SIZE
+              name: CACHE_SIZE
               type: bigint
           - column:
-              name: C_MIN_VALUE
+              name: MIN_VALUE
               type: bigint
           - column:
-              name: C_MAX_VALUE
+              name: MAX_VALUE
               type: bigint
+          - column:
+              name: CYCLE_FLAG
+              type: boolean
       - createTable:
-          tableName: APP_CLUSTER
+          tableName: APP_DATABASE
           columns:
           - column:
-              name: ID
+              name: SHARD_ID
               type: tinyint
-              constraints:
-                primaryKey: true
-                nullable: false
-                primaryKeyName: PK_CLUSTER_ID
           - column:
-              name: C_NAME
-              type: VARCHAR(128)
-      - createTable:
-          tableName: APP_SHARD
-          columns:
-          - column:
-              name: ID
-              type: tinyint
-              constraints:
-                primaryKey: true
-                nullable: false
-                primaryKeyName: PK_SHARD_ID
-          - column:
-              name: C_IS_MAIN
+              name: MAIN_SHARD
               type: boolean
           - column:
-              name: C_CLUSTER
+              name: CLUSTER_ID
               type: tinyint
+          - column:
+              name: CLUSTER_NAME
+              type: VARCHAR(128)
+          - column:
+              name: DEFAULT_CLUSTER
+              type: boolean
