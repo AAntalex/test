@@ -10,7 +10,7 @@ hibernate:
 
 spring:
   liquibase:
-      enabled: true
+      enabled: false
 
 logging:
   level:
@@ -28,13 +28,6 @@ dbConfig:
             url: jdbc:oracle:thin:@d5cftm-apc005ln.corp.dev.vtb:1521/ELVIS
             user: IBS
             pass: IBS
-        - database:
-            driver: oracle.jdbc.driver.OracleDriver
-            url: jdbc:oracle:thin:@localhost:1521/eks
-            user: IBS
-            pass: IBS
-          main: true
-          id: 2
     - name: RAW
       id: 3
       shards:

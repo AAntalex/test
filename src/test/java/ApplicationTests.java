@@ -1,8 +1,8 @@
 import com.antalex.db.service.SequenceGenerator;
 import com.antalex.db.service.ShardEntityManager;
 import com.antalex.db.service.impl.ApplicationSequenceGenerator;
-import com.antalex.db.service.impl.ApplicationSequenceGenerator2;
 import com.antalex.db.service.impl.ShardDatabaseManager;
+import com.antalex.domain.persistence.entity.TestEntity;
 import com.antalex.domain.persistence.repository.AdditionalParameterRepository;
 import com.antalex.optimizer.OptimizerApplication;
 import com.antalex.domain.persistence.entity.AdditionalParameterEntity;
@@ -37,23 +37,24 @@ public class ApplicationTests {
 
 	@Autowired
 	private ShardEntityManager entityManager;
-
     @Autowired
     private ShardDatabaseManager databaseManager;
 
 
 	@Test
 	public void ins() {
-
-
 		SequenceGenerator sequenceGenerator = new ApplicationSequenceGenerator("SEQ_ID", databaseManager.getDataSource());
 		((ApplicationSequenceGenerator) sequenceGenerator).setCacheSize(10000);
 
 		profiler.start("Тест0");
 
+		System.out.println("AAA START! SEQ APP =  " + sequenceGenerator.nextValue());
+
+		/*
 		for (int i = 0; i < 100000; i++) {
 			sequenceGenerator.nextValue();
 		}
+*/
 
 		profiler.stop();
 		System.out.println(profiler.printTimeCounter());
@@ -61,6 +62,7 @@ public class ApplicationTests {
 
 		profiler.start("Тест");
 
+		/*
 		List<AdditionalParameterEntity> additionalParameterEntities
 				= additionalParameterService.generate(10000, "TEST", "С_CODE2", "VALUE2");
 
@@ -75,8 +77,8 @@ public class ApplicationTests {
 		entity.setValue("VAL_TEST");
 
 		additionalParameterRepository.save(entity);
-
-//		entityManeger.save(additionalParameterEntities);
+*/
+//		entityManager.save(additionalParameterEntities);
 
 		profiler.stop();
 

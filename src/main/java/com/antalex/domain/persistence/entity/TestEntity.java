@@ -6,7 +6,7 @@ import com.antalex.db.entity.abstraction.BaseShardedEntity;
 
 import javax.persistence.*;
 
-@Table(name = "TEST")
+@Table(name = "T_TEST")
 @ShardEntity
 public class TestEntity extends BaseShardedEntity {
     @Column(name = "C_CODE")
