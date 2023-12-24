@@ -44,7 +44,7 @@ public class ApplicationTests {
 	@Test
 	public void ins() {
 		SequenceGenerator sequenceGenerator = new ApplicationSequenceGenerator("SEQ_ID", databaseManager.getDataSource());
-		((ApplicationSequenceGenerator) sequenceGenerator).setCacheSize(10000);
+		((ApplicationSequenceGenerator) sequenceGenerator).setCacheSize(100);
 
 		profiler.start("Тест0");
 

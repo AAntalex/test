@@ -3,7 +3,6 @@ package com.antalex.domain.persistence.repository;
 import com.antalex.db.model.enums.ShardType;
 import com.antalex.db.service.ShardEntityRepository;
 import com.antalex.domain.persistence.entity.AdditionalParameterEntity2;
-import com.sun.prism.GraphicsPipeline;
 import org.springframework.stereotype.Repository;
 
 import java.util.Objects;
