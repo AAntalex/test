@@ -7,6 +7,7 @@ public abstract class BaseShardedEntity implements ShardedEntity {
     protected Short cluster;
     protected Long shardValue;
 
+
     @Override
     public Long getId() {
         return id;
