@@ -1,6 +1,7 @@
 package com.antalex.db.service.impl;
 
 import com.antalex.db.entity.abstraction.ShardedEntity;
+import com.antalex.db.model.enums.ShardType;
 import com.antalex.db.service.ShardEntityManager;
 import com.antalex.db.service.ShardEntityRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -46,6 +47,14 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
         currentShardEntityRepository = REPOSITORIES.get(entity.getClass());
         currentSourceClass = entity.getClass();
         return (ShardEntityRepository<T>) currentShardEntityRepository;
+    }
+
+    @Override
+    public <T extends ShardedEntity> ShardType getShardType(T entity) {
+        if (Objects.isNull(entity)) {
+            return null;
+        }
+        return getEntityRepository(entity).getShardType();
     }
 
     @Override

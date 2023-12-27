@@ -6,6 +6,7 @@ import com.antalex.db.model.Shard;
 import com.antalex.db.service.DataBaseManager;
 import com.antalex.db.service.LiquibaseManager;
 import com.antalex.db.service.SequenceGenerator;
+import com.antalex.db.utils.ShardUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.springframework.core.env.Environment;
@@ -25,9 +26,6 @@ import java.util.*;
 @Slf4j
 @Service
 public class ShardDatabaseManager implements DataBaseManager {
-    private static final int MAX_SHARDS = 64;
-    private static final int MAX_CLUSTERS = 100;
-
     private static final String INIT_CHANGE_LOG = "db/core/db.changelog-init.yaml";
     private static final String CLASSPATH = "classpath:";
     private static final String DEFAULT_CHANGE_LOG_PATH = "classpath:db/changelog";
@@ -172,7 +170,7 @@ public class ShardDatabaseManager implements DataBaseManager {
     }
 
     private short getShardId(Cluster cluster) {
-        for (short i = 0; i < MAX_SHARDS; i++) {
+        for (short i = 0; i < ShardUtils.MAX_SHARDS; i++) {
             if (!cluster.getShardMap().containsKey(i)) {
                 return i;
             }
@@ -183,7 +181,7 @@ public class ShardDatabaseManager implements DataBaseManager {
     }
 
     private short getClusterId() {
-        for (short i = 0; i < MAX_SHARDS; i++) {
+        for (short i = 0; i < ShardUtils.MAX_SHARDS; i++) {
             if (!clusterIds.containsKey(i)) {
                 return i;
             }
@@ -348,8 +346,8 @@ public class ShardDatabaseManager implements DataBaseManager {
             }
             Assert.isTrue(shardCount > 0, "Property 'dbConfig.clusters.shards' must not be empty");
             Assert.isTrue(
-                    shardCount <= MAX_SHARDS,
-                    "Number of shards in cluster cannot be more than " + MAX_SHARDS
+                    shardCount <= ShardUtils.MAX_SHARDS,
+                    "Number of shards in cluster cannot be more than " + ShardUtils.MAX_SHARDS
             );
             shardSequences.put(cluster, new SimpleSequenceGenerator(1L, (long) cluster.getShards().size()));
             this.addCluster(clusterName, cluster);
@@ -359,8 +357,8 @@ public class ShardDatabaseManager implements DataBaseManager {
         }
         Assert.isTrue(clusterCount > 0, "Property 'dbConfig.clusters' must not be empty");
         Assert.isTrue(
-                clusterCount <= MAX_CLUSTERS,
-                "Number of clusters cannot be more than " + MAX_CLUSTERS
+                clusterCount <= ShardUtils.MAX_CLUSTERS,
+                "Number of clusters cannot be more than " + ShardUtils.MAX_CLUSTERS
         );
     }
 
@@ -378,8 +376,8 @@ public class ShardDatabaseManager implements DataBaseManager {
         if (Objects.isNull(id)) {
             return;
         }
-        if (cluster.getId() > MAX_CLUSTERS-1) {
-            throw new IllegalArgumentException("ID of cluster cannot be more than " + (MAX_CLUSTERS-1));
+        if (cluster.getId() > ShardUtils.MAX_CLUSTERS-1) {
+            throw new IllegalArgumentException("ID of cluster cannot be more than " + (ShardUtils.MAX_CLUSTERS-1));
         }
         if (clusterIds.containsKey(id)) {
             throw new IllegalArgumentException(
@@ -394,8 +392,8 @@ public class ShardDatabaseManager implements DataBaseManager {
         if (Objects.isNull(shard.getId())) {
             return;
         }
-        if (shard.getId() > MAX_SHARDS-1) {
-            throw new IllegalArgumentException("ID of Shard cannot be more than " + (MAX_SHARDS-1));
+        if (shard.getId() > ShardUtils.MAX_SHARDS-1) {
+            throw new IllegalArgumentException("ID of Shard cannot be more than " + (ShardUtils.MAX_SHARDS-1));
         }
         if (cluster.getShardMap().containsKey(shard.getId())) {
             throw new IllegalArgumentException(
