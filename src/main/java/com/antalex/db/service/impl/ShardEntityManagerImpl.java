@@ -54,7 +54,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
         if (Objects.isNull(entity)) {
             return null;
         }
-        return getEntityRepository(entity).getShardType();
+        return getEntityRepository(entity).getShardType(entity);
     }
 
     @Override

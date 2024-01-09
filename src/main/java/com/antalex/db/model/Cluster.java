@@ -1,6 +1,5 @@
 package com.antalex.db.model;
 
-import com.antalex.db.service.SequenceGenerator;
 import lombok.Data;
 
 import java.util.ArrayList;

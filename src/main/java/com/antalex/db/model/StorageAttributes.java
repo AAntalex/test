@@ -5,9 +5,8 @@ import lombok.Data;
 
 @Data
 public class StorageAttributes {
-    private Long id;
-    private Short cluster;
-    private Short shard;
+    private Cluster cluster;
+    private Shard shard;
     private Long shardValue;
     private Boolean stored;
     private ShardType shardType;

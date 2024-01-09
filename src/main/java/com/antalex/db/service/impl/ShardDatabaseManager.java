@@ -3,7 +3,9 @@ package com.antalex.db.service.impl;
 import com.antalex.db.model.Cluster;
 import com.antalex.db.model.DataBaseInfo;
 import com.antalex.db.model.Shard;
-import com.antalex.db.service.DataBaseManager;
+import com.antalex.db.model.StorageAttributes;
+import com.antalex.db.model.enums.ShardType;
+import com.antalex.db.service.ShardDataBaseManager;
 import com.antalex.db.service.LiquibaseManager;
 import com.antalex.db.service.SequenceGenerator;
 import com.antalex.db.utils.ShardUtils;
@@ -25,13 +27,16 @@ import java.util.*;
 
 @Slf4j
 @Service
-public class ShardDatabaseManager implements DataBaseManager {
+public class ShardDatabaseManager implements ShardDataBaseManager {
     private static final String INIT_CHANGE_LOG = "db/core/db.changelog-init.yaml";
     private static final String CLASSPATH = "classpath:";
     private static final String DEFAULT_CHANGE_LOG_PATH = "classpath:db/changelog";
     private static final String DEFAULT_CHANGE_LOG_NAME = "db.changelog-master.yaml";
     private static final String CLUSTERS_PATH = "clusters";
     private static final String SHARDS_PATH = "shards";
+
+    private static final String CLUSTER_DEFAULT_NAME = "DEFAULT";
+    private static final String MAIN_SEQUENCE = "SEQ_ID";
 
     private static final String CHANGE_LOG_PATH = "dbConfig.liquibase.change-log-src";
     private static final String CHANGE_LOG_NAME = "dbConfig.liquibase.change-log-name";
@@ -82,24 +87,86 @@ public class ShardDatabaseManager implements DataBaseManager {
         //runLiquibase();
     }
 
-    private void processDataBaseInfo() {
-        getDataBaseInfo();
-        checkDataBaseInfo();
-        saveDataBaseInfo();
+    @Override
+    public Connection getConnection() throws SQLException {
+        return getConnection(defaultCluster.getMainShard());
     }
 
+    @Override
+    public DataSource getDataSource() {
+        return defaultCluster.getMainShard().getDataSource();
+    }
+
+    @Override
+    public Cluster getCluster(Short id) {
+        Assert.notNull(id, "Не указан идентификатор кластера");
+        Cluster cluster = clusterIds.get(id);
+        Assert.notNull(cluster, String.format("Отсутсвует кластер с идентификатором '%d'", id));
+        return cluster;
+    }
+
+    @Override
+    public Cluster getCluster(String clusterName) {
+        Assert.notNull(clusterName, "Не указано наименование кластера");
+        Cluster cluster = clusters.get(clusterName);
+        Assert.notNull(cluster, String.format("Отсутсвует кластер с наименованием '%s'", clusterName));
+        return cluster;
+    }
+
+    @Override
+    public Shard getShard(Cluster cluster, Short id) {
+        Assert.notNull(cluster, "Не указан кластер");
+        Assert.notNull(id, "Не указан идентификатор шарды");
+        Shard shard = cluster.getShardMap().get(id);
+        Assert.notNull(
+                cluster,
+                String.format("Отсутсвует шарда с идентификатором '%d' в кластере '%s'", id, cluster.getName())
+        );
+        return shard;
+    }
+
+    @Override
     public Long getNextId(Cluster cluster) {
         if (Objects.isNull(cluster)) {
             return null;
         }
         if (!sequences.containsKey(cluster)) {
             SequenceGenerator sequenceGenerator = new ApplicationSequenceGenerator(
-                    "SEQ_ID",
+                    MAIN_SEQUENCE,
                     cluster.getMainShard().getDataSource()
             );
             sequences.put(cluster, sequenceGenerator);
         }
         return sequences.get(cluster).nextValue();
+    }
+
+    @Override
+    public Connection getConnection(Short clusterId, Short shardId) throws SQLException {
+        return getConnection(
+                Optional.ofNullable(clusterId)
+                        .map(clusterIds::get)
+                        .map(Cluster::getShards)
+                        .map(it -> it.get(shardId))
+                        .orElse(null)
+        );
+    }
+
+    @Override
+    public StorageAttributes getStorageAttributes(Short id, Long shardValue, ShardType shardType) {
+        Assert.notNull(id, "Не указан идентификатор сущности");
+        StorageAttributes storageAttributes = new StorageAttributes();
+        storageAttributes.setStored(true);
+        storageAttributes.setCluster(getCluster((short) (id / ShardUtils.MAX_SHARDS % ShardUtils.MAX_CLUSTERS)));
+        storageAttributes.setShard(getShard(storageAttributes.getCluster(), (short) (id % ShardUtils.MAX_SHARDS)));
+        storageAttributes.setShardValue(shardValue);
+        storageAttributes.setShardType(shardType);
+        return storageAttributes;
+    }
+
+    private void processDataBaseInfo() {
+        getDataBaseInfo();
+        checkDataBaseInfo();
+        saveDataBaseInfo();
     }
 
     private void checkShardID(Cluster cluster, Shard shard, short shardId) {
@@ -420,16 +487,6 @@ public class ShardDatabaseManager implements DataBaseManager {
         );
     }
 
-    public Connection getConnection(Short clusterId, Short shardId) throws SQLException {
-        return getConnection(
-                Optional.ofNullable(clusterId)
-                        .map(clusterIds::get)
-                        .map(Cluster::getShards)
-                        .map(it -> it.get(shardId))
-                        .orElse(null)
-        );
-    }
-
     private void runLiquibase(Shard shard, String changeLog) {
         try {
             liquibaseManager.runThread(
@@ -513,15 +570,5 @@ public class ShardDatabaseManager implements DataBaseManager {
                 });
 
         liquibaseManager.waitAll();
-    }
-
-    @Override
-    public Connection getConnection() throws SQLException {
-        return getConnection(defaultCluster.getMainShard());
-    }
-
-    @Override
-    public DataSource getDataSource() {
-        return defaultCluster.getMainShard().getDataSource();
     }
 }
