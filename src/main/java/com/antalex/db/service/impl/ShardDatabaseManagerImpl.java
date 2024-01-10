@@ -27,7 +27,7 @@ import java.util.*;
 
 @Slf4j
 @Service
-public class ShardDatabaseManager implements ShardDataBaseManager {
+public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     private static final String INIT_CHANGE_LOG = "db/core/db.changelog-init.yaml";
     private static final String CLASSPATH = "classpath:";
     private static final String DEFAULT_CHANGE_LOG_PATH = "classpath:db/changelog";
@@ -70,7 +70,7 @@ public class ShardDatabaseManager implements ShardDataBaseManager {
     private String changLogPath;
     private String changLogName;
 
-    ShardDatabaseManager(
+    ShardDatabaseManagerImpl(
             Environment env,
             ResourceLoader resourceLoader)
     {
@@ -126,18 +126,28 @@ public class ShardDatabaseManager implements ShardDataBaseManager {
     }
 
     @Override
-    public Long getNextId(Cluster cluster) {
-        if (Objects.isNull(cluster)) {
-            return null;
-        }
-        if (!sequences.containsKey(cluster)) {
-            SequenceGenerator sequenceGenerator = new ApplicationSequenceGenerator(
-                    MAIN_SEQUENCE,
-                    cluster.getMainShard().getDataSource()
+    public Long generateId(StorageAttributes storageAttributes) {
+        Assert.notNull(storageAttributes, "Не определены аттрибуты хранения");
+        Assert.notNull(
+                storageAttributes.getCluster(),
+                "Не верно определены аттрибуты хранения. Не определен кластер"
+        );
+        if (Objects.isNull(storageAttributes.getShard())) {
+            storageAttributes.setShard(
+                    getNextShard(storageAttributes.getCluster())
             );
-            sequences.put(cluster, sequenceGenerator);
         }
-        return sequences.get(cluster).nextValue();
+        SequenceGenerator sequenceGenerator = sequences.get(storageAttributes.getCluster());
+        if (!sequences.containsKey(storageAttributes.getCluster())) {
+            sequenceGenerator = new ApplicationSequenceGenerator(
+                    MAIN_SEQUENCE,
+                    storageAttributes.getCluster().getMainShard().getDataSource()
+            );
+            sequences.put(storageAttributes.getCluster(), sequenceGenerator);
+        }
+        return (
+                sequenceGenerator.nextValue() * ShardUtils.MAX_CLUSTERS + storageAttributes.getCluster().getId()
+        ) * ShardUtils.MAX_SHARDS + storageAttributes.getShard().getId();
     }
 
     @Override
@@ -161,6 +171,10 @@ public class ShardDatabaseManager implements ShardDataBaseManager {
         storageAttributes.setShardValue(shardValue);
         storageAttributes.setShardType(shardType);
         return storageAttributes;
+    }
+
+    private Shard getNextShard(Cluster cluster) {
+        return cluster.getShards().get((int) shardSequences.get(cluster).nextValue());
     }
 
     private void processDataBaseInfo() {

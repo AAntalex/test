@@ -15,7 +15,7 @@ public interface ShardDataBaseManager {
     Cluster getCluster(Short id);
     Cluster getCluster(String clusterName);
     Shard getShard(Cluster cluster, Short id);
-    Long getNextId(Cluster cluster);
+    Long generateId(StorageAttributes storageAttributes);
     Connection getConnection(Short clusterId, Short shardId) throws SQLException;
     StorageAttributes getStorageAttributes(Short id, Long shardValue, ShardType shardType);
 }
