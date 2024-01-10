@@ -31,8 +31,8 @@ dbConfig:
         - database:
             driver: oracle.jdbc.driver.OracleDriver
             url: jdbc:oracle:thin:@localhost:1521/eks
-            user: IBS
-            pass: IBS
+            user: TEST
+            pass: TEST
           main: true
           id: 2
     - name: RAW

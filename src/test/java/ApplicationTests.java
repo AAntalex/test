@@ -1,27 +1,16 @@
 import com.antalex.db.service.SequenceGenerator;
+import com.antalex.db.service.ShardDataBaseManager;
 import com.antalex.db.service.ShardEntityManager;
 import com.antalex.db.service.impl.ApplicationSequenceGenerator;
-import com.antalex.db.service.impl.ShardDatabaseManager;
-import com.antalex.domain.persistence.entity.TestEntity;
 import com.antalex.domain.persistence.repository.AdditionalParameterRepository;
 import com.antalex.optimizer.OptimizerApplication;
-import com.antalex.domain.persistence.entity.AdditionalParameterEntity;
-import com.antalex.profiler.model.TimeCounter;
 import com.antalex.profiler.service.ProfilerService;
 import com.antalex.service.AdditionalParameterService;
-import liquibase.precondition.core.PreconditionContainer;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
-
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.Types;
-import java.util.List;
-import java.util.Objects;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes = OptimizerApplication.class)
@@ -38,7 +27,7 @@ public class ApplicationTests {
 	@Autowired
 	private ShardEntityManager entityManager;
     @Autowired
-    private ShardDatabaseManager databaseManager;
+    private ShardDataBaseManager databaseManager;
 
 
 	@Test
