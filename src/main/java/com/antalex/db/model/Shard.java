@@ -9,4 +9,5 @@ public class Shard {
     private Short id;
     private DataSource dataSource;
     private DataBaseInfo dataBaseInfo;
+    private String owner;
 }

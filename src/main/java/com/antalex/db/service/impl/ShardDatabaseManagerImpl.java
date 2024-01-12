@@ -34,8 +34,6 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     private static final String DEFAULT_CHANGE_LOG_NAME = "db.changelog-master.yaml";
     private static final String CLUSTERS_PATH = "clusters";
     private static final String SHARDS_PATH = "shards";
-
-    private static final String CLUSTER_DEFAULT_NAME = "DEFAULT";
     private static final String MAIN_SEQUENCE = "SEQ_ID";
 
     private static final String CHANGE_LOG_PATH = "dbConfig.liquibase.change-log-src";
@@ -49,10 +47,12 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     private static final String SHARD_DB_URL = "dbConfig.clusters[%d].shards[%d].database.url";
     private static final String SHARD_DB_USER = "dbConfig.clusters[%d].shards[%d].database.user";
     private static final String SHARD_DB_PASS = "dbConfig.clusters[%d].shards[%d].database.pass";
+    private static final String SHARD_DB_OWNER = "dbConfig.clusters[%d].shards[%d].database.owner";
+
 
     private static final String SELECT_DB_INFO = "SELECT SHARD_ID,MAIN_SHARD,CLUSTER_ID,CLUSTER_NAME,DEFAULT_CLUSTER" +
-            " FROM APP_DATABASE";
-    private static final String INS_DB_INFO = "INSERT INTO APP_DATABASE " +
+            " FROM $$$.APP_DATABASE";
+    private static final String INS_DB_INFO = "INSERT INTO $$$.APP_DATABASE " +
             "(SHARD_ID,MAIN_SHARD,CLUSTER_ID,CLUSTER_NAME,DEFAULT_CLUSTER) " +
             " VALUES (?, ?, ?, ?, ?)";
 
@@ -82,8 +82,6 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         runInitLiquibase();
         processDataBaseInfo();
 
-//        Long id = getNextId(defaultCluster);
-
         //runLiquibase();
     }
 
@@ -108,9 +106,13 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     @Override
     public Cluster getCluster(String clusterName) {
         Assert.notNull(clusterName, "Не указано наименование кластера");
-        Cluster cluster = clusters.get(clusterName);
-        Assert.notNull(cluster, String.format("Отсутсвует кластер с наименованием '%s'", clusterName));
-        return cluster;
+        if (ShardUtils.DEFAULT_CLUSTER_NAME.equals(clusterName)) {
+            return defaultCluster;
+        } else {
+            Cluster cluster = clusters.get(clusterName);
+            Assert.notNull(cluster, String.format("Отсутсвует кластер с наименованием '%s'", clusterName));
+            return cluster;
+        }
     }
 
     @Override
@@ -141,7 +143,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         if (!sequences.containsKey(storageAttributes.getCluster())) {
             sequenceGenerator = new ApplicationSequenceGenerator(
                     MAIN_SEQUENCE,
-                    storageAttributes.getCluster().getMainShard().getDataSource()
+                    storageAttributes.getCluster().getMainShard()
             );
             sequences.put(storageAttributes.getCluster(), sequenceGenerator);
         }
@@ -298,7 +300,9 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     private void getDataBaseInfo(Shard shard) {
         try {
             Connection connection = shard.getDataSource().getConnection();
-            PreparedStatement preparedStatement = connection.prepareStatement(SELECT_DB_INFO);
+            PreparedStatement preparedStatement = connection.prepareStatement(
+                    ShardUtils.transformSQL(SELECT_DB_INFO, shard)
+            );
             ResultSet resultSet = preparedStatement.executeQuery();
             if (resultSet.next()) {
                 shard.setDataBaseInfo(
@@ -353,7 +357,9 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
             );
             try {
                 Connection connection = shard.getDataSource().getConnection();
-                PreparedStatement preparedStatement = connection.prepareStatement(INS_DB_INFO);
+                PreparedStatement preparedStatement = connection.prepareStatement(
+                        ShardUtils.transformSQL(INS_DB_INFO, shard)
+                );
 
                 preparedStatement.setShort(1, shard.getDataBaseInfo().getShardId());
                 preparedStatement.setBoolean(2, shard.getDataBaseInfo().isMainShard());
@@ -410,6 +416,10 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                         env.getProperty(String.format(SHARD_DB_PASS, clusterCount, shardCount))
                 );
                 shard.setDataSource(dataSource);
+                shard.setOwner(env.getProperty(String.format(SHARD_DB_OWNER, clusterCount, shardCount)));
+                if (Objects.isNull(shard.getOwner())) {
+                    shard.setOwner(dataSource.getUsername());
+                }
                 shard.setId(
                         Optional.ofNullable(env.getProperty(String.format(SHARD_ID, clusterCount, shardCount)))
                                 .map(Short::valueOf)
@@ -506,7 +516,8 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
             liquibaseManager.runThread(
                     getConnection(shard),
                     shard,
-                    changeLog.startsWith(CLASSPATH) ? changeLog.substring(CLASSPATH.length()) : changeLog
+                    changeLog.startsWith(CLASSPATH) ? changeLog.substring(CLASSPATH.length()) : changeLog,
+                    shard.getOwner()
             );
         } catch (Exception err) {
             throw new RuntimeException(err);

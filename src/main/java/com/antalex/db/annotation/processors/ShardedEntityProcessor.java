@@ -1,6 +1,7 @@
 package com.antalex.db.annotation.processors;
 
 import com.antalex.db.annotation.ShardEntity;
+import com.antalex.db.model.enums.ShardType;
 import com.antalex.db.service.ShardEntityRepository;
 import com.antalex.db.model.dto.ClassDto;
 import com.antalex.db.model.dto.FieldDto;
@@ -32,7 +33,6 @@ public class ShardedEntityProcessor extends AbstractProcessor {
             for (Element annotatedElement : roundEnvironment.getElementsAnnotatedWith(annotation)) {
                 final String annotatedElementName = annotatedElement.getSimpleName().toString();
                 final ShardEntity shardEntity = annotatedElement.getAnnotation(ShardEntity.class);
-                final Table table = annotatedElement.getAnnotation(Table.class);
 
                 try {
                     writeBuilderFile(
@@ -46,6 +46,8 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                                                     .orElse(TABLE_PREFIX + annotatedElementName.toUpperCase())
                                     )
                                     .classPackage(getPackage(annotatedElement.asType().toString()))
+                                    .cluster(shardEntity.cluster())
+                                    .shardType(shardEntity.type())
                                     .fields(
                                             annotatedElement.getEnclosedElements().stream()
                                                     .filter(this::isField)
@@ -101,6 +103,7 @@ public class ShardedEntityProcessor extends AbstractProcessor {
             out.println();
             out.println("import " + ShardEntityRepository.class.getCanonicalName() + ";");
             out.println("import " + Repository.class.getCanonicalName() + ";");
+            out.println("import " + ShardType.class.getCanonicalName() + ";");
             out.println();
             out.println("@Repository");
             out.println("public class " +
@@ -108,12 +111,22 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                     " implements ShardEntityRepository<" +
                     classDto.getTargetClassName() + "> {"
             );
+            out.println("    private static final String CLUSTER = \"" + classDto.getCluster() + "\";");
+            out.println(
+                    "     private static final ShardType SHARD_TYPE = ShardType." + classDto.getShardType().name() + ";"
+            );
             out.println();
             out.println("    @Override");
             out.println("    public " + classDto.getTargetClassName() +
                     " save(" + classDto.getTargetClassName() + " entity) {"
             );
             out.println("       return null;");
+            out.println("   }");
+            out.println();
+
+            out.println("    @Override");
+            out.println("    public ShardType getShardType(" + classDto.getTargetClassName() + " entity) {");
+            out.println("       return SHARD_TYPE;");
             out.println("   }");
             out.println();
 

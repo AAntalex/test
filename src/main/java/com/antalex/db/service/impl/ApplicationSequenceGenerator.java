@@ -1,6 +1,8 @@
 package com.antalex.db.service.impl;
 
+import com.antalex.db.model.Shard;
 import com.antalex.db.service.abstractive.AbstractSequenceGenerator;
+import com.antalex.db.utils.ShardUtils;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
@@ -12,19 +14,20 @@ import java.util.Optional;
 
 public class ApplicationSequenceGenerator extends AbstractSequenceGenerator {
     private static final String QUERY_LOCK = "SELECT LAST_VALUE,MIN_VALUE,CACHE_SIZE,MAX_VALUE,CYCLE_FLAG\n" +
-            "  FROM APP_SEQUENCE\n" +
+            "  FROM $$$.APP_SEQUENCE\n" +
             "WHERE SEQUENCE_NAME = ? FOR UPDATE";
 
-    private static final String QUERY_UPDATE = "UPDATE APP_SEQUENCE SET LAST_VALUE = ? WHERE SEQUENCE_NAME = ?";
+    private static final String QUERY_UPDATE = "UPDATE $$$.APP_SEQUENCE SET LAST_VALUE = ? WHERE SEQUENCE_NAME = ?";
 
     private String name;
-    private DataSource dataSource;
+    private Shard shard;
     private Integer cacheSize;
     private Connection connection;
 
-    public ApplicationSequenceGenerator(String name, DataSource dataSource) {
+    public ApplicationSequenceGenerator(String name, Shard shard) {
         this.name = name;
-        this.dataSource = dataSource;
+        this.shard = shard;
+
     }
 
     public void setCacheSize(Integer cacheSize) {
@@ -33,7 +36,7 @@ public class ApplicationSequenceGenerator extends AbstractSequenceGenerator {
 
     private Connection getConnection() throws SQLException {
         if (Objects.isNull(this.connection) || this.connection.isClosed()) {
-            this.connection = dataSource.getConnection();
+            this.connection = shard.getDataSource().getConnection();
             this.connection.setAutoCommit(false);
         }
         return this.connection;
@@ -43,7 +46,9 @@ public class ApplicationSequenceGenerator extends AbstractSequenceGenerator {
     public void init() {
         try {
             Connection connection = getConnection();
-            PreparedStatement preparedStatement = connection.prepareStatement(QUERY_LOCK);
+            PreparedStatement preparedStatement = connection.prepareStatement(
+                    ShardUtils.transformSQL(QUERY_LOCK, this.shard)
+            );
             preparedStatement.setString(1, this.name);
             ResultSet resultSet = preparedStatement.executeQuery();
             if (resultSet.next()) {
@@ -55,7 +60,9 @@ public class ApplicationSequenceGenerator extends AbstractSequenceGenerator {
                         .map(it -> this.value + it)
                         .orElse(this.value + Long.max(resultSet.getLong(3), 1L));
 
-                preparedStatement = connection.prepareStatement(QUERY_UPDATE);
+                preparedStatement = connection.prepareStatement(
+                        ShardUtils.transformSQL(QUERY_UPDATE, this.shard)
+                );
 
                 Long sequenceMaxValue = resultSet.getLong(4);
                 if (!resultSet.wasNull() && this.maxValue.compareTo(sequenceMaxValue) > 0) {

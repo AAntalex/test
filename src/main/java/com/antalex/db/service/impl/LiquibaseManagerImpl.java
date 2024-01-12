@@ -22,18 +22,21 @@ public class LiquibaseManagerImpl implements LiquibaseManager {
     private Map<Object, Pair<Thread, String>> liquibaseRuns = new HashMap<>();
 
     @Override
-    public void run(Connection connection, String changeLog) {
+    public void run(Connection connection, String changeLog, String catalogName) {
         try {
             Database database = DatabaseFactory.getInstance().findCorrectDatabaseImplementation(
                     new JdbcConnection(connection)
             );
-            Liquibase liquibase = new liquibase.Liquibase(
+            database.setDefaultCatalogName(catalogName);
+            Liquibase liquibase = new Liquibase(
                     changeLog,
                     new ClassLoaderResourceAccessor(),
                     database
 
             );
+
             liquibase.update(new Contexts(), new LabelExpression());
+
         } catch (Exception err) {
             throw new RuntimeException(err);
         }
@@ -74,10 +77,10 @@ public class LiquibaseManagerImpl implements LiquibaseManager {
     }
 
     @Override
-    public void runThread(Connection connection, Object o, String changeLog) {
+    public void runThread(Connection connection, Object o, String changeLog, String catalogName) {
         Thread thread = new Thread(() -> {
             try {
-                run(connection, changeLog);
+                run(connection, changeLog, catalogName);
             } catch (Exception err) {
                 throw new RuntimeException(err);
             }
