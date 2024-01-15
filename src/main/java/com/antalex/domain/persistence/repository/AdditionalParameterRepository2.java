@@ -28,6 +28,28 @@ public class AdditionalParameterRepository2 implements ShardEntityRepository<Add
             storageAttributes.setShardType(SHARD_TYPE);
             storageAttributes.setCluster(dataBaseManager.getCluster(CLUSTER));
             entity.setStorageAttributes(storageAttributes);
+
+
+            entity.setId(dataBaseManager.generateId(storageAttributes));
+        }
+        return entity;
+    }
+
+    public void setStorage(AdditionalParameterEntity2 entity, StorageAttributes storageAttributes) {
+        if (Objects.isNull(storageAttributes)) {
+
+        }
+    }
+
+    public AdditionalParameterEntity2 save(AdditionalParameterEntity2 entity, StorageAttributes storageAttributes) {
+        if (Objects.isNull(entity.getId())) {
+            storageAttributes = new StorageAttributes();
+            storageAttributes.setStored(false);
+            storageAttributes.setShardType(SHARD_TYPE);
+            storageAttributes.setCluster(dataBaseManager.getCluster(CLUSTER));
+            entity.setStorageAttributes(storageAttributes);
+
+
             entity.setId(dataBaseManager.generateId(storageAttributes));
         }
         return entity;

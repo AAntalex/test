@@ -12,3 +12,50 @@ databaseChangeLog:
           - column:
               name: VALUE
               type: VARCHAR(128)
+      - createTable:
+          tableName: TEST_A
+          columns:
+          - column:
+              name: ID
+              type: bigint
+              constraints:
+                primaryKey: true
+                nullable: false
+                primaryKeyName: PK_TEST_A_ID
+          - column:
+              name: SHARD_VALUE
+              type: bigint
+          - column:
+              name: C_VALUE
+              type: VARCHAR(128)
+          - column:
+              name: C_NEW_VALUE
+              type: VARCHAR(128)
+      - createTable:
+          tableName: TEST_B
+          columns:
+          - column:
+              name: ID
+              type: bigint
+              constraints:
+                primaryKey: true
+                nullable: false
+                primaryKeyName: PK_TEST_B_ID
+          - column:
+              name: SHARD_VALUE
+              type: bigint
+          - column:
+              name: C_VALUE
+              type: VARCHAR(128)
+          - column:
+              name: C_NEW_VALUE
+              type: VARCHAR(128)
+          - column:
+              name: C_A_REF
+              type: bigint
+              constraints:
+                foreignKey:
+                  referencedColumnNames: ID
+                  referencedTableName: TEST_A
+                nullable: true
+
