@@ -113,8 +113,12 @@ public class ShardedEntityProcessor extends AbstractProcessor {
             );
             out.println("    private static final String CLUSTER = \"" + classDto.getCluster() + "\";");
             out.println(
-                    "     private static final ShardType SHARD_TYPE = ShardType." + classDto.getShardType().name() + ";"
+                    "    private static final ShardType SHARD_TYPE = ShardType." + classDto.getShardType().name() + ";"
             );
+            out.println();
+            out.println("    @Autowired");
+            out.println("    ShardDataBaseManager dataBaseManager");
+
             out.println();
             out.println("    @Override");
             out.println("    public " + classDto.getTargetClassName() +

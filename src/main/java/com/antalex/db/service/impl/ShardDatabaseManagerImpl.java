@@ -81,8 +81,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         getProperties();
         runInitLiquibase();
         processDataBaseInfo();
-
-        //runLiquibase();
+        runLiquibase();
     }
 
     @Override
