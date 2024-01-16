@@ -1,7 +1,7 @@
 package com.antalex.domain.persistence.entity;
 
 
-import com.antalex.db.entity.abstraction.BaseShardedEntity;
+import com.antalex.db.entity.abstraction.BaseShardEntity;
 import lombok.Data;
 
 import javax.persistence.*;
@@ -9,7 +9,7 @@ import javax.persistence.*;
 @Table(name = "TEST_A")
 @Data
 @Entity
-public class TestAEntity extends BaseShardedEntity {
+public class TestAEntity extends BaseShardEntity {
     @Id
     @Column(name = "ID")
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "seq_id")
