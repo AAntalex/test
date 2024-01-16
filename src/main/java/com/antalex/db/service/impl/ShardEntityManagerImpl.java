@@ -1,6 +1,6 @@
 package com.antalex.db.service.impl;
 
-import com.antalex.db.entity.abstraction.ShardedEntity;
+import com.antalex.db.entity.abstraction.ShardEntity;
 import com.antalex.db.model.enums.ShardType;
 import com.antalex.db.service.ShardEntityManager;
 import com.antalex.db.service.ShardEntityRepository;
@@ -32,7 +32,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
         }
     }
 
-    private synchronized <T extends ShardedEntity> ShardEntityRepository<T> getEntityRepository(T entity) {
+    private synchronized <T extends ShardEntity> ShardEntityRepository<T> getEntityRepository(T entity) {
         if (entity == null) {
             return null;
         }
@@ -50,7 +50,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
     }
 
     @Override
-    public <T extends ShardedEntity> ShardType getShardType(T entity) {
+    public <T extends ShardEntity> ShardType getShardType(T entity) {
         if (Objects.isNull(entity)) {
             return null;
         }
@@ -58,7 +58,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
     }
 
     @Override
-    public <T extends ShardedEntity> T save(T entity) {
+    public <T extends ShardEntity> T save(T entity) {
         if (Objects.isNull(entity)) {
             return null;
         }
@@ -66,7 +66,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
     }
 
     @Override
-    public <T extends ShardedEntity> Iterable save(Iterable<T> entities) {
+    public <T extends ShardEntity> Iterable save(Iterable<T> entities) {
         if (Objects.nonNull(entities)) {
             entities.forEach(it -> it = save(it));
         }

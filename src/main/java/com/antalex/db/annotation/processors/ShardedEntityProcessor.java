@@ -1,7 +1,10 @@
 package com.antalex.db.annotation.processors;
 
 import com.antalex.db.annotation.ShardEntity;
+import com.antalex.db.model.Cluster;
+import com.antalex.db.model.StorageAttributes;
 import com.antalex.db.model.enums.ShardType;
+import com.antalex.db.service.ShardDataBaseManager;
 import com.antalex.db.service.ShardEntityRepository;
 import com.antalex.db.model.dto.ClassDto;
 import com.antalex.db.model.dto.FieldDto;
@@ -96,6 +99,17 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                 .orElse(null);
     }
 
+    private String getInsertSQL(ClassDto classDto) {
+        String sql = "INSERT INTO $$$." + classDto.getTableName() + " (";
+        String columns = "";
+        String values = "";
+        for (int i = 0; i < classDto.getFields().size(); i++) {
+            columns = columns.concat(i == 0 ? "" : ",").concat(classDto.getFields().get(i).getColumnName());
+            values = values.concat(i == 0 ? "?" : ",?");
+        }
+        return "INSERT INTO $$$." + classDto.getTableName() + " (" + columns + ") VALUES (" + values + ")";
+    }
+
     private void writeBuilderFile(ClassDto classDto) throws IOException {
         JavaFileObject builderFile = processingEnv.getFiler().createSourceFile(classDto.getClassName());
         try (PrintWriter out = new PrintWriter(builderFile.openWriter())) {
@@ -104,6 +118,9 @@ public class ShardedEntityProcessor extends AbstractProcessor {
             out.println("import " + ShardEntityRepository.class.getCanonicalName() + ";");
             out.println("import " + Repository.class.getCanonicalName() + ";");
             out.println("import " + ShardType.class.getCanonicalName() + ";");
+            out.println("import " + Cluster.class.getCanonicalName() + ";");
+            out.println("import " + StorageAttributes.class.getCanonicalName() + ";");
+            out.println("import " + ShardDataBaseManager.class.getCanonicalName() + ";");
             out.println();
             out.println("@Repository");
             out.println("public class " +
@@ -111,13 +128,26 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                     " implements ShardEntityRepository<" +
                     classDto.getTargetClassName() + "> {"
             );
-            out.println("    private static final String CLUSTER = \"" + classDto.getCluster() + "\";");
             out.println(
                     "    private static final ShardType SHARD_TYPE = ShardType." + classDto.getShardType().name() + ";"
             );
+            out.println(
+                    "    private static final String INS_QUERY = \"" + getInsertSQL(classDto) + "\";"
+            );
+
             out.println();
-            out.println("    @Autowired");
-            out.println("    ShardDataBaseManager dataBaseManager");
+            out.println("    private final ShardDataBaseManager dataBaseManager;");
+            out.println("    private final Cluster cluster;");
+
+            out.println();
+            out.println("    " + classDto.getClassName() + "(ShardDataBaseManager dataBaseManager) {");
+            out.println("       this.dataBaseManager = dataBaseManager;");
+            out.println(
+                    "       this.cluster = dataBaseManager.getCluster(String.valueOf(\"" +
+                    classDto.getCluster() +
+                    "\"));"
+            );
+            out.println("    }");
 
             out.println();
             out.println("    @Override");

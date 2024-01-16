@@ -163,14 +163,13 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     }
 
     @Override
-    public StorageAttributes getStorageAttributes(Short id, Long shardValue, ShardType shardType) {
+    public StorageAttributes getStorageAttributes(Short id, Long shardValue) {
         Assert.notNull(id, "Не указан идентификатор сущности");
         StorageAttributes storageAttributes = new StorageAttributes();
         storageAttributes.setStored(true);
         storageAttributes.setCluster(getCluster((short) (id / ShardUtils.MAX_SHARDS % ShardUtils.MAX_CLUSTERS)));
         storageAttributes.setShard(getShard(storageAttributes.getCluster(), (short) (id % ShardUtils.MAX_SHARDS)));
         storageAttributes.setShardValue(shardValue);
-        storageAttributes.setShardType(shardType);
         return storageAttributes;
     }
 
