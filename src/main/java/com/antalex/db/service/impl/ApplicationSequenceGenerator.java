@@ -4,7 +4,6 @@ import com.antalex.db.model.Shard;
 import com.antalex.db.service.abstractive.AbstractSequenceGenerator;
 import com.antalex.db.utils.ShardUtils;
 
-import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -40,6 +39,16 @@ public class ApplicationSequenceGenerator extends AbstractSequenceGenerator {
             this.connection.setAutoCommit(false);
         }
         return this.connection;
+    }
+
+    private void closeConnection() {
+        try {
+            if (Objects.nonNull(this.connection) && !this.connection.isClosed()) {
+                this.connection.close();
+            }
+        } catch (Exception err) {
+            throw new RuntimeException(err);
+        }
     }
 
     @Override
@@ -93,6 +102,8 @@ public class ApplicationSequenceGenerator extends AbstractSequenceGenerator {
             connection.commit();
         } catch (Exception err) {
             throw new RuntimeException(err);
+        } finally {
+            closeConnection();
         }
     }
 }
