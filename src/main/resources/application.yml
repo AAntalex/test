@@ -22,16 +22,15 @@ logging:
       descriptor:
         sql.BasicBinder: INFO
 
+test:
+  prop: AAA
+  name: BBB
+
 dbConfig:
   clusters:
     - name: MAIN
       default: true
       shards:
-        - database:
-            driver: oracle.jdbc.driver.OracleDriver
-            url: jdbc:oracle:thin:@d5cftm-apc005ln.corp.dev.vtb:1521/ELVIS
-            user: IBS
-            pass: IBS
         - database:
             driver: oracle.jdbc.driver.OracleDriver
             url: jdbc:oracle:thin:@localhost:1521/eks
@@ -40,12 +39,4 @@ dbConfig:
             owner: IBS
           main: true
           id: 2
-    - name: RAW
-      id: 3
-      shards:
-        - database:
-            driver: oracle.jdbc.driver.OracleDriver
-            url: jdbc:oracle:thin:@d5ubss-or5001lk.corp.dev.vtb:1521/TARIFA
-            user: IBS
-            pass: IBS
 

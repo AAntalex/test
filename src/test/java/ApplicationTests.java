@@ -46,6 +46,7 @@ public class ApplicationTests {
 				databaseManager.getCluster(ShardUtils.DEFAULT_CLUSTER_NAME).getMainShard());
 		((ApplicationSequenceGenerator) sequenceGenerator).setCacheSize(100);
 
+		System.out.println("AAA =  " + testConfig.getProp());
 		profiler.start("Тест0");
 
 //		System.out.println("AAA START! SEQ APP =  " + sequenceGenerator.nextValue());
