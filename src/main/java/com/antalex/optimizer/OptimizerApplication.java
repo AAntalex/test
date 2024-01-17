@@ -1,14 +1,11 @@
 package com.antalex.optimizer;
 
-import com.antalex.config.TestConfig;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.ComponentScan;
 
 @SpringBootApplication
 @ComponentScan("com.antalex")
-@EnableConfigurationProperties(TestConfig.class)
 public class OptimizerApplication {
     public static void main(String[] args) {
 //        long allTimeMillis = System.currentTimeMillis();
