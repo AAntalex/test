@@ -1,5 +1,6 @@
 package com.antalex.db.service.impl;
 
+import com.antalex.db.config.ShardDataBaseConfig;
 import com.antalex.db.model.Cluster;
 import com.antalex.db.model.DataBaseInfo;
 import com.antalex.db.model.Shard;
@@ -9,11 +10,12 @@ import com.antalex.db.service.ShardDataBaseManager;
 import com.antalex.db.service.LiquibaseManager;
 import com.antalex.db.service.SequenceGenerator;
 import com.antalex.db.utils.ShardUtils;
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.springframework.core.env.Environment;
 import org.springframework.core.io.ResourceLoader;
-import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
 
@@ -59,6 +61,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     private final Environment env;
     private final ResourceLoader resourceLoader;
     private final LiquibaseManager liquibaseManager;
+    private final ShardDataBaseConfig shardDataBaseConfig;
 
     private Cluster defaultCluster;
     private Map<String, Cluster> clusters = new HashMap<>();
@@ -72,11 +75,13 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
 
     ShardDatabaseManagerImpl(
             Environment env,
-            ResourceLoader resourceLoader)
+            ResourceLoader resourceLoader,
+            ShardDataBaseConfig shardDataBaseConfig)
     {
         this.env = env;
         this.liquibaseManager = new LiquibaseManagerImpl();
         this.resourceLoader = resourceLoader;
+        this.shardDataBaseConfig = shardDataBaseConfig;
 
         getProperties();
         runInitLiquibase();
@@ -402,17 +407,18 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
             String shardUrl = env.getProperty(String.format(SHARD_DB_URL, clusterCount, shardCount));
             while (Objects.nonNull(shardUrl)) {
                 Shard shard = new Shard();
-                DriverManagerDataSource dataSource = new DriverManagerDataSource();
-                dataSource.setUrl(shardUrl);
-                dataSource.setDriverClassName(
+                HikariConfig config = new HikariConfig();
+                config.setJdbcUrl(shardUrl);
+                config.setDriverClassName(
                         env.getProperty(String.format(SHARD_DB_DRIVER, clusterCount, shardCount))
                 );
-                dataSource.setUsername(
+                config.setUsername(
                         env.getProperty(String.format(SHARD_DB_USER, clusterCount, shardCount))
                 );
-                dataSource.setPassword(
+                config.setPassword(
                         env.getProperty(String.format(SHARD_DB_PASS, clusterCount, shardCount))
                 );
+                HikariDataSource dataSource = new HikariDataSource(config);
                 shard.setDataSource(dataSource);
                 shard.setOwner(env.getProperty(String.format(SHARD_DB_OWNER, clusterCount, shardCount)));
                 if (Objects.isNull(shard.getOwner())) {

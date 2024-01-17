@@ -69,6 +69,13 @@
             <version>2.2</version>
         </dependency>
 
+        <!-- Pool Session -->
+        <dependency>
+            <groupId>com.zaxxer</groupId>
+            <artifactId>HikariCP</artifactId>
+            <version>4.0.3</version>
+        </dependency>
+
         <dependency>
             <groupId>com.antalex</groupId>
             <artifactId>optimizer</artifactId>
