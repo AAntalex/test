@@ -11,6 +11,10 @@ hibernate:
 spring:
   liquibase:
       enabled: false
+  datasource:
+    hikari:
+      minimumIdle: 20
+      maximumPoolSize: 200
 
 logging:
   level:
