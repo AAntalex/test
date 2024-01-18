@@ -1,4 +1,3 @@
-import com.antalex.config.TestConfig;
 import com.antalex.db.service.SequenceGenerator;
 import com.antalex.db.service.ShardDataBaseManager;
 import com.antalex.db.service.ShardEntityManager;
@@ -36,17 +35,15 @@ public class ApplicationTests {
 	private TestARepository testARepository;
 	@Autowired
 	private TestBRepository testBRepository;
-	@Autowired
-	private TestConfig testConfig;
+
 
 	@Test
 	public void ins() {
 		SequenceGenerator sequenceGenerator = new ApplicationSequenceGenerator(
 				"SEQ_ID",
 				databaseManager.getCluster(ShardUtils.DEFAULT_CLUSTER_NAME).getMainShard());
-		((ApplicationSequenceGenerator) sequenceGenerator).setCacheSize(100);
+//		((ApplicationSequenceGenerator) sequenceGenerator).setCacheSize(100);
 
-		System.out.println("AAA =  " + testConfig.getProp());
 		profiler.start("Тест0");
 
 //		System.out.println("AAA START! SEQ APP =  " + sequenceGenerator.nextValue());
