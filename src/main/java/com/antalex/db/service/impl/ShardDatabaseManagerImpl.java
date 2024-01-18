@@ -25,6 +25,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
+import java.util.function.Function;
 
 @Slf4j
 @Service
@@ -368,6 +369,24 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                 .forEach(it -> saveDataBaseInfo(it.getLeft(), it.getRight()));
     }
 
+    private static <T> T getHikariConfigValue(ShardDataBaseConfig shardDataBaseConfig,
+                                        ClusterConfig clusterConfig,
+                                        ShardConfig shardConfig,
+                                        Function<HikariSettings, T> function)
+    {
+        return Optional.ofNullable(shardConfig.getHikari())
+                .map(function)
+                .orElse(
+                        Optional.ofNullable(clusterConfig.getHikari())
+                                .map(function)
+                                .orElse(
+                                        Optional.ofNullable(shardDataBaseConfig.getHikari())
+                                                .map(function)
+                                                .orElse(null)
+                                )
+                );
+    }
+
     private HikariConfig getHikariConfig(
             ShardDataBaseConfig shardDataBaseConfig,
             ClusterConfig clusterConfig,
@@ -386,19 +405,9 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         config.setPassword(
                 Optional.ofNullable(shardConfig.getDataBase()).map(DataBaseConfig::getPass).orElse(null)
         );
-        Optional.ofNullable(shardConfig.getHikari())
-                .map(HikariSettings::getMinimumIdle)
-                .orElse(
-                        Optional.ofNullable(clusterConfig.getHikari())
-                                .map(HikariSettings::getMinimumIdle)
-                                .orElse(
-                                        Optional.ofNullable(shardDataBaseConfig.getHikari())
-                                                .map(HikariSettings::getMinimumIdle)
-                                                .orElse(null)
-                                )
-                )
-
-        config.setMinimumIdle();
+        Optional.ofNullable(
+                getHikariConfigValue(shardDataBaseConfig, clusterConfig, shardConfig, HikariSettings::getMinimumIdle)
+        ).ifPresent(config::setMinimumIdle);
 
         return config;
     }
