@@ -1,11 +1,10 @@
 package com.antalex.db.service.impl;
 
-import com.antalex.db.config.ShardDataBaseConfig;
+import com.antalex.db.config.*;
 import com.antalex.db.model.Cluster;
 import com.antalex.db.model.DataBaseInfo;
 import com.antalex.db.model.Shard;
 import com.antalex.db.model.StorageAttributes;
-import com.antalex.db.model.enums.ShardType;
 import com.antalex.db.service.ShardDataBaseManager;
 import com.antalex.db.service.LiquibaseManager;
 import com.antalex.db.service.SequenceGenerator;
@@ -37,20 +36,6 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     private static final String CLUSTERS_PATH = "clusters";
     private static final String SHARDS_PATH = "shards";
     private static final String MAIN_SEQUENCE = "SEQ_ID";
-
-    private static final String CHANGE_LOG_PATH = "dbConfig.liquibase.change-log-src";
-    private static final String CHANGE_LOG_NAME = "dbConfig.liquibase.change-log-name";
-    private static final String CLUSTER_NAME = "dbConfig.clusters[%d].name";
-    private static final String CLUSTER_ID = "dbConfig.clusters[%d].id";
-    private static final String CLUSTER_DEFAULT = "dbConfig.clusters[%d].default";
-    private static final String SHARD_MAIN = "dbConfig.clusters[%d].shards[%d].main";
-    private static final String SHARD_ID = "dbConfig.clusters[%d].shards[%d].id";
-    private static final String SHARD_DB_DRIVER = "dbConfig.clusters[%d].shards[%d].database.driver";
-    private static final String SHARD_DB_URL = "dbConfig.clusters[%d].shards[%d].database.url";
-    private static final String SHARD_DB_USER = "dbConfig.clusters[%d].shards[%d].database.user";
-    private static final String SHARD_DB_PASS = "dbConfig.clusters[%d].shards[%d].database.pass";
-    private static final String SHARD_DB_OWNER = "dbConfig.clusters[%d].shards[%d].database.owner";
-
 
     private static final String SELECT_DB_INFO = "SELECT SHARD_ID,MAIN_SHARD,CLUSTER_ID,CLUSTER_NAME,DEFAULT_CLUSTER" +
             " FROM $$$.APP_DATABASE";
@@ -383,78 +368,106 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                 .forEach(it -> saveDataBaseInfo(it.getLeft(), it.getRight()));
     }
 
-    private void getProperties() {
-        this.changLogPath = env.getProperty(CHANGE_LOG_PATH, DEFAULT_CHANGE_LOG_PATH);
-        this.changLogName = env.getProperty(CHANGE_LOG_NAME, DEFAULT_CHANGE_LOG_NAME);
+    private HikariConfig getHikariConfig(
+            ShardDataBaseConfig shardDataBaseConfig,
+            ClusterConfig clusterConfig,
+            ShardConfig shardConfig)
+    {
+        HikariConfig config = new HikariConfig();
+        config.setJdbcUrl(
+                Optional.ofNullable(shardConfig.getDataBase()).map(DataBaseConfig::getUrl).orElse(null)
+        );
+        config.setDriverClassName(
+                Optional.ofNullable(shardConfig.getDataBase()).map(DataBaseConfig::getDriver).orElse(null)
+        );
+        config.setUsername(
+                Optional.ofNullable(shardConfig.getDataBase()).map(DataBaseConfig::getUser).orElse(null)
+        );
+        config.setPassword(
+                Optional.ofNullable(shardConfig.getDataBase()).map(DataBaseConfig::getPass).orElse(null)
+        );
+        Optional.ofNullable(shardConfig.getHikari())
+                .map(HikariSettings::getMinimumIdle)
+                .orElse(
+                        Optional.ofNullable(clusterConfig.getHikari())
+                                .map(HikariSettings::getMinimumIdle)
+                                .orElse(
+                                        Optional.ofNullable(shardDataBaseConfig.getHikari())
+                                                .map(HikariSettings::getMinimumIdle)
+                                                .orElse(null)
+                                )
+                )
 
-        int clusterCount = 0;
-        String clusterName = env.getProperty(String.format(CLUSTER_NAME, clusterCount));
-        while (Objects.nonNull(clusterName)) {
+        config.setMinimumIdle();
+
+        return config;
+    }
+
+    private void getProperties() {
+        this.changLogPath = Optional
+                .ofNullable(shardDataBaseConfig.getLiquibase())
+                .map(LiquibaseConfig::getChangeLogSrc)
+                .orElse(DEFAULT_CHANGE_LOG_PATH);
+        this.changLogName = Optional
+                .ofNullable(shardDataBaseConfig.getLiquibase())
+                .map(LiquibaseConfig::getChangeLogName)
+                .orElse(DEFAULT_CHANGE_LOG_NAME);
+
+        Assert.notEmpty(
+                shardDataBaseConfig.getClusters(),
+                String.format("Property '%s.clusters' must not be empty", ShardDataBaseConfig.CONFIG_NAME)
+        );
+        Assert.isTrue(
+                shardDataBaseConfig.getClusters().size() <= ShardUtils.MAX_CLUSTERS,
+                "Number of clusters cannot be more than " + ShardUtils.MAX_CLUSTERS
+        );
+        shardDataBaseConfig.getClusters().forEach(clusterConfig->{
             Cluster cluster = new Cluster();
-            cluster.setName(clusterName);
+            cluster.setName(clusterConfig.getName());
             if (Objects.isNull(defaultCluster) ||
-                    Boolean.valueOf(env.getProperty(String.format(CLUSTER_DEFAULT, clusterCount)))) {
+                    Optional.ofNullable(clusterConfig.getDefaultCluster()).orElse(false))
+            {
                 defaultCluster = cluster;
             }
-            cluster.setId(
-                    Optional.ofNullable(env.getProperty(String.format(CLUSTER_ID, clusterCount)))
-                            .map(Short::valueOf)
-                            .orElse(null)
-            );
+            cluster.setId(clusterConfig.getId());
             this.addCluster(cluster.getId(), cluster);
 
-            int shardCount = 0;
-            String shardUrl = env.getProperty(String.format(SHARD_DB_URL, clusterCount, shardCount));
-            while (Objects.nonNull(shardUrl)) {
+            Assert.notEmpty(
+                    clusterConfig.getShards(),
+                    String.format("Property '%s.clusters.shards' must not be empty", ShardDataBaseConfig.CONFIG_NAME)
+            );
+            Assert.isTrue(
+                    clusterConfig.getShards().size() <= ShardUtils.MAX_SHARDS,
+                    "Number of shards in cluster cannot be more than " + ShardUtils.MAX_SHARDS
+            );
+
+            clusterConfig.getShards().forEach(shardConfig-> {
                 Shard shard = new Shard();
-                HikariConfig config = new HikariConfig();
-                config.setJdbcUrl(shardUrl);
-                config.setDriverClassName(
-                        env.getProperty(String.format(SHARD_DB_DRIVER, clusterCount, shardCount))
-                );
-                config.setUsername(
-                        env.getProperty(String.format(SHARD_DB_USER, clusterCount, shardCount))
-                );
-                config.setPassword(
-                        env.getProperty(String.format(SHARD_DB_PASS, clusterCount, shardCount))
-                );
+
+
+
+
+
                 HikariDataSource dataSource = new HikariDataSource(config);
                 shard.setDataSource(dataSource);
-                shard.setOwner(env.getProperty(String.format(SHARD_DB_OWNER, clusterCount, shardCount)));
-                if (Objects.isNull(shard.getOwner())) {
-                    shard.setOwner(dataSource.getUsername());
-                }
-                shard.setId(
-                        Optional.ofNullable(env.getProperty(String.format(SHARD_ID, clusterCount, shardCount)))
-                                .map(Short::valueOf)
-                                .orElse(null)
+                shard.setOwner(
+                        Optional.ofNullable(shardConfig.getDataBase())
+                                .map(DataBaseConfig::getOwner)
+                                .orElse(dataSource.getUsername())
                 );
+                shard.setId(shardConfig.getId());
                 this.addShardToCluster(cluster, shard);
-                if (Objects.isNull(cluster.getMainShard()) ||
-                        Boolean.valueOf(env.getProperty(String.format(SHARD_MAIN, clusterCount, shardCount)))) {
+
+                if (Objects.isNull(cluster.getMainShard())
+                        || Optional.ofNullable(shardConfig.getMain()).orElse(false))
+                {
                     cluster.setMainShard(shard);
                 }
                 cluster.getShards().add(shard);
-
-                shardCount++;
-                shardUrl = env.getProperty(String.format(SHARD_DB_URL, clusterCount, shardCount));
-            }
-            Assert.isTrue(shardCount > 0, "Property 'dbConfig.clusters.shards' must not be empty");
-            Assert.isTrue(
-                    shardCount <= ShardUtils.MAX_SHARDS,
-                    "Number of shards in cluster cannot be more than " + ShardUtils.MAX_SHARDS
-            );
+            });
             shardSequences.put(cluster, new SimpleSequenceGenerator(1L, (long) cluster.getShards().size()));
-            this.addCluster(clusterName, cluster);
-
-            clusterCount++;
-            clusterName = env.getProperty(String.format(CLUSTER_NAME, clusterCount));
-        }
-        Assert.isTrue(clusterCount > 0, "Property 'dbConfig.clusters' must not be empty");
-        Assert.isTrue(
-                clusterCount <= ShardUtils.MAX_CLUSTERS,
-                "Number of clusters cannot be more than " + ShardUtils.MAX_CLUSTERS
-        );
+            this.addCluster(cluster.getName(), cluster);
+        });
     }
 
     private void addCluster(String name, Cluster cluster) {

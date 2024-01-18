@@ -1,33 +1,19 @@
 package com.antalex.db.config;
 
+import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 
 import java.util.List;
 
 @Configuration
-@ConfigurationProperties("dbconfig")
+@ConfigurationProperties(prefix = ShardDataBaseConfig.CONFIG_NAME)
+@Data
 public class ShardDataBaseConfig {
-    private String clusters;
+    public static final String CONFIG_NAME = "shard-db-config";
+
+    private List<ClusterConfig> clusters;
+    private LiquibaseConfig liquibase;
+    private HikariSettings hikari;
 }
 
-class Cluster {
-    private Short id;
-    private String name;
-    private Boolean defaultCluster;
-    private List<Shard> shards;
-}
-
-class Shard {
-    private Short id;
-    private Boolean main;
-    private DataBase dataBase;
-}
-
-class DataBase {
-    private String driver;
-    private String url;
-    private String user;
-    private String pass;
-    private String owner;
-}
