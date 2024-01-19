@@ -12,6 +12,7 @@ import java.util.List;
 public class ShardDataBaseConfig {
     public static final String CONFIG_NAME = "shard-db-config";
 
+    private String segment;
     private List<ClusterConfig> clusters;
     private LiquibaseConfig liquibase;
     private HikariSettings hikari;
