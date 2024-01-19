@@ -369,22 +369,46 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                 .forEach(it -> saveDataBaseInfo(it.getLeft(), it.getRight()));
     }
 
-    private static <T> T getHikariConfigValue(ShardDataBaseConfig shardDataBaseConfig,
-                                        ClusterConfig clusterConfig,
-                                        ShardConfig shardConfig,
-                                        Function<HikariSettings, T> function)
+    private static <T> Optional<T> getHikariConfigValue(ShardDataBaseConfig shardDataBaseConfig,
+                                                        ClusterConfig clusterConfig,
+                                                        ShardConfig shardConfig,
+                                                        Function<HikariSettings, T> function)
     {
-        return Optional.ofNullable(shardConfig.getHikari())
-                .map(function)
-                .orElse(
-                        Optional.ofNullable(clusterConfig.getHikari())
-                                .map(function)
-                                .orElse(
-                                        Optional.ofNullable(shardDataBaseConfig.getHikari())
-                                                .map(function)
-                                                .orElse(null)
-                                )
-                );
+        return Optional.ofNullable(
+                Optional.ofNullable(shardConfig.getHikari())
+                        .map(function)
+                        .orElse(
+                                Optional.ofNullable(clusterConfig.getHikari())
+                                        .map(function)
+                                        .orElse(
+                                                Optional.ofNullable(shardDataBaseConfig.getHikari())
+                                                        .map(function)
+                                                        .orElse(null)
+                                        )
+                        )
+        );
+    }
+
+    private void setOptionalHikariConfig(
+            HikariConfig config,
+            ShardDataBaseConfig shardDataBaseConfig,
+            ClusterConfig clusterConfig,
+            ShardConfig shardConfig)
+    {
+        getHikariConfigValue(shardDataBaseConfig, clusterConfig, shardConfig, HikariSettings::getMinimumIdle)
+                .ifPresent(config::setMinimumIdle);
+        getHikariConfigValue(shardDataBaseConfig, clusterConfig, shardConfig, HikariSettings::getMaximumPoolSize)
+                .ifPresent(config::setMaximumPoolSize);
+        getHikariConfigValue(shardDataBaseConfig, clusterConfig, shardConfig, HikariSettings::getIdleTimeout)
+                .ifPresent(config::setIdleTimeout);
+        getHikariConfigValue(shardDataBaseConfig, clusterConfig, shardConfig, HikariSettings::getConnectionTimeout)
+                .ifPresent(config::setConnectionTimeout);
+        getHikariConfigValue(shardDataBaseConfig, clusterConfig, shardConfig, HikariSettings::getKeepAliveTime)
+                .ifPresent(config::setKeepaliveTime);
+        getHikariConfigValue(shardDataBaseConfig, clusterConfig, shardConfig, HikariSettings::getMaxLifetime)
+                .ifPresent(config::setMaxLifetime);
+        getHikariConfigValue(shardDataBaseConfig, clusterConfig, shardConfig, HikariSettings::getPoolName)
+                .ifPresent(config::setPoolName);
     }
 
     private HikariConfig getHikariConfig(
@@ -405,10 +429,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         config.setPassword(
                 Optional.ofNullable(shardConfig.getDataBase()).map(DataBaseConfig::getPass).orElse(null)
         );
-        Optional.ofNullable(
-                getHikariConfigValue(shardDataBaseConfig, clusterConfig, shardConfig, HikariSettings::getMinimumIdle)
-        ).ifPresent(config::setMinimumIdle);
-
+        setOptionalHikariConfig(config, shardDataBaseConfig, clusterConfig, shardConfig);
         return config;
     }
 
@@ -452,12 +473,9 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
 
             clusterConfig.getShards().forEach(shardConfig-> {
                 Shard shard = new Shard();
-
-
-
-
-
-                HikariDataSource dataSource = new HikariDataSource(config);
+                HikariDataSource dataSource = new HikariDataSource(
+                        getHikariConfig(shardDataBaseConfig, clusterConfig, shardConfig)
+                );
                 shard.setDataSource(dataSource);
                 shard.setOwner(
                         Optional.ofNullable(shardConfig.getDataBase())
@@ -594,7 +612,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                             .filter(src -> resourceLoader.getResource(src).exists())
                             .ifPresent(clustersPath -> {
                                 runLiquibaseFromPath(clustersPath);
-                                clusters.forEach((clusterName, cluster) -> {
+                                clusters.forEach((clusterName, cluster) ->
                                     Optional.of(clustersPath + File.separatorChar + clusterName)
                                             .filter(src -> resourceLoader.getResource(src).exists())
                                             .ifPresent(clusterPath -> {
@@ -614,8 +632,8 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                                                                             )
                                                                     );
                                                         });
-                                            });
-                                });
+                                            })
+                                );
                             });
                     runLiquibaseFromPath(path, defaultCluster.getMainShard());
                 });
