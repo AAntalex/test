@@ -8,13 +8,6 @@ hibernate:
   format_sql: false
   id.new_generator_mappings: false
 
-spring:
-  liquibase:
-      enabled: false
-  datasource:
-    hikari:
-      minimumIdle: 20
-      maximumPoolSize: 200
 
 logging:
   level:
@@ -24,6 +17,13 @@ logging:
 
 
 shardDbConfig:
+  segment: TEST
+  liquibase:
+    changeLogSrc: classpath:db/changelog
+    changeLogName: db.changelog-master.yaml
+  hikari:
+    minimumIdle: 10
+    maximumPoolSize: 20
   clusters:
     - name: MAIN
       defaultCluster: true
@@ -33,6 +33,7 @@ shardDbConfig:
             url: jdbc:oracle:thin:@d5cftm-apc005ln.corp.dev.vtb:1521/ELVIS
             user: IBS
             pass: IBS
+          id: 1
         - database:
             driver: oracle.jdbc.driver.OracleDriver
             url: jdbc:oracle:thin:@localhost:1521/eks
@@ -41,6 +42,9 @@ shardDbConfig:
             owner: IBS
           main: true
           id: 2
+          hikari:
+            minimumIdle: 20
+            maximumPoolSize: 200
     - name: RAW
       id: 3
       shards:
