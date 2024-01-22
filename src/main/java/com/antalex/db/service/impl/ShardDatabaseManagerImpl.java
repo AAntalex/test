@@ -1,10 +1,7 @@
 package com.antalex.db.service.impl;
 
 import com.antalex.db.config.*;
-import com.antalex.db.model.Cluster;
-import com.antalex.db.model.DataBaseInfo;
-import com.antalex.db.model.Shard;
-import com.antalex.db.model.StorageAttributes;
+import com.antalex.db.model.*;
 import com.antalex.db.service.ShardDataBaseManager;
 import com.antalex.db.service.LiquibaseManager;
 import com.antalex.db.service.SequenceGenerator;
@@ -13,7 +10,6 @@ import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.ImmutablePair;
-import org.springframework.core.env.Environment;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
@@ -37,14 +33,17 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     private static final String CLUSTERS_PATH = "clusters";
     private static final String SHARDS_PATH = "shards";
     private static final String MAIN_SEQUENCE = "SEQ_ID";
+    private static final int DEFAULT_TIME_OUT_REFRESH_DB_INFO = 10;
 
     private static final String SELECT_DB_INFO = "SELECT SHARD_ID,MAIN_SHARD,CLUSTER_ID,CLUSTER_NAME,DEFAULT_CLUSTER" +
-            " FROM $$$.APP_DATABASE";
+            ",SEGMENT_NAME,ACCESSIBLE FROM $$$.APP_DATABASE";
     private static final String INS_DB_INFO = "INSERT INTO $$$.APP_DATABASE " +
-            "(SHARD_ID,MAIN_SHARD,CLUSTER_ID,CLUSTER_NAME,DEFAULT_CLUSTER) " +
-            " VALUES (?, ?, ?, ?, ?)";
+            "(SHARD_ID,MAIN_SHARD,CLUSTER_ID,CLUSTER_NAME,DEFAULT_CLUSTER,ACCESSIBLE) " +
+            " VALUES (?, ?, ?, ?, ?, ?)";
 
-    private final Environment env;
+    private static final String SELECT_DYNAMIC_DB_INFO = "SELECT SEGMENT_NAME,ACCESSIBLE" +
+            " FROM $$$.APP_DATABASE";
+
     private final ResourceLoader resourceLoader;
     private final LiquibaseManager liquibaseManager;
     private final ShardDataBaseConfig shardDataBaseConfig;
@@ -58,13 +57,14 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
 
     private String changLogPath;
     private String changLogName;
+    private String segment;
+    private int timeOut;
+
 
     ShardDatabaseManagerImpl(
-            Environment env,
             ResourceLoader resourceLoader,
             ShardDataBaseConfig shardDataBaseConfig)
     {
-        this.env = env;
         this.liquibaseManager = new LiquibaseManagerImpl();
         this.resourceLoader = resourceLoader;
         this.shardDataBaseConfig = shardDataBaseConfig;
@@ -286,9 +286,32 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                 .forEach(this::checkDataBaseInfo);
     }
 
+    private void getDynamicDataBaseInfo(Shard shard) {
+        if (System.currentTimeMillis() - shard.getDynamicDataBaseInfo().getLastTime() > this.timeOut) {
+            try {
+                Connection connection = shard.getDataSource().getConnection();
+                PreparedStatement preparedStatement = connection.prepareStatement(
+                        ShardUtils.transformSQL(SELECT_DYNAMIC_DB_INFO, shard)
+                );
+                ResultSet resultSet = preparedStatement.executeQuery();
+                DynamicDataBaseInfo dynamicDataBaseInfo = shard.getDynamicDataBaseInfo();
+                if (resultSet.next()) {
+                    dynamicDataBaseInfo.setLastTime(System.currentTimeMillis());
+                    dynamicDataBaseInfo.setAvailable(true);
+                    dynamicDataBaseInfo.setSegment(resultSet.getString(1));
+                    dynamicDataBaseInfo.setAccessible(resultSet.getBoolean(2));
+                }
+                connection.close();
+            } catch (SQLException err) {
+                throw new RuntimeException(err);
+            }
+        }
+    }
+
     private void getDataBaseInfo(Shard shard) {
         try {
             Connection connection = shard.getDataSource().getConnection();
+
             PreparedStatement preparedStatement = connection.prepareStatement(
                     ShardUtils.transformSQL(SELECT_DB_INFO, shard)
             );
@@ -302,6 +325,15 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                                 .clusterId(resultSet.getShort(3))
                                 .clusterName(resultSet.getString(4))
                                 .defaultCluster(resultSet.getBoolean(5))
+                                .build()
+                );
+                shard.setDynamicDataBaseInfo(
+                        DynamicDataBaseInfo
+                                .builder()
+                                .lastTime(System.currentTimeMillis())
+                                .available(true)
+                                .segment(resultSet.getString(6))
+                                .accessible(resultSet.getBoolean(7))
                                 .build()
                 );
             }
@@ -344,6 +376,14 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                             .defaultCluster(cluster.getName().equals(defaultCluster.getName()))
                             .build()
             );
+            shard.setDynamicDataBaseInfo(
+                    DynamicDataBaseInfo
+                            .builder()
+                            .lastTime(System.currentTimeMillis())
+                            .available(true)
+                            .accessible(true)
+                            .build()
+            );
             try {
                 Connection connection = shard.getDataSource().getConnection();
                 PreparedStatement preparedStatement = connection.prepareStatement(
@@ -355,6 +395,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                 preparedStatement.setShort(3, shard.getDataBaseInfo().getClusterId());
                 preparedStatement.setString(4, shard.getDataBaseInfo().getClusterName());
                 preparedStatement.setBoolean(5, shard.getDataBaseInfo().isDefaultCluster());
+                preparedStatement.setBoolean(6, true);
 
                 preparedStatement.executeUpdate();
                 connection.close();
@@ -442,6 +483,10 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                 .ofNullable(shardDataBaseConfig.getLiquibase())
                 .map(LiquibaseConfig::getChangeLogName)
                 .orElse(DEFAULT_CHANGE_LOG_NAME);
+        this.segment = shardDataBaseConfig.getSegment();
+        this.timeOut = Optional
+                .ofNullable(shardDataBaseConfig.getTimeOut())
+                .orElse(DEFAULT_TIME_OUT_REFRESH_DB_INFO) * 1000;
 
         Assert.notEmpty(
                 shardDataBaseConfig.getClusters(),
@@ -555,16 +600,31 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         );
     }
 
+    private Boolean isEnabled(DynamicDataBaseInfo dynamicDataBaseInfo) {
+        return isAvailable(dynamicDataBaseInfo) &&
+                (
+                        Objects.isNull(dynamicDataBaseInfo.getSegment()) && Objects.isNull(this.segment) ||
+                                dynamicDataBaseInfo.getSegment().equals(this.segment)
+                );
+    }
+
+    private Boolean isAvailable(DynamicDataBaseInfo dynamicDataBaseInfo) {
+        return dynamicDataBaseInfo.getAccessible()
+                && dynamicDataBaseInfo.getAvailable();
+    }
+
     private void runLiquibase(Shard shard, String changeLog) {
-        try {
-            liquibaseManager.runThread(
-                    getConnection(shard),
-                    shard,
-                    changeLog.startsWith(CLASSPATH) ? changeLog.substring(CLASSPATH.length()) : changeLog,
-                    shard.getOwner()
-            );
-        } catch (Exception err) {
-            throw new RuntimeException(err);
+        if (isEnabled(shard.getDynamicDataBaseInfo())) {
+            try {
+                liquibaseManager.runThread(
+                        getConnection(shard),
+                        shard,
+                        changeLog.startsWith(CLASSPATH) ? changeLog.substring(CLASSPATH.length()) : changeLog,
+                        shard.getOwner()
+                );
+            } catch (Exception err) {
+                throw new RuntimeException(err);
+            }
         }
     }
 

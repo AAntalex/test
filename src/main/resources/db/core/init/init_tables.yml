@@ -46,3 +46,9 @@ databaseChangeLog:
           - column:
               name: DEFAULT_CLUSTER
               type: boolean
+          - column:
+              name: SEMENT_NAME
+              type: VARCHAR(128)
+          - column:
+              name: ACCESSIBLE
+              type: boolean
