@@ -54,6 +54,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     private Map<Cluster, SequenceGenerator> shardSequences = new HashMap<>();
     private Map<Cluster, SequenceGenerator> sequences = new HashMap<>();
     private List<ImmutablePair<Cluster, Shard>> newShards = new ArrayList<>();
+    private List<Thread> runList = new ArrayList<>();
 
     private String changLogPath;
     private String changLogName;
@@ -288,24 +289,31 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
 
     private void getDynamicDataBaseInfo(Shard shard) {
         if (System.currentTimeMillis() - shard.getDynamicDataBaseInfo().getLastTime() > this.timeOut) {
+            DynamicDataBaseInfo dynamicDataBaseInfo = shard.getDynamicDataBaseInfo();
+            dynamicDataBaseInfo.setLastTime(System.currentTimeMillis());
             try {
                 Connection connection = shard.getDataSource().getConnection();
                 PreparedStatement preparedStatement = connection.prepareStatement(
                         ShardUtils.transformSQL(SELECT_DYNAMIC_DB_INFO, shard)
                 );
                 ResultSet resultSet = preparedStatement.executeQuery();
-                DynamicDataBaseInfo dynamicDataBaseInfo = shard.getDynamicDataBaseInfo();
                 if (resultSet.next()) {
-                    dynamicDataBaseInfo.setLastTime(System.currentTimeMillis());
                     dynamicDataBaseInfo.setAvailable(true);
                     dynamicDataBaseInfo.setSegment(resultSet.getString(1));
                     dynamicDataBaseInfo.setAccessible(resultSet.getBoolean(2));
                 }
                 connection.close();
             } catch (SQLException err) {
+                //dynamicDataBaseInfo.setAvailable(false);
                 throw new RuntimeException(err);
             }
         }
+    }
+
+    public void runThread(Shard shard, Runnable target) {
+        Thread thread = new Thread(target);
+        runList.add(thread);
+        thread.start();
     }
 
     private void getDataBaseInfo(Shard shard) {
@@ -346,7 +354,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     private void getDataBaseInfo(Cluster cluster) {
         cluster
                 .getShards()
-                .forEach(this::getDataBaseInfo);
+                .forEach(shard -> this.runThread(shard, () -> getDataBaseInfo(shard)));
     }
 
     private void getDataBaseInfo() {
@@ -354,6 +362,15 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                 .stream()
                 .map(Map.Entry::getValue)
                 .forEach(this::getDataBaseInfo);
+
+        runList.forEach(thread -> {
+            try {
+                log.debug(String.format("Waiting thread %s...", thread.getName()));
+                thread.join();
+            } catch (InterruptedException err) {
+                throw new RuntimeException(err);
+            }
+        });
     }
 
     private void saveDataBaseInfo(Cluster cluster, Shard shard) {

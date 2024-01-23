@@ -48,7 +48,7 @@ public class LiquibaseManagerImpl implements LiquibaseManager {
                 .map(liquibaseRuns::get)
                 .ifPresent(it -> {
                     try {
-                        log.info(
+                        log.debug(
                                 String.format(
                                         "Waiting thread %s for changelog \"%s\"...",
                                         it.getKey().getName(),
@@ -78,13 +78,7 @@ public class LiquibaseManagerImpl implements LiquibaseManager {
 
     @Override
     public void runThread(Connection connection, Object o, String changeLog, String catalogName) {
-        Thread thread = new Thread(() -> {
-            try {
-                run(connection, changeLog, catalogName);
-            } catch (Exception err) {
-                throw new RuntimeException(err);
-            }
-        });
+        Thread thread = new Thread(() -> run(connection, changeLog, catalogName));
         this.wait(o);
         liquibaseRuns.put(o, ImmutablePair.of(thread, changeLog));
         thread.start();
