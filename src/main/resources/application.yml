@@ -32,7 +32,7 @@ shardDbConfig:
       defaultCluster: true
       shards:
         - database:
-            driver: org.postgresql.Driver
+            classname: org.postgresql.ds.PGSimpleDataSource
             url: ${PMTS_DATASOURCE_JDBC_URL_PUBLIC_1:jdbc:postgresql://d5pmts-pgc001lk.corp.dev.vtb:5432/pmts_public_1}
             username: ${PMTS_DB_PUBLIC_USER:developer}
             password: ${PMTS_DB_PUBLIC_PASSWORD:pmts_dev}
