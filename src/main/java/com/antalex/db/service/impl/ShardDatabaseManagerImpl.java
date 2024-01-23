@@ -478,6 +478,9 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         config.setJdbcUrl(
                 Optional.ofNullable(shardConfig.getDataBase()).map(DataBaseConfig::getUrl).orElse(null)
         );
+        config.setDataSourceClassName(
+                Optional.ofNullable(shardConfig.getDataBase()).map(DataBaseConfig::getClassname).orElse(null)
+        );
         config.setDriverClassName(
                 Optional.ofNullable(shardConfig.getDataBase()).map(DataBaseConfig::getDriver).orElse(null)
         );
