@@ -26,7 +26,6 @@ public class ApplicationSequenceGenerator extends AbstractSequenceGenerator {
     public ApplicationSequenceGenerator(String name, Shard shard) {
         this.name = name;
         this.shard = shard;
-
     }
 
     public void setCacheSize(Integer cacheSize) {

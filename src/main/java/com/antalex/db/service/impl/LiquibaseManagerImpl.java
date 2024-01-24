@@ -28,6 +28,7 @@ public class LiquibaseManagerImpl implements LiquibaseManager {
                     new JdbcConnection(connection)
             );
             database.setDefaultCatalogName(catalogName);
+            database.setDefaultSchemaName(catalogName);
             Liquibase liquibase = new Liquibase(
                     changeLog,
                     new ClassLoaderResourceAccessor(),
