@@ -1,5 +1,5 @@
 #dialect: org.hibernate.dialect.PostgreSQL82Dialect
-#dialect: org.hibernate.dialect.Oracle10gDialect
+dialect: org.hibernate.dialect.Oracle10gDialect
 
 hibernate:
   dialect: org.hibernate.dialect.PostgreSQL82Dialect
@@ -24,6 +24,7 @@ spring:
     enabled: false
 
 shardDbConfig:
+  segment: TEST
   timeOut: 10
   liquibase:
     changeLogSrc: classpath:db/changelog
@@ -40,28 +41,4 @@ shardDbConfig:
             user: ${PMTS_DB_PUBLIC_USER:developer}
             pass: ${PMTS_DB_PUBLIC_PASSWORD:pmts_dev}
             owner: pmts_public_1
-        - database:
-            driver: oracle.jdbc.driver.OracleDriver
-            url: jdbc:oracle:thin:@d5cftm-apc005ln.corp.dev.vtb:1521/ELVIS
-            user: IBS
-            pass: IBS
-          id: 1
-        - database:
-            driver: oracle.jdbc.driver.OracleDriver
-            url: jdbc:oracle:thin:@localhost:1521/eks
-            user: TEST
-            pass: TEST
-            owner: IBS
-          main: true
-          id: 2
-          hikari:
-            minimumIdle: 20
-            maximumPoolSize: 200
-    - name: RAW
-      id: 3
-      shards:
-        - database:
-            driver: oracle.jdbc.driver.OracleDriver
-            url: jdbc:oracle:thin:@d5ubss-or5001lk.corp.dev.vtb:1521/TARIFA
-            user: IBS
-            pass: IBS
+          id: 99

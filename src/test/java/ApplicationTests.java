@@ -3,6 +3,8 @@ import com.antalex.db.service.ShardDataBaseManager;
 import com.antalex.db.service.ShardEntityManager;
 import com.antalex.db.service.impl.ApplicationSequenceGenerator;
 import com.antalex.db.utils.ShardUtils;
+import com.antalex.domain.persistence.entity.TestAEntity;
+import com.antalex.domain.persistence.entity.TestBEntity;
 import com.antalex.domain.persistence.repository.AdditionalParameterRepository;
 import com.antalex.domain.persistence.repository.TestARepository;
 import com.antalex.domain.persistence.repository.TestBRepository;
@@ -43,6 +45,7 @@ public class ApplicationTests {
 				"SEQ_ID",
 				databaseManager.getCluster(ShardUtils.DEFAULT_CLUSTER_NAME).getMainShard());
 //		((ApplicationSequenceGenerator) sequenceGenerator).setCacheSize(100);
+		((ApplicationSequenceGenerator) sequenceGenerator).setProfiler(profiler);
 
 		profiler.start("Тест0");
 
@@ -53,7 +56,7 @@ public class ApplicationTests {
 			sequenceGenerator.nextValue();
 		}
 
-/*
+
 		TestAEntity a = new TestAEntity();
 		a.setValue("A1");
 		a.setValue("A2");
@@ -69,7 +72,8 @@ public class ApplicationTests {
 		testBRepository.save(b);
 
 		testBRepository.save(b);
-*/
+
+
 
 
 		profiler.stop();

@@ -1,0 +1,15 @@
+databaseChangeLog:
+- changeSet:
+    id: 'test$main$shards_99_001'
+    author: Antalex
+    changes:
+      - createSequence:
+          cacheSize: 1000
+          cycle: true
+          dataType: int
+          incrementBy: 1000
+          maxValue: 10000000
+          minValue: 0
+          ordered: true
+          sequenceName: SEQ_ID
+          startValue: 1
