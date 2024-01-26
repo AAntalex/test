@@ -1,0 +1,32 @@
+SHOW max_connections
+
+SELECT * FROM pmts_public_1.pmts_public_1.pmts_mpu_document where direction = 'IN' and status = 'CREATED' ORDER BY id;
+
+select * from pmts_public_1.app_database
+select * from pmts_public_1.app_sequence
+select * from pmts_public_1.app_test
+select * from pmts_public_1.TEST_A
+select * from pmts_public_1.TEST_B
+
+select * from pmts_public_1.DATABASECHANGELOG where AUTHOR = 'Antalex';
+
+update pmts_public_1.DATABASECHANGELOGLOCK set LOCKED = '0';
+delete from pmts_public_1.DATABASECHANGELOG where AUTHOR = 'Antalex';
+commit;
+
+drop table pmts_public_1.app_sequence;
+drop table pmts_public_1.app_database;
+drop table pmts_public_1.app_test;
+drop table pmts_public_1.TEST_A;
+drop table pmts_public_1.TEST_B;
+
+SELECT c.relname FROM pg_class c WHERE c.relkind = 'S' order BY c.relname;
+
+SELECT count(*) FROM pg_stat_activity;
+SELECT * FROM pg_stat_database;
+SELECT * FROM pg_stat_activity where datname like 'pmts_public%';
+
+SELECT * FROM pg_user
+
+SELECT sequence_schema, sequence_name FROM information_schema.sequences ORDER BY sequence_name
+SELECT * FROM information_schema.tables
