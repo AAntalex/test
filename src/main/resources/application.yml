@@ -24,7 +24,6 @@ spring:
     enabled: false
 
 shardDbConfig:
-  segment: TEST
   timeOut: 10
   liquibase:
     changeLogSrc: classpath:db/changelog
@@ -41,4 +40,18 @@ shardDbConfig:
             user: ${PMTS_DB_PUBLIC_USER:developer}
             pass: ${PMTS_DB_PUBLIC_PASSWORD:pmts_dev}
             owner: pmts_public_1
-          id: 99
+          id: 63
+        - database:
+            driver: oracle.jdbc.driver.OracleDriver
+            url: jdbc:oracle:thin:@d5cftm-apc005ln.corp.dev.vtb:1521/ELVIS
+            user: IBS
+            pass: IBS
+          id: 1
+    - name: RAW
+      id: 3
+      shards:
+        - database:
+            driver: oracle.jdbc.driver.OracleDriver
+            url: jdbc:oracle:thin:@d5ubss-or5001lk.corp.dev.vtb:1521/TARIFA
+            user: IBS
+            pass: IBS

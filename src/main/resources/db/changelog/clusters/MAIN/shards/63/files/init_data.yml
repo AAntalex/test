@@ -1,6 +1,6 @@
 databaseChangeLog:
 - changeSet:
-    id: 'test$main$shards_99_001'
+    id: 'test$main$shards_63_001'
     author: Antalex
     changes:
       - createSequence:
@@ -10,6 +10,5 @@ databaseChangeLog:
           incrementBy: 1000
           maxValue: 10000000
           minValue: 0
-          ordered: true
           sequenceName: SEQ_ID
-          startValue: 1
+          startValue: 1000
