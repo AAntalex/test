@@ -3,7 +3,6 @@ package com.antalex.db.service.impl;
 import com.antalex.db.model.Shard;
 import com.antalex.db.service.abstractive.AbstractSequenceGenerator;
 import com.antalex.db.utils.ShardUtils;
-import com.antalex.profiler.service.ProfilerService;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -24,25 +23,10 @@ public class ApplicationSequenceGenerator extends AbstractSequenceGenerator {
     private Integer cacheSize;
     private Connection connection;
 
-
-    private ProfilerService profiler;
-    public void setProfiler(ProfilerService profiler) {
-        this.profiler = profiler;
-    }
-    private void startTimeCounter(String name, String method) {
-        if (Objects.nonNull(profiler)) {
-            profiler.startTimeCounter(name, method);
-        }
-    }
-    private void fixTimeCounter() {
-        if (Objects.nonNull(profiler)) {
-            profiler.fixTimeCounter();
-        }
-    }
-
     public ApplicationSequenceGenerator(String name, Shard shard) {
         this.name = name;
         this.shard = shard;
+        this.cacheSize = shard.getSequenceCacheSize();
     }
 
     public void setCacheSize(Integer cacheSize) {
@@ -50,17 +34,14 @@ public class ApplicationSequenceGenerator extends AbstractSequenceGenerator {
     }
 
     private Connection getConnection() throws SQLException {
-        startTimeCounter("getConnection", "AAA");
         if (Objects.isNull(this.connection) || this.connection.isClosed()) {
             this.connection = shard.getDataSource().getConnection();
             this.connection.setAutoCommit(false);
         }
-        fixTimeCounter();
         return this.connection;
     }
 
     private void closeConnection() {
-        startTimeCounter("closeConnection", "AAA");
         try {
             if (Objects.nonNull(this.connection) && !this.connection.isClosed()) {
                 this.connection.close();
@@ -68,34 +49,26 @@ public class ApplicationSequenceGenerator extends AbstractSequenceGenerator {
         } catch (Exception err) {
             throw new RuntimeException(err);
         }
-        fixTimeCounter();
     }
 
     @Override
     public void init() {
-        startTimeCounter("init", "AAA");
         try {
             Connection connection = getConnection();
-            startTimeCounter("preparedStatement", "AAA");
             PreparedStatement preparedStatement = connection.prepareStatement(
                     ShardUtils.transformSQL(QUERY_LOCK, this.shard)
             );
             preparedStatement.setString(1, this.name);
-            fixTimeCounter();
-            startTimeCounter("executeQuery", "AAA");
             ResultSet resultSet = preparedStatement.executeQuery();
-            fixTimeCounter();
-            startTimeCounter("resultSet", "AAA");
             if (resultSet.next()) {
-                this.value = resultSet.getLong(1);
+                this.value = resultSet.getLong(1) + 1L;
                 if (resultSet.wasNull()) {
                     this.value = resultSet.getLong(2);
                 }
                 this.maxValue = Optional.ofNullable(cacheSize)
                         .map(it -> this.value + it)
-                        .orElse(this.value + Long.max(resultSet.getLong(3), 1L));
+                        .orElse(this.value + Long.max(resultSet.getLong(3), 1L)) - 1L;
 
-                startTimeCounter("resultSet QUERY_UPDATE prepare", "AAA");
                 preparedStatement = connection.prepareStatement(
                         ShardUtils.transformSQL(QUERY_UPDATE, this.shard)
                 );
@@ -104,7 +77,7 @@ public class ApplicationSequenceGenerator extends AbstractSequenceGenerator {
                 if (!resultSet.wasNull() && this.maxValue.compareTo(sequenceMaxValue) > 0) {
                     this.maxValue = sequenceMaxValue;
                     if (resultSet.getBoolean(5)) {
-                        preparedStatement.setLong(1, resultSet.getLong(2));
+                        preparedStatement.setLong(1, resultSet.getLong(2) - 1L);
                     } else {
                         if (this.value.compareTo(this.maxValue) >= 0) {
                             connection.rollback();
@@ -121,23 +94,16 @@ public class ApplicationSequenceGenerator extends AbstractSequenceGenerator {
                     preparedStatement.setLong(1, this.maxValue);
                 }
                 preparedStatement.setString(2, this.name);
-                fixTimeCounter();
-                startTimeCounter("resultSet QUERY_UPDATE executeUpdate", "AAA");
                 if (preparedStatement.executeUpdate() == 0) {
                     connection.rollback();
                     throw new RuntimeException(String.format("Ошбка инициализации счетчика \"%s\"", this.name));
                 }
-                fixTimeCounter();
             }
-            fixTimeCounter();
-            startTimeCounter("commit", "AAA");
             connection.commit();
-            fixTimeCounter();
         } catch (Exception err) {
             throw new RuntimeException(err);
         } finally {
             closeConnection();
         }
-        fixTimeCounter();
     }
 }

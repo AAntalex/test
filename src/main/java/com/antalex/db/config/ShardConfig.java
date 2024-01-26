@@ -8,4 +8,5 @@ public class ShardConfig {
     private Boolean main;
     private DataBaseConfig dataBase;
     private HikariSettings hikari;
+    private Integer sequenceCacheSize;
 }

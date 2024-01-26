@@ -17,5 +17,6 @@ public class ShardDataBaseConfig {
     private List<ClusterConfig> clusters;
     private LiquibaseConfig liquibase;
     private HikariSettings hikari;
+    private Integer sequenceCacheSize;
 }
 

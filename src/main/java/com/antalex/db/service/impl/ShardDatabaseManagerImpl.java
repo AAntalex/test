@@ -549,6 +549,16 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                 HikariDataSource dataSource = new HikariDataSource(
                         getHikariConfig(shardDataBaseConfig, clusterConfig, shardConfig)
                 );
+                shard.setSequenceCacheSize(
+                        Optional.ofNullable(shardConfig.getSequenceCacheSize())
+                                .orElse(
+                                        Optional.ofNullable(clusterConfig.getSequenceCacheSize())
+                                                .orElse(
+                                                        Optional.ofNullable(shardDataBaseConfig.getSequenceCacheSize())
+                                                                .orElse(null)
+                                                )
+                                )
+                );
                 shard.setDataSource(dataSource);
                 shard.setOwner(
                         Optional.ofNullable(shardConfig.getDataBase())

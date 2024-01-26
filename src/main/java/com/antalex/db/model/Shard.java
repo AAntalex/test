@@ -11,4 +11,5 @@ public class Shard {
     private DataBaseInfo dataBaseInfo;
     private DynamicDataBaseInfo dynamicDataBaseInfo;
     private String owner;
+    private Integer sequenceCacheSize;
 }

@@ -11,4 +11,5 @@ public class ClusterConfig {
     private Boolean defaultCluster;
     private List<ShardConfig> shards;
     private HikariSettings hikari;
+    private Integer sequenceCacheSize;
 }

@@ -101,8 +101,8 @@ public class ShardedEntityProcessor extends AbstractProcessor {
 
     private String getInsertSQL(ClassDto classDto) {
         String sql = "INSERT INTO $$$." + classDto.getTableName() + " (";
-        String columns = "";
-        String values = "";
+        String columns = "ID,SHARD_VALUE";
+        String values = "?,?";
         for (int i = 0; i < classDto.getFields().size(); i++) {
             columns = columns.concat(i == 0 ? "" : ",").concat(classDto.getFields().get(i).getColumnName());
             values = values.concat(i == 0 ? "?" : ",?");
