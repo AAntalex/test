@@ -62,10 +62,13 @@ public class ApplicationTests {
 		}
 
 
+		/*
 		SequenceGenerator sequenceGenerator = new ApplicationSequenceGenerator(
 				"SEQ_ID",
 				databaseManager.getCluster(ShardUtils.DEFAULT_CLUSTER_NAME).getMainShard());
 		((ApplicationSequenceGenerator) sequenceGenerator).setCacheSize(10000);
+		((ApplicationSequenceGenerator) sequenceGenerator).setProfiler(profiler);
+		*/
 
 		profiler.start("Тест0");
 
@@ -73,8 +76,8 @@ public class ApplicationTests {
 
 
 		long seq;
-		for (long i = 1L; i < 100000L; i++) {
-			seq = sequenceGenerator.nextValue();
+		for (long i = 1L; i <= 100000L; i++) {
+			seq = databaseManager.sequenceNextVal();
 			if (seq != i) {
 				System.out.println("AAA i =  " + i + " seq = " + seq);
 			}
