@@ -1,5 +1,6 @@
 package com.antalex.db.service.impl;
 
+import com.antalex.db.api.SQLRunnable;
 import com.antalex.db.config.*;
 import com.antalex.db.model.*;
 import com.antalex.db.service.ShardDataBaseManager;
@@ -8,6 +9,7 @@ import com.antalex.db.service.SequenceGenerator;
 import com.antalex.db.utils.ShardUtils;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import liquibase.util.StringUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.ImmutablePair;
@@ -54,15 +56,13 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     private Map<String, Cluster> clusters = new HashMap<>();
     private Map<Short, Cluster> clusterIds = new HashMap<>();
     private Map<Cluster, SequenceGenerator> shardSequences = new HashMap<>();
-    private Map<Cluster, SequenceGenerator> sequences = new HashMap<>();
+    private Map<String, Map<Shard, SequenceGenerator>> sequences = new HashMap<>();
     private List<ImmutablePair<Cluster, Shard>> newShards = new ArrayList<>();
-    private List<Thread> runList = new ArrayList<>();
 
     private String changLogPath;
     private String changLogName;
     private String segment;
     private int timeOut;
-
 
     ShardDatabaseManagerImpl(
             ResourceLoader resourceLoader,
@@ -109,6 +109,11 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     }
 
     @Override
+    public Cluster getDefaultCluster() {
+        return defaultCluster;
+    }
+
+    @Override
     public Shard getShard(Cluster cluster, Short id) {
         Assert.notNull(cluster, "Не указан кластер");
         Assert.notNull(id, "Не указан идентификатор шарды");
@@ -132,17 +137,40 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                     getNextShard(storageAttributes.getCluster())
             );
         }
-        SequenceGenerator sequenceGenerator = sequences.get(storageAttributes.getCluster());
-        if (!sequences.containsKey(storageAttributes.getCluster())) {
-            sequenceGenerator = new ApplicationSequenceGenerator(
-                    MAIN_SEQUENCE,
-                    storageAttributes.getCluster().getMainShard()
-            );
-            sequences.put(storageAttributes.getCluster(), sequenceGenerator);
-        }
         return (
-                sequenceGenerator.nextValue() * ShardUtils.MAX_CLUSTERS + storageAttributes.getCluster().getId()
+                sequenceNextVal(MAIN_SEQUENCE, storageAttributes.getCluster()) *
+                        ShardUtils.MAX_CLUSTERS + storageAttributes.getCluster().getId()
         ) * ShardUtils.MAX_SHARDS + storageAttributes.getShard().getId();
+    }
+
+    @Override
+    public long sequenceNextVal(String sequenceName, Shard shard) {
+        Map<Shard, SequenceGenerator> shardSequences = sequences.get(sequenceName);
+        if (Objects.isNull(shardSequences)) {
+            shardSequences = new HashMap<>();
+            sequences.put(sequenceName, shardSequences);
+        }
+        SequenceGenerator sequenceGenerator = shardSequences.get(shard);
+        if (Objects.isNull(sequenceGenerator)) {
+            sequenceGenerator = new ApplicationSequenceGenerator(sequenceName, shard);
+            shardSequences.put(shard, sequenceGenerator);
+        }
+        return sequenceGenerator.nextValue();
+    }
+
+    @Override
+    public long sequenceNextVal(String sequenceName, Cluster cluster) {
+        return sequenceNextVal(sequenceName, cluster.getMainShard());
+    }
+
+    @Override
+    public long sequenceNextVal(String sequenceName) {
+        return sequenceNextVal(sequenceName, getDefaultCluster());
+    }
+
+    @Override
+    public long sequenceNextVal() {
+        return sequenceNextVal(MAIN_SEQUENCE, getDefaultCluster());
     }
 
     @Override
@@ -235,7 +263,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
 
     private void checkClusterDefault(Cluster cluster, boolean clusterDefault) {
         Assert.isTrue(
-                cluster.getName().equals(defaultCluster.getName()) == clusterDefault,
+                cluster.getName().equals(getDefaultCluster().getName()) == clusterDefault,
                 String.format(
                         "Кластер '%s'%s должен быть основным" ,
                         cluster.getName(),
@@ -312,11 +340,23 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         }
     }
 
-    public void runThread(Shard shard, Runnable target) {
-        Thread thread = new Thread(target);
-        runList.add(thread);
+    public SQLRunInfo runSQLThread(Shard shard, SQLRunnable target) {
+        SQLRunInfo sqlRunInfo = new SQLRunInfo();
+        Thread thread = new Thread(() -> {
+            try {
+                Connection connection = shard.getDataSource().getConnection();
+                sqlRunInfo.setConnection(connection);
+                target.run(connection);
+            } catch (SQLException err) {
+                sqlRunInfo.setError(err.getMessage());
+                throw new RuntimeException(err);
+            }
+        });
+        sqlRunInfo.setThread(thread);
         thread.start();
+        return sqlRunInfo;
     }
+
 
     private void getDataBaseInfo(Shard shard) {
         try {
@@ -353,22 +393,70 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         }
     }
 
-    private void getDataBaseInfo(Cluster cluster) {
+
+    private void getDataBaseInfo(Cluster cluster, SQLRun sqlRun) {
         cluster
                 .getShards()
-                .forEach(shard -> this.runThread(shard, () -> getDataBaseInfo(shard)));
+                .forEach(
+                        shard ->
+                                sqlRun.getRuns().add(
+                                        this.runSQLThread(
+                                                shard,
+                                                (connection) -> {
+                                                    PreparedStatement preparedStatement = connection.prepareStatement(
+                                                            ShardUtils.transformSQL(SELECT_DB_INFO, shard)
+                                                    );
+                                                    ResultSet resultSet = preparedStatement.executeQuery();
+                                                    if (resultSet.next()) {
+                                                        shard.setDataBaseInfo(
+                                                                DataBaseInfo
+                                                                        .builder()
+                                                                        .shardId(resultSet.getShort(1))
+                                                                        .mainShard(resultSet.getBoolean(2))
+                                                                        .clusterId(resultSet.getShort(3))
+                                                                        .clusterName(resultSet.getString(4))
+                                                                        .defaultCluster(resultSet.getBoolean(5))
+                                                                        .build()
+                                                        );
+                                                        shard.setDynamicDataBaseInfo(
+                                                                DynamicDataBaseInfo
+                                                                        .builder()
+                                                                        .lastTime(System.currentTimeMillis())
+                                                                        .available(true)
+                                                                        .segment(resultSet.getString(6))
+                                                                        .accessible(resultSet.getBoolean(7))
+                                                                        .build()
+                                                        );
+                                                    }
+                                                    connection.close();
+                                                }
+                                        )
+                                )
+                );
     }
 
     private void getDataBaseInfo() {
+        SQLRun sqlRun = new SQLRun();
         clusters.entrySet()
                 .stream()
                 .map(Map.Entry::getValue)
-                .forEach(this::getDataBaseInfo);
+                .forEach(cluster -> this.getDataBaseInfo(cluster, sqlRun));
+    }
 
-        runList.forEach(thread -> {
+    private void checkSQLRun(SQLRun sqlRun) {
+        sqlRun.getRuns().forEach(sqlRunInfo -> {
             try {
-                log.debug(String.format("Waiting thread %s...", thread.getName()));
-                thread.join();
+                log.debug(String.format("Waiting thread %s...", sqlRunInfo.getThread().getName()));
+                sqlRunInfo.getThread().join();
+                if (Objects.nonNull(sqlRunInfo.getError())) {
+                    sqlRun.setHasError(true);
+                    sqlRun.setErrorMessage(
+                            Optional.ofNullable(sqlRun.getErrorMessage())
+                                    .map(it -> it.concat(StringUtils.LF))
+                                    .orElse(StringUtils.EMPTY)
+                                    .concat(sqlRunInfo.getError())
+                    );
+                }
             } catch (InterruptedException err) {
                 throw new RuntimeException(err);
             }
@@ -392,7 +480,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                             .mainShard(shard.getId().equals(cluster.getMainShard().getId()))
                             .clusterId(cluster.getId())
                             .clusterName(cluster.getName())
-                            .defaultCluster(cluster.getName().equals(defaultCluster.getName()))
+                            .defaultCluster(cluster.getName().equals(getDefaultCluster().getName()))
                             .build()
             );
             shard.setDynamicDataBaseInfo(
@@ -527,7 +615,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         shardDataBaseConfig.getClusters().forEach(clusterConfig->{
             Cluster cluster = new Cluster();
             cluster.setName(clusterConfig.getName());
-            if (Objects.isNull(defaultCluster) ||
+            if (Objects.isNull(getDefaultCluster()) ||
                     Optional.ofNullable(clusterConfig.getDefaultCluster()).orElse(false))
             {
                 defaultCluster = cluster;
@@ -629,15 +717,6 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         return null;
     }
 
-    private Connection getConnection(String clusterName) throws SQLException {
-        return getConnection(
-                Optional.ofNullable(clusterName)
-                        .map(clusters::get)
-                        .map(Cluster::getMainShard)
-                        .orElse(null)
-        );
-    }
-
     private Boolean isEnabled(DynamicDataBaseInfo dynamicDataBaseInfo) {
         return Optional.ofNullable(dynamicDataBaseInfo)
                 .map(it ->
@@ -736,7 +815,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                                             })
                                 );
                             });
-                    runLiquibaseFromPath(path, defaultCluster.getMainShard());
+                    runLiquibaseFromPath(path, getDefaultCluster().getMainShard());
                 });
 
         liquibaseManager.waitAll();

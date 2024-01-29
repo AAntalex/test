@@ -3,7 +3,6 @@ package com.antalex.db.service;
 import com.antalex.db.model.Cluster;
 import com.antalex.db.model.Shard;
 import com.antalex.db.model.StorageAttributes;
-import com.antalex.db.model.enums.ShardType;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
@@ -14,8 +13,13 @@ public interface ShardDataBaseManager {
     DataSource getDataSource();
     Cluster getCluster(Short id);
     Cluster getCluster(String clusterName);
+    Cluster getDefaultCluster();
     Shard getShard(Cluster cluster, Short id);
     Long generateId(StorageAttributes storageAttributes);
     Connection getConnection(Short clusterId, Short shardId) throws SQLException;
     StorageAttributes getStorageAttributes(Short id, Long shardValue);
+    long sequenceNextVal(String sequenceName, Shard shard);
+    long sequenceNextVal(String sequenceName, Cluster cluster);
+    long sequenceNextVal(String sequenceName);
+    long sequenceNextVal();
 }
