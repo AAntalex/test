@@ -78,9 +78,11 @@ public class ApplicationTests {
 		long seq;
 		for (long i = 1L; i <= 100000L; i++) {
 			seq = databaseManager.sequenceNextVal();
+/*
 			if (seq != i) {
 				System.out.println("AAA i =  " + i + " seq = " + seq);
 			}
+*/
 		}
 
 		profiler.stop();

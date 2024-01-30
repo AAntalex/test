@@ -15,6 +15,7 @@ hibernate:
 
 logging:
   level:
+    com.antalex.db: debug
     org.hibernate.type:
       descriptor:
         sql.BasicBinder: INFO
@@ -37,8 +38,8 @@ shardDbConfig:
       shards:
         - database:
             url: ${PMTS_DATASOURCE_JDBC_URL_PUBLIC_1:jdbc:postgresql://d5pmts-pgc001lk.corp.dev.vtb:5432/pmts_public_1}
-            user: ${PMTS_DB_PUBLIC_USER:developer}
-            pass: ${PMTS_DB_PUBLIC_PASSWORD:pmts_dev}
+            user: ${PMTS_DB_PUBLIC_USER:pmts_public_1_admin}
+            pass: ${PMTS_DB_PUBLIC_PASSWORD:123}
             owner: pmts_public_1
           id: 63
         - database:
