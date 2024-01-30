@@ -9,6 +9,6 @@ import java.util.List;
 public class SQLRun {
     private List<SQLRunInfo> runs = new ArrayList<>();
     private String errorMessage;
-    private Boolean hasError;
-    private Boolean needCommit;
+    private Boolean hasError = false;
+    private Boolean needCommit = false;
 }

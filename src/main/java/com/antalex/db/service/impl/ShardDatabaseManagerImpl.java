@@ -9,7 +9,6 @@ import com.antalex.db.service.SequenceGenerator;
 import com.antalex.db.utils.ShardUtils;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
-import liquibase.util.StringUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.ImmutablePair;
@@ -26,6 +25,7 @@ import java.sql.SQLException;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -39,14 +39,18 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     private static final String MAIN_SEQUENCE = "SEQ_ID";
     private static final int DEFAULT_TIME_OUT_REFRESH_DB_INFO = 10;
 
+    private static final String SQL_ERROR_TEXT = "Ошибки при выполнении SQL запроса: ";
+    private static final String SQL_ERROR_COMMIT_TEXT = "Ошибки при подтверждении транзакции: ";
+    private static final String SQL_ERROR_ROLLBACK_TEXT = "Ошибки при откате транзакции: ";
+    private static final String SQL_ERROR_PREFIX = "   : ";
+
     private static final String SELECT_DB_INFO = "SELECT SHARD_ID,MAIN_SHARD,CLUSTER_ID,CLUSTER_NAME,DEFAULT_CLUSTER" +
             ",SEGMENT_NAME,ACCESSIBLE FROM $$$.APP_DATABASE";
     private static final String INS_DB_INFO = "INSERT INTO $$$.APP_DATABASE " +
             "(SHARD_ID,MAIN_SHARD,CLUSTER_ID,CLUSTER_NAME,DEFAULT_CLUSTER,ACCESSIBLE) " +
             " VALUES (?, ?, ?, ?, ?, ?)";
 
-    private static final String SELECT_DYNAMIC_DB_INFO = "SELECT SEGMENT_NAME,ACCESSIBLE" +
-            " FROM $$$.APP_DATABASE";
+    private static final String SELECT_DYNAMIC_DB_INFO = "SELECT SEGMENT_NAME,ACCESSIBLE FROM $$$.APP_DATABASE";
 
     private final ResourceLoader resourceLoader;
     private final LiquibaseManager liquibaseManager;
@@ -322,7 +326,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
             DynamicDataBaseInfo dynamicDataBaseInfo = shard.getDynamicDataBaseInfo();
             dynamicDataBaseInfo.setLastTime(System.currentTimeMillis());
             try {
-                Connection connection = shard.getDataSource().getConnection();
+                Connection connection = getConnection(shard);
                 PreparedStatement preparedStatement = connection.prepareStatement(
                         ShardUtils.transformSQL(SELECT_DYNAMIC_DB_INFO, shard)
                 );
@@ -340,99 +344,71 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         }
     }
 
-    public SQLRunInfo runSQLThread(Shard shard, SQLRunnable target) {
-        SQLRunInfo sqlRunInfo = new SQLRunInfo();
-        Thread thread = new Thread(() -> {
-            try {
-                Connection connection = shard.getDataSource().getConnection();
-                sqlRunInfo.setConnection(connection);
-                target.run(connection);
-            } catch (SQLException err) {
-                sqlRunInfo.setError(err.getMessage());
-                throw new RuntimeException(err);
-            }
-        });
-        sqlRunInfo.setThread(thread);
-        thread.start();
-        return sqlRunInfo;
-    }
-
-
-    private void getDataBaseInfo(Shard shard) {
+    private SQLRunInfo runSQLThread(Shard shard, SQLRunnable target, String description) {
         try {
-            Connection connection = shard.getDataSource().getConnection();
-
-            PreparedStatement preparedStatement = connection.prepareStatement(
-                    ShardUtils.transformSQL(SELECT_DB_INFO, shard)
-            );
-            ResultSet resultSet = preparedStatement.executeQuery();
-            if (resultSet.next()) {
-                shard.setDataBaseInfo(
-                        DataBaseInfo
-                                .builder()
-                                .shardId(resultSet.getShort(1))
-                                .mainShard(resultSet.getBoolean(2))
-                                .clusterId(resultSet.getShort(3))
-                                .clusterName(resultSet.getString(4))
-                                .defaultCluster(resultSet.getBoolean(5))
-                                .build()
-                );
-                shard.setDynamicDataBaseInfo(
-                        DynamicDataBaseInfo
-                                .builder()
-                                .lastTime(System.currentTimeMillis())
-                                .available(true)
-                                .segment(resultSet.getString(6))
-                                .accessible(resultSet.getBoolean(7))
-                                .build()
-                );
-            }
-            connection.close();
+            return runSQLThread(getConnection(shard), target, description);
         } catch (SQLException err) {
             throw new RuntimeException(err);
         }
     }
 
+    private SQLRunInfo runSQLThread(Connection connection, SQLRunnable target, String description) {
+        SQLRunInfo sqlRunInfo = new SQLRunInfo();
+        Thread thread = new Thread(() -> {
+            try {
+                sqlRunInfo.setConnection(connection);
+                target.run(connection);
+            } catch (SQLException err) {
+                sqlRunInfo.setError(err.getLocalizedMessage());
+                throw new RuntimeException(err);
+            }
+        });
+        sqlRunInfo.setThread(thread);
+        sqlRunInfo.setDescription(description);
+        thread.start();
+        return sqlRunInfo;
+    }
 
-    private void getDataBaseInfo(Cluster cluster, SQLRun sqlRun) {
-        cluster
+    private List<SQLRunInfo> getDataBaseInfo(Cluster cluster) {
+        return cluster
                 .getShards()
-                .forEach(
+                .stream()
+                .map(
                         shard ->
-                                sqlRun.getRuns().add(
-                                        this.runSQLThread(
-                                                shard,
-                                                (connection) -> {
-                                                    PreparedStatement preparedStatement = connection.prepareStatement(
-                                                            ShardUtils.transformSQL(SELECT_DB_INFO, shard)
-                                                    );
-                                                    ResultSet resultSet = preparedStatement.executeQuery();
-                                                    if (resultSet.next()) {
-                                                        shard.setDataBaseInfo(
-                                                                DataBaseInfo
-                                                                        .builder()
-                                                                        .shardId(resultSet.getShort(1))
-                                                                        .mainShard(resultSet.getBoolean(2))
-                                                                        .clusterId(resultSet.getShort(3))
-                                                                        .clusterName(resultSet.getString(4))
-                                                                        .defaultCluster(resultSet.getBoolean(5))
-                                                                        .build()
-                                                        );
-                                                        shard.setDynamicDataBaseInfo(
-                                                                DynamicDataBaseInfo
-                                                                        .builder()
-                                                                        .lastTime(System.currentTimeMillis())
-                                                                        .available(true)
-                                                                        .segment(resultSet.getString(6))
-                                                                        .accessible(resultSet.getBoolean(7))
-                                                                        .build()
-                                                        );
-                                                    }
-                                                    connection.close();
-                                                }
-                                        )
+                                this.runSQLThread(
+                                        shard,
+                                        (connection) -> {
+                                            PreparedStatement preparedStatement = connection.prepareStatement(
+                                                    ShardUtils.transformSQL(SELECT_DB_INFO, shard)
+                                            );
+                                            ResultSet resultSet = preparedStatement.executeQuery();
+                                            if (resultSet.next()) {
+                                                shard.setDataBaseInfo(
+                                                        DataBaseInfo
+                                                                .builder()
+                                                                .shardId(resultSet.getShort(1))
+                                                                .mainShard(resultSet.getBoolean(2))
+                                                                .clusterId(resultSet.getShort(3))
+                                                                .clusterName(resultSet.getString(4))
+                                                                .defaultCluster(resultSet.getBoolean(5))
+                                                                .build()
+                                                );
+                                                shard.setDynamicDataBaseInfo(
+                                                        DynamicDataBaseInfo
+                                                                .builder()
+                                                                .lastTime(System.currentTimeMillis())
+                                                                .available(true)
+                                                                .segment(resultSet.getString(6))
+                                                                .accessible(resultSet.getBoolean(7))
+                                                                .build()
+                                                );
+                                            }
+                                           connection.close();
+                                        },
+                                        String.format("GET DataBase Info on shard '%s'", shard.getName())
                                 )
-                );
+
+                ).collect(Collectors.toList());
     }
 
     private void getDataBaseInfo() {
@@ -440,81 +416,156 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         clusters.entrySet()
                 .stream()
                 .map(Map.Entry::getValue)
-                .forEach(cluster -> this.getDataBaseInfo(cluster, sqlRun));
+                .forEach(cluster -> sqlRun.getRuns().addAll(this.getDataBaseInfo(cluster)));
+
+        procSQLRun(sqlRun, false);
     }
 
-    private void checkSQLRun(SQLRun sqlRun) {
+    private void procSQLRunError(SQLRunInfo sqlRunInfo, SQLRun sqlRun, String errorText) {
+        if (Objects.nonNull(sqlRunInfo.getError())) {
+            sqlRun.setHasError(true);
+            sqlRun.setErrorMessage(
+                    Optional.ofNullable(sqlRun.getErrorMessage())
+                            .map(it -> it.concat(StringUtils.LF))
+                            .orElse(errorText)
+                            .concat(sqlRunInfo.getThread().getName())
+                            .concat(SQL_ERROR_PREFIX)
+                            .concat(sqlRunInfo.getError())
+            );
+        }
+    }
+
+    private void procSQLRunConnection(SQLRunInfo sqlRunInfo, SQLRun sqlRun) {
+        try {
+            if (Objects.nonNull(sqlRunInfo.getConnection()) && !sqlRunInfo.getConnection().isClosed()) {
+                if (sqlRunInfo.getConnection().getAutoCommit()) {
+                    sqlRunInfo.getConnection().close();
+                } else {
+                    sqlRun.setNeedCommit(true);
+                }
+            }
+        } catch (SQLException err) {
+            throw new RuntimeException(err);
+        }
+    }
+
+    private SQLRun commitRuns(SQLRun sqlRun) {
+        SQLRun sqlRunCommit = new SQLRun();
+        sqlRunCommit.getRuns().addAll(
+                sqlRun.getRuns()
+                        .stream()
+                        .map(run ->
+                                runSQLThread(
+                                        run.getConnection(),
+                                        (connection) -> {
+                                            if (!connection.isClosed() && !connection.getAutoCommit()) {
+                                                if (sqlRun.getHasError()) {
+                                                    connection.rollback();
+                                                } else {
+                                                    connection.commit();
+                                                }
+                                                connection.close();
+                                            }},
+                                        (sqlRun.getHasError() ? "ROLLBACK" : "COMMIT") +
+                                                String.format(" for \"%s\"", run.getDescription())
+                                )
+                        ).collect(Collectors.toList())
+        );
+        return sqlRunCommit;
+    }
+
+    private void procSQLRun(SQLRun sqlRun, boolean isCommit) {
         sqlRun.getRuns().forEach(sqlRunInfo -> {
             try {
-                log.debug(String.format("Waiting thread %s...", sqlRunInfo.getThread().getName()));
+                log.debug(
+                        String.format(
+                                "Waiting %s for \"%s\"...",
+                                sqlRunInfo.getThread().getName(),
+                                sqlRunInfo.getDescription()
+                        )
+                );
                 sqlRunInfo.getThread().join();
-                if (Objects.nonNull(sqlRunInfo.getError())) {
-                    sqlRun.setHasError(true);
-                    sqlRun.setErrorMessage(
-                            Optional.ofNullable(sqlRun.getErrorMessage())
-                                    .map(it -> it.concat(StringUtils.LF))
-                                    .orElse(StringUtils.EMPTY)
-                                    .concat(sqlRunInfo.getError())
-                    );
+                procSQLRunError(
+                        sqlRunInfo,
+                        sqlRun,
+                        isCommit
+                                ? (sqlRun.getHasError() ? SQL_ERROR_ROLLBACK_TEXT : SQL_ERROR_COMMIT_TEXT)
+                                : SQL_ERROR_TEXT
+                );
+                if (!isCommit && !sqlRun.getNeedCommit()) {
+                    procSQLRunConnection(sqlRunInfo, sqlRun);
                 }
             } catch (InterruptedException err) {
                 throw new RuntimeException(err);
             }
         });
-    }
-
-    private void saveDataBaseInfo(Cluster cluster, Shard shard) {
-        if (Objects.isNull(shard.getDataBaseInfo())) {
-            if (Objects.isNull(shard.getId())) {
-                shard.setId(getShardId(cluster));
-                this.addShardToCluster(cluster, shard);
-            }
-            if (Objects.isNull(cluster.getId())) {
-                cluster.setId(getClusterId());
-                this.addCluster(cluster.getId(), cluster);
-            }
-            shard.setDataBaseInfo(
-                    DataBaseInfo
-                            .builder()
-                            .shardId(shard.getId())
-                            .mainShard(shard.getId().equals(cluster.getMainShard().getId()))
-                            .clusterId(cluster.getId())
-                            .clusterName(cluster.getName())
-                            .defaultCluster(cluster.getName().equals(getDefaultCluster().getName()))
-                            .build()
-            );
-            shard.setDynamicDataBaseInfo(
-                    DynamicDataBaseInfo
-                            .builder()
-                            .lastTime(System.currentTimeMillis())
-                            .available(true)
-                            .accessible(true)
-                            .build()
-            );
-            try {
-                Connection connection = shard.getDataSource().getConnection();
-                PreparedStatement preparedStatement = connection.prepareStatement(
-                        ShardUtils.transformSQL(INS_DB_INFO, shard)
-                );
-
-                preparedStatement.setShort(1, shard.getDataBaseInfo().getShardId());
-                preparedStatement.setBoolean(2, shard.getDataBaseInfo().isMainShard());
-                preparedStatement.setShort(3, shard.getDataBaseInfo().getClusterId());
-                preparedStatement.setString(4, shard.getDataBaseInfo().getClusterName());
-                preparedStatement.setBoolean(5, shard.getDataBaseInfo().isDefaultCluster());
-                preparedStatement.setBoolean(6, true);
-
-                preparedStatement.executeUpdate();
-                connection.close();
-            } catch (SQLException err) {
-                throw new RuntimeException(err);
-            }
+        if (!isCommit && sqlRun.getNeedCommit()) {
+            procSQLRun(commitRuns(sqlRun), true);
+        }
+        if (sqlRun.getHasError()) {
+            throw new RuntimeException(sqlRun.getErrorMessage());
         }
     }
 
+    private SQLRunInfo saveDataBaseInfo(Cluster cluster, Shard shard) {
+        if (Objects.isNull(shard.getId())) {
+            shard.setId(getShardId(cluster));
+            this.addShardToCluster(cluster, shard);
+        }
+        if (Objects.isNull(cluster.getId())) {
+            cluster.setId(getClusterId());
+            this.addCluster(cluster.getId(), cluster);
+        }
+        shard.setDataBaseInfo(
+                DataBaseInfo
+                        .builder()
+                        .shardId(shard.getId())
+                        .mainShard(shard.getId().equals(cluster.getMainShard().getId()))
+                        .clusterId(cluster.getId())
+                        .clusterName(cluster.getName())
+                        .defaultCluster(cluster.getName().equals(getDefaultCluster().getName()))
+                        .build()
+        );
+        shard.setDynamicDataBaseInfo(
+                DynamicDataBaseInfo
+                        .builder()
+                        .lastTime(System.currentTimeMillis())
+                        .available(true)
+                        .accessible(true)
+                        .build()
+        );
+
+        return this.runSQLThread(
+                shard,
+                (connection) -> {
+                    connection.setAutoCommit(false);
+                    PreparedStatement preparedStatement = connection.prepareStatement(
+                            ShardUtils.transformSQL(INS_DB_INFO, shard)
+                    );
+
+                    preparedStatement.setShort(1, shard.getDataBaseInfo().getShardId());
+                    preparedStatement.setBoolean(2, shard.getDataBaseInfo().isMainShard());
+                    preparedStatement.setShort(3, shard.getDataBaseInfo().getClusterId());
+                    preparedStatement.setString(4, shard.getDataBaseInfo().getClusterName());
+                    preparedStatement.setBoolean(5, shard.getDataBaseInfo().isDefaultCluster());
+                    preparedStatement.setBoolean(6, true);
+
+                    preparedStatement.executeUpdate();
+                },
+                String.format("SAVE DataBase Info for shard '%s'", shard.getName()));
+    }
+
     private void saveDataBaseInfo() {
+        SQLRun sqlRun = new SQLRun();
         newShards
-                .forEach(it -> saveDataBaseInfo(it.getLeft(), it.getRight()));
+                .stream()
+                .filter(it -> Objects.isNull(it.getRight().getDataBaseInfo()))
+                .forEach(it ->
+                        sqlRun.getRuns().add(
+                                saveDataBaseInfo(it.getLeft(), it.getRight())
+                        )
+                );
+        procSQLRun(sqlRun, false);
     }
 
     private <T> void setHikariConfigValue(ShardDataBaseConfig shardDataBaseConfig,
@@ -653,6 +704,9 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                                 .map(DataBaseConfig::getOwner)
                                 .orElse(dataSource.getUsername())
                 );
+                shard.setName(
+                        String.format("%s: (%s)", cluster.getName(), shardConfig.getDataBase().getUrl())
+                );
                 shard.setId(shardConfig.getId());
                 this.addShardToCluster(cluster, shard);
 
@@ -736,11 +790,19 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     private void runLiquibase(Shard shard, String changeLog) {
         if (isEnabled(shard.getDynamicDataBaseInfo())) {
             try {
+                log.debug(
+                        String.format(
+                                "Run changelog \"%s\" for shard \"%s\"",
+                                changeLog,
+                                shard.getName()
+                        )
+                );
                 liquibaseManager.runThread(
                         getConnection(shard),
                         shard,
                         changeLog.startsWith(CLASSPATH) ? changeLog.substring(CLASSPATH.length()) : changeLog,
-                        shard.getOwner()
+                        shard.getOwner(),
+                        String.format("changelog \"%s\" for shard %s", changeLog, shard.getName())
                 );
             } catch (Exception err) {
                 throw new RuntimeException(err);

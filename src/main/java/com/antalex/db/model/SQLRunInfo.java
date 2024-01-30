@@ -8,5 +8,6 @@ import java.sql.Connection;
 public class SQLRunInfo {
     private Connection connection;
     private Thread thread;
+    private String description;
     private String error;
 }

@@ -1,5 +1,6 @@
 package com.antalex.db.service.impl;
 
+import com.antalex.db.model.SQLRunInfo;
 import com.antalex.db.service.LiquibaseManager;
 import liquibase.Contexts;
 import liquibase.LabelExpression;
@@ -7,40 +8,38 @@ import liquibase.Liquibase;
 import liquibase.database.Database;
 import liquibase.database.DatabaseFactory;
 import liquibase.database.jvm.JdbcConnection;
+import liquibase.exception.DatabaseException;
+import liquibase.exception.LiquibaseException;
 import liquibase.resource.ClassLoaderResourceAccessor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 @Slf4j
 public class LiquibaseManagerImpl implements LiquibaseManager {
-    private Map<Object, Pair<Thread, String>> liquibaseRuns = new HashMap<>();
+    private Map<Object, SQLRunInfo> liquibaseRuns = new HashMap<>();
 
     @Override
-    public void run(Connection connection, String changeLog, String catalogName) {
-        try {
-            Database database = DatabaseFactory.getInstance().findCorrectDatabaseImplementation(
-                    new JdbcConnection(connection)
-            );
-            database.setDefaultCatalogName(catalogName);
-            database.setDefaultSchemaName(catalogName);
-            Liquibase liquibase = new Liquibase(
-                    changeLog,
-                    new ClassLoaderResourceAccessor(),
-                    database
+    public void run(Connection connection, String changeLog, String catalogName) throws LiquibaseException {
+        Database database = DatabaseFactory.getInstance().findCorrectDatabaseImplementation(
+                new JdbcConnection(connection)
+        );
+        database.setDefaultCatalogName(catalogName);
+        database.setDefaultSchemaName(catalogName);
+        Liquibase liquibase = new Liquibase(
+                changeLog,
+                new ClassLoaderResourceAccessor(),
+                database
 
-            );
-
-            liquibase.update(new Contexts(), new LabelExpression());
-
-        } catch (Exception err) {
-            throw new RuntimeException(err);
-        }
+        );
+        liquibase.update(new Contexts(), new LabelExpression());
     }
 
     @Override
@@ -51,13 +50,22 @@ public class LiquibaseManagerImpl implements LiquibaseManager {
                     try {
                         log.debug(
                                 String.format(
-                                        "Waiting thread %s for changelog \"%s\"...",
-                                        it.getKey().getName(),
-                                        it.getValue()
+                                        "Waiting %s for %s...",
+                                        it.getThread().getName(),
+                                        it.getDescription()
                                 )
                         );
-                        it.getKey().join();
+                        it.getThread().join();
                         liquibaseRuns.remove(o);
+                        if (Objects.nonNull(it.getError())) {
+                            throw new RuntimeException(
+                                    String.format(
+                                            "Error executing %s: %s",
+                                            it.getDescription(),
+                                            it.getError()
+                                    )
+                            );
+                        }
                     } catch (InterruptedException err) {
                         throw new RuntimeException(err);
                     }
@@ -78,11 +86,20 @@ public class LiquibaseManagerImpl implements LiquibaseManager {
     }
 
     @Override
-    public void runThread(Connection connection, Object o, String changeLog, String catalogName) {
-        Thread thread = new Thread(() -> run(connection, changeLog, catalogName));
-        this.wait(o);
-        liquibaseRuns.put(o, ImmutablePair.of(thread, changeLog));
+    public void runThread(Connection connection, Object o, String changeLog, String catalogName, String description) {
+        SQLRunInfo sqlRunInfo = new SQLRunInfo();
+        Thread thread = new Thread(() -> {
+            try {
+                sqlRunInfo.setConnection(connection);
+                run(connection, changeLog, catalogName);
+            } catch (LiquibaseException err) {
+                sqlRunInfo.setError(err.getLocalizedMessage());
+                throw new RuntimeException(err);
+            }
+        });
+        sqlRunInfo.setThread(thread);
+        sqlRunInfo.setDescription(description);
+        liquibaseRuns.put(o, sqlRunInfo);
         thread.start();
     }
-
 }

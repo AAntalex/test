@@ -7,6 +7,7 @@ import javax.sql.DataSource;
 @Data
 public class Shard {
     private Short id;
+    private String name;
     private DataSource dataSource;
     private DataBaseInfo dataBaseInfo;
     private DynamicDataBaseInfo dynamicDataBaseInfo;
