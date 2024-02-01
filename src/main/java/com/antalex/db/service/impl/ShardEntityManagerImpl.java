@@ -1,6 +1,8 @@
 package com.antalex.db.service.impl;
 
 import com.antalex.db.entity.abstraction.ShardEntity;
+import com.antalex.db.model.Cluster;
+import com.antalex.db.model.StorageAttributes;
 import com.antalex.db.model.enums.ShardType;
 import com.antalex.db.service.ShardEntityManager;
 import com.antalex.db.service.ShardEntityRepository;
@@ -58,6 +60,14 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
     }
 
     @Override
+    public <T extends ShardEntity> Cluster getCluster(T entity) {
+        if (Objects.isNull(entity)) {
+            return null;
+        }
+        return getEntityRepository(entity).getCluster(entity);
+    }
+
+    @Override
     public <T extends ShardEntity> T save(T entity) {
         if (Objects.isNull(entity)) {
             return null;
@@ -71,5 +81,12 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
             entities.forEach(it -> it = save(it));
         }
         return entities;
+    }
+
+    @Override
+    public <T extends ShardEntity> void setStorage(T entity, StorageAttributes storage) {
+        if (Objects.nonNull(entity)) {
+            getEntityRepository(entity).setStorage(entity, storage);
+        }
     }
 }

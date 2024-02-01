@@ -2,6 +2,7 @@ package com.antalex.db.service.impl;
 
 import com.antalex.db.api.SQLRunnable;
 import com.antalex.db.config.*;
+import com.antalex.db.entity.abstraction.ShardEntity;
 import com.antalex.db.model.*;
 import com.antalex.db.service.ShardDataBaseManager;
 import com.antalex.db.service.LiquibaseManager;
@@ -130,7 +131,8 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     }
 
     @Override
-    public Long generateId(StorageAttributes storageAttributes) {
+    public <T extends ShardEntity> Long generateId(T entity) {
+        StorageAttributes storageAttributes = entity.getStorageAttributes();
         Assert.notNull(storageAttributes, "Не определены аттрибуты хранения");
         Assert.notNull(
                 storageAttributes.getCluster(),
@@ -140,11 +142,12 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
             storageAttributes.setShard(
                     getNextShard(storageAttributes.getCluster())
             );
+            storageAttributes.setShardValue(ShardUtils.getShardValue(storageAttributes.getShard().getId()));
         }
         return (
                 sequenceNextVal(MAIN_SEQUENCE, storageAttributes.getCluster()) *
-                        ShardUtils.MAX_CLUSTERS + storageAttributes.getCluster().getId()
-        ) * ShardUtils.MAX_SHARDS + storageAttributes.getShard().getId();
+                        ShardUtils.MAX_CLUSTERS + storageAttributes.getCluster().getId() - 1
+        ) * ShardUtils.MAX_SHARDS + storageAttributes.getShard().getId() - 1;
     }
 
     @Override
@@ -191,12 +194,14 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     @Override
     public StorageAttributes getStorageAttributes(Short id, Long shardValue) {
         Assert.notNull(id, "Не указан идентификатор сущности");
-        StorageAttributes storageAttributes = new StorageAttributes();
-        storageAttributes.setStored(true);
-        storageAttributes.setCluster(getCluster((short) (id / ShardUtils.MAX_SHARDS % ShardUtils.MAX_CLUSTERS)));
-        storageAttributes.setShard(getShard(storageAttributes.getCluster(), (short) (id % ShardUtils.MAX_SHARDS)));
-        storageAttributes.setShardValue(shardValue);
-        return storageAttributes;
+        Cluster cluster = getCluster((short) (id / ShardUtils.MAX_SHARDS % ShardUtils.MAX_CLUSTERS + 1));
+        Shard shard = getShard(cluster, (short) (id % ShardUtils.MAX_SHARDS + 1));
+        return StorageAttributes.builder()
+                .stored(true)
+                .cluster(cluster)
+                .shard(shard)
+                .shardValue(shardValue)
+                .build();
     }
 
     private Shard getNextShard(Cluster cluster) {
@@ -277,7 +282,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     }
 
     private short getShardId(Cluster cluster) {
-        for (short i = 0; i < ShardUtils.MAX_SHARDS; i++) {
+        for (short i = 1; i <= ShardUtils.MAX_SHARDS; i++) {
             if (!cluster.getShardMap().containsKey(i)) {
                 return i;
             }
@@ -288,7 +293,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     }
 
     private short getClusterId() {
-        for (short i = 0; i < ShardUtils.MAX_SHARDS; i++) {
+        for (short i = 1; i <= ShardUtils.MAX_CLUSTERS; i++) {
             if (!clusterIds.containsKey(i)) {
                 return i;
             }
@@ -552,7 +557,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
 
                     preparedStatement.executeUpdate();
                 },
-                String.format("SAVE DataBase Info for shard '%s'", shard.getName()));
+                String.format("SAVE DataBase Info on shard '%s'", shard.getName()));
     }
 
     private void saveDataBaseInfo() {
@@ -736,8 +741,8 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         if (Objects.isNull(id)) {
             return;
         }
-        if (cluster.getId() > ShardUtils.MAX_CLUSTERS-1) {
-            throw new IllegalArgumentException("ID of cluster cannot be more than " + (ShardUtils.MAX_CLUSTERS-1));
+        if (cluster.getId() > ShardUtils.MAX_CLUSTERS) {
+            throw new IllegalArgumentException("ID of cluster cannot be more than " + ShardUtils.MAX_CLUSTERS);
         }
         if (clusterIds.containsKey(id)) {
             throw new IllegalArgumentException(
@@ -752,8 +757,11 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         if (Objects.isNull(shard.getId())) {
             return;
         }
-        if (shard.getId() > ShardUtils.MAX_SHARDS-1) {
-            throw new IllegalArgumentException("ID of Shard cannot be more than " + (ShardUtils.MAX_SHARDS-1));
+        if (shard.getId() < 1) {
+            throw new IllegalArgumentException("ID of Shard cannot be less than 1");
+        }
+        if (shard.getId() > ShardUtils.MAX_SHARDS) {
+            throw new IllegalArgumentException("ID of Shard cannot be more than " + ShardUtils.MAX_SHARDS);
         }
         if (cluster.getShardMap().containsKey(shard.getId())) {
             throw new IllegalArgumentException(
@@ -790,19 +798,14 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     private void runLiquibase(Shard shard, String changeLog) {
         if (isEnabled(shard.getDynamicDataBaseInfo())) {
             try {
-                log.debug(
-                        String.format(
-                                "Run changelog \"%s\" for shard \"%s\"",
-                                changeLog,
-                                shard.getName()
-                        )
-                );
+                String description = String.format("changelog \"%s\" on shard %s", changeLog, shard.getName());
+                log.debug("Run " + description);
                 liquibaseManager.runThread(
                         getConnection(shard),
                         shard,
                         changeLog.startsWith(CLASSPATH) ? changeLog.substring(CLASSPATH.length()) : changeLog,
                         shard.getOwner(),
-                        String.format("changelog \"%s\" for shard %s", changeLog, shard.getName())
+                        description
                 );
             } catch (Exception err) {
                 throw new RuntimeException(err);

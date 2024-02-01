@@ -8,15 +8,11 @@ import liquibase.Liquibase;
 import liquibase.database.Database;
 import liquibase.database.DatabaseFactory;
 import liquibase.database.jvm.JdbcConnection;
-import liquibase.exception.DatabaseException;
 import liquibase.exception.LiquibaseException;
 import liquibase.resource.ClassLoaderResourceAccessor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.tuple.ImmutablePair;
-import org.apache.commons.lang3.tuple.Pair;
 
 import java.sql.Connection;
-import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -99,6 +95,7 @@ public class LiquibaseManagerImpl implements LiquibaseManager {
         });
         sqlRunInfo.setThread(thread);
         sqlRunInfo.setDescription(description);
+        this.wait(o);
         liquibaseRuns.put(o, sqlRunInfo);
         thread.start();
     }
