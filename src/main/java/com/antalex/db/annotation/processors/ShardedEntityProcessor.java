@@ -5,6 +5,7 @@ import com.antalex.db.model.Cluster;
 import com.antalex.db.model.StorageAttributes;
 import com.antalex.db.model.enums.ShardType;
 import com.antalex.db.service.ShardDataBaseManager;
+import com.antalex.db.service.ShardEntityManager;
 import com.antalex.db.service.ShardEntityRepository;
 import com.antalex.db.model.dto.ClassDto;
 import com.antalex.db.model.dto.FieldDto;
@@ -13,12 +14,15 @@ import org.springframework.stereotype.Repository;
 
 import javax.annotation.processing.*;
 import javax.lang.model.element.Element;
+import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.TypeElement;
 import javax.persistence.Column;
 import javax.persistence.Table;
 import javax.tools.JavaFileObject;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -36,6 +40,13 @@ public class ShardedEntityProcessor extends AbstractProcessor {
             for (Element annotatedElement : roundEnvironment.getElementsAnnotatedWith(annotation)) {
                 final String annotatedElementName = annotatedElement.getSimpleName().toString();
                 final ShardEntity shardEntity = annotatedElement.getAnnotation(ShardEntity.class);
+
+                Map<String, String> getters = annotatedElement.getEnclosedElements()
+                        .stream()
+                        .filter(this::isMethod)
+                        .map(e -> e.getSimpleName().toString())
+                        .filter(it -> it.startsWith("get"))
+                        .collect(Collectors.toMap(String::toLowerCase, it -> it));
 
                 try {
                     writeBuilderFile(
@@ -70,6 +81,8 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                                                                                             .map(Column::name)
                                                                                             .orElse(getColumnName(e))
                                                                             )
+                                                                            .getter(this.findGetter(getters, e))
+                                                                            .clazz(this.getClassForName(e.toString()))
                                                                             .build()
                                                     )
                                                     .collect(Collectors.toList())
@@ -84,12 +97,30 @@ public class ShardedEntityProcessor extends AbstractProcessor {
         return true;
     }
 
-    private String getColumnName(Element element) {
+    private String findGetter(Map<String, String> getters, Element element) {
+        return Optional.ofNullable(
+                getters.get("get" + element.getSimpleName().toString().toLowerCase())
+        ).orElse(null);
+    }
+
+    private Class getClassForName(String className) {
+        try {
+            return Class.forName(className);
+        } catch (ClassNotFoundException err) {
+            return null;
+        }
+    }
+
+    private static String getColumnName(Element element) {
         return COLUMN_PREFIX + element.getSimpleName().toString().toUpperCase();
     }
 
     private boolean isField(Element element) {
         return element != null && element.getKind().isField();
+    }
+
+    private boolean isMethod(Element element) {
+        return element != null && element.getKind() == ElementKind.METHOD;
     }
 
     private static String getPackage(String className) {
@@ -99,10 +130,10 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                 .orElse(null);
     }
 
-    private String getInsertSQL(ClassDto classDto) {
+    private static String getInsertSQL(ClassDto classDto) {
         String sql = "INSERT INTO $$$." + classDto.getTableName() + " (";
-        String columns = "ID,SHARD_VALUE";
-        String values = "?,?";
+        String columns = "ID,SHARD_VALUE,";
+        String values = "?,?,";
         for (int i = 0; i < classDto.getFields().size(); i++) {
             columns = columns.concat(i == 0 ? "" : ",").concat(classDto.getFields().get(i).getColumnName());
             values = values.concat(i == 0 ? "?" : ",?");
@@ -116,11 +147,14 @@ public class ShardedEntityProcessor extends AbstractProcessor {
             out.println("package " + classDto.getClassPackage() + ";");
             out.println();
             out.println("import " + ShardEntityRepository.class.getCanonicalName() + ";");
+            out.println("import " + ShardEntityManager.class.getCanonicalName() + ";");
             out.println("import " + Repository.class.getCanonicalName() + ";");
             out.println("import " + ShardType.class.getCanonicalName() + ";");
             out.println("import " + Cluster.class.getCanonicalName() + ";");
             out.println("import " + StorageAttributes.class.getCanonicalName() + ";");
             out.println("import " + ShardDataBaseManager.class.getCanonicalName() + ";");
+            out.println();
+            out.println("import " + Objects.class.getCanonicalName() + ";");
             out.println();
             out.println("@Repository");
             out.println("public class " +
@@ -137,36 +171,87 @@ public class ShardedEntityProcessor extends AbstractProcessor {
 
             out.println();
             out.println("    private final ShardDataBaseManager dataBaseManager;");
+            out.println("    private final ShardEntityManager entityManager;");
             out.println("    private final Cluster cluster;");
 
             out.println();
-            out.println("    " + classDto.getClassName() + "(ShardDataBaseManager dataBaseManager) {");
-            out.println("       this.dataBaseManager = dataBaseManager;");
-            out.println(
-                    "       this.cluster = dataBaseManager.getCluster(String.valueOf(\"" +
-                    classDto.getCluster() +
-                    "\"));"
-            );
-            out.println("    }");
-
+            out.println(getConstructorCode(classDto));
             out.println();
-            out.println("    @Override");
-            out.println("    public " + classDto.getTargetClassName() +
-                    " save(" + classDto.getTargetClassName() + " entity) {"
-            );
-            out.println("       return null;");
-            out.println("   }");
+            out.println(getSaveCode(classDto));
             out.println();
-
-            out.println("    @Override");
-            out.println("    public ShardType getShardType(" + classDto.getTargetClassName() + " entity) {");
-            out.println("       return SHARD_TYPE;");
-            out.println("   }");
+            out.println(getShardTypeCode(classDto));
             out.println();
-
+            out.println(getClusterCode(classDto));
             out.println();
+            out.println(getSetDependentStorageCode(classDto));
             out.println("}");
             out.println();
         }
+    }
+
+    private static String getConstructorCode(ClassDto classDto) {
+        return "    " + classDto.getClassName() + "(ShardDataBaseManager dataBaseManager,\n" +
+                "                              ShardEntityManager entityManager) {\n" +
+                "       this.dataBaseManager = dataBaseManager;\n" +
+                "       this.entityManager = entityManager;\n" +
+                "       this.cluster = dataBaseManager.getCluster(String.valueOf(\"" + classDto.getCluster() +
+                "\"));\n    }";
+    }
+
+    private static String getSaveCode(ClassDto classDto) {
+        return "    @Override\n" +
+                "    public " + classDto.getTargetClassName() +
+                " save(" + classDto.getTargetClassName() + " entity) {\n" +
+                "       if (Objects.isNull(entity.getId())) {\n" +
+                "           entityManager.setStorage(entity, null);\n" +
+                "           entity.setId(dataBaseManager.generateId(entity));\n" +
+                "       }\n" +
+                "       return null;\n" +
+                "   }";
+    }
+
+    private static String getClusterCode(ClassDto classDto) {
+        return "    @Override\n" +
+                "    public Cluster getCluster(" + classDto.getTargetClassName() + " entity) {\n" +
+                "       return cluster;\n" +
+                "    }";
+    }
+
+    private static String getShardTypeCode(ClassDto classDto) {
+        return "    @Override\n" +
+                "    public ShardType getShardType(" + classDto.getTargetClassName() + " entity) {\n" +
+                "       return SHARD_TYPE;\n" +
+                "    }";
+    }
+
+    private static String getSetDependentStorageCode(ClassDto classDto) {
+        return classDto.getFields()
+                .stream()
+                .filter(it -> Objects.nonNull(it.getGetter()))
+                .filter(it ->
+                        it.getClazz().isAnnotationPresent(ShardEntity.class) ||
+                                it.getClazz().isArray() &&
+                                        it.getClazz().getComponentType().isAnnotationPresent(ShardEntity.class)
+                )
+                .map(field -> {
+                    if (field.getClazz().isAnnotationPresent(ShardEntity.class)) {
+                        return  "        dataBaseManager.setStorage(entity." + field.getGetter()
+                                + "(), entity.getStorageAttributes());\n";
+                    } else {
+                        if (field.getClazz().isArray() &&
+                                field.getClazz().getComponentType().isAnnotationPresent(ShardEntity.class))
+                        {
+                            return "        entity." + field.getGetter() +
+                                    "().forEach(it -> " +
+                                    "dataBaseManager.setStorage(it, entity.getStorageAttributes()));\n";
+                        }
+                    }
+                    return "";
+                })
+                .reduce(
+                        "    @Override\n" +
+                                "    public void setDependentStorage(" + classDto.getTargetClassName() + " entity) {\n",
+                        String::concat
+                ) + "    }";
     }
 }

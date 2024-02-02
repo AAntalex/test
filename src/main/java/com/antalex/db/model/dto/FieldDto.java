@@ -7,5 +7,7 @@ import lombok.Data;
 @Builder
 public class FieldDto {
     private String fieldName;
+    private Class clazz;
     private String columnName;
+    private String getter;
 }

@@ -1,20 +1,18 @@
 package com.antalex.db.service.impl;
 
-import com.antalex.db.entity.abstraction.ShardEntity;
+import com.antalex.db.entity.abstraction.ShardInstance;
 import com.antalex.db.model.Cluster;
 import com.antalex.db.model.StorageAttributes;
 import com.antalex.db.model.enums.ShardType;
 import com.antalex.db.service.ShardEntityManager;
 import com.antalex.db.service.ShardEntityRepository;
+import com.antalex.db.utils.ShardUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Primary;
 import org.springframework.core.GenericTypeResolver;
 import org.springframework.stereotype.Component;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 @Component
 @Primary
@@ -34,7 +32,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
         }
     }
 
-    private synchronized <T extends ShardEntity> ShardEntityRepository<T> getEntityRepository(T entity) {
+    private synchronized <T extends ShardInstance> ShardEntityRepository<T> getEntityRepository(T entity) {
         if (entity == null) {
             return null;
         }
@@ -52,7 +50,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
     }
 
     @Override
-    public <T extends ShardEntity> ShardType getShardType(T entity) {
+    public <T extends ShardInstance> ShardType getShardType(T entity) {
         if (Objects.isNull(entity)) {
             return null;
         }
@@ -60,7 +58,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
     }
 
     @Override
-    public <T extends ShardEntity> Cluster getCluster(T entity) {
+    public <T extends ShardInstance> Cluster getCluster(T entity) {
         if (Objects.isNull(entity)) {
             return null;
         }
@@ -68,7 +66,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
     }
 
     @Override
-    public <T extends ShardEntity> T save(T entity) {
+    public <T extends ShardInstance> T save(T entity) {
         if (Objects.isNull(entity)) {
             return null;
         }
@@ -76,7 +74,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
     }
 
     @Override
-    public <T extends ShardEntity> Iterable save(Iterable<T> entities) {
+    public <T extends ShardInstance> Iterable save(Iterable<T> entities) {
         if (Objects.nonNull(entities)) {
             entities.forEach(it -> it = save(it));
         }
@@ -84,9 +82,60 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
     }
 
     @Override
-    public <T extends ShardEntity> void setStorage(T entity, StorageAttributes storage) {
+    public <T extends ShardInstance> void setDependentStorage(T entity) {
         if (Objects.nonNull(entity)) {
-            getEntityRepository(entity).setStorage(entity, storage);
+            getEntityRepository(entity).setDependentStorage(entity);
         }
     }
+
+    @Override
+    public <T extends ShardInstance> void setStorage(T entity, StorageAttributes storage) {
+        Cluster cluster = getCluster(entity);
+        Optional.ofNullable(entity.getStorageAttributes())
+                .map(entityStorage ->
+                        Optional.ofNullable(storage)
+                                .filter(it ->
+                                        it != entityStorage &&
+                                                getShardType(entity) != ShardType.REPLICABLE &&
+                                                Objects.nonNull(entityStorage.getShard()) &&
+                                                cluster.getId().equals(it.getCluster().getId())
+                                )
+                                .map(storageAttributes ->
+                                        Optional.ofNullable(storageAttributes.getShardValue())
+                                                .map(shardValue -> {
+                                                    storageAttributes.setShardValue(
+                                                            ShardUtils.addShardValue(
+                                                                    shardValue,
+                                                                    entityStorage.getShardValue()
+                                                            )
+                                                    );
+                                                    return null;
+                                                })
+                                                .orElseGet(() -> {
+                                                    storageAttributes.setShard(entityStorage.getShard());
+                                                    storageAttributes.setShardValue(entityStorage.getShardValue());
+                                                    return null;
+                                                })
+                                )
+                                .orElse(null)
+                )
+                .orElseGet(() -> {
+                    entity.setStorageAttributes(
+                            Optional.ofNullable(storage)
+                                    .filter(it ->
+                                            cluster.getId()
+                                                    .equals(it.getCluster().getId())
+                                    )
+                                    .orElse(
+                                            StorageAttributes.builder()
+                                                    .stored(false)
+                                                    .cluster(cluster)
+                                                    .build()
+                                    )
+                    );
+                    setDependentStorage(entity);
+                    return null;
+                });
+    }
+
 }

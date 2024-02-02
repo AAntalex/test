@@ -2,7 +2,7 @@ package com.antalex.db.entity.abstraction;
 
 import com.antalex.db.model.StorageAttributes;
 
-public interface ShardEntity {
+public interface ShardInstance {
     Long getId();
     Long getOrderId();
     StorageAttributes getStorageAttributes();

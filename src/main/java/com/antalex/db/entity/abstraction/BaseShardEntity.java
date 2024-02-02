@@ -5,7 +5,7 @@ import com.antalex.db.utils.ShardUtils;
 
 import java.util.Optional;
 
-public abstract class BaseShardEntity implements ShardEntity {
+public abstract class BaseShardEntity implements ShardInstance {
     private Long id;
     private StorageAttributes storageAttributes;
 
