@@ -20,6 +20,7 @@ import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.ArrayType;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeKind;
+import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.ElementFilter;
 import javax.persistence.Column;
 import javax.persistence.Table;
@@ -129,6 +130,19 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                 .isPresent();
     }
 
+    private static <A extends Annotation> boolean isAnnotationPresent(TypeMirror type, Class<A> annotation) {
+        return Optional.ofNullable(type)
+                .map(type ->
+                        type.getKind() == TypeKind.ARRAY ?
+                                ((ArrayType) type).getComponentType() :
+                                type
+                )
+                .map(type -> (DeclaredType) type)
+                .map(DeclaredType::asElement)
+                .map(e -> Objects.nonNull(e.getAnnotation(annotation)))
+                .orElse(false);
+    }
+
     private static String getInsertSQL(ClassDto classDto) {
         String sql = "INSERT INTO $$$." + classDto.getTableName() + " (";
         String columns = "ID,SHARD_VALUE,";
@@ -227,10 +241,15 @@ public class ShardedEntityProcessor extends AbstractProcessor {
         return classDto.getFields()
                 .stream()
                 .filter(it -> Objects.nonNull(it.getGetter()))
-                .filter(it -> isAnnotationPresent(it.getElement(), ParentShard.class))
                 .map(field -> {
+                    if (isAnnotationPresent(field.getElement(), ParentShard.class)) {
                         return  "        entityManager.setStorage(entity." + field.getGetter()
                                 + "(), entity.getStorageAttributes());\n";
+                    }
+                    if (isAnnotationPresent(field.getElement().asType(), ShardEntity.class)) {
+                        return  "        entityManager.setStorage(entity." + field.getGetter() + "(), null);\n";
+                    }
+                    return "";
                 })
                 .reduce(
                         "    @Override\n" +
