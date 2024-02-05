@@ -1,10 +1,6 @@
-import com.antalex.db.service.SequenceGenerator;
 import com.antalex.db.service.ShardDataBaseManager;
 import com.antalex.db.service.ShardEntityManager;
-import com.antalex.db.service.impl.ApplicationSequenceGenerator;
 import com.antalex.db.utils.ShardUtils;
-import com.antalex.domain.persistence.entity.TestAEntity;
-import com.antalex.domain.persistence.entity.TestBEntity;
 import com.antalex.domain.persistence.repository.AdditionalParameterRepository;
 import com.antalex.domain.persistence.repository.TestARepository;
 import com.antalex.domain.persistence.repository.TestBRepository;

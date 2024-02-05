@@ -58,4 +58,31 @@ databaseChangeLog:
                   referencedColumnNames: ID
                   referencedTableName: TEST_A
                 nullable: true
+      - createTable:
+          tableName: TEST_C
+          columns:
+          - column:
+              name: ID
+              type: bigint
+              constraints:
+                primaryKey: true
+                nullable: false
+                primaryKeyName: PK_TEST_C_ID
+          - column:
+              name: SHARD_VALUE
+              type: bigint
+          - column:
+              name: C_VALUE
+              type: VARCHAR(128)
+          - column:
+              name: C_NEW_VALUE
+              type: VARCHAR(128)
+          - column:
+              name: C_B_REF
+              type: bigint
+              constraints:
+                foreignKey:
+                  referencedColumnNames: ID
+                  referencedTableName: TEST_B
+                nullable: false
 
