@@ -132,15 +132,17 @@ public class ShardedEntityProcessor extends AbstractProcessor {
 
     private static <A extends Annotation> boolean isAnnotationPresent(TypeMirror type, Class<A> annotation) {
         return Optional.ofNullable(type)
-                .map(type ->
-                        type.getKind() == TypeKind.ARRAY ?
-                                ((ArrayType) type).getComponentType() :
-                                type
+                .map(it -> (DeclaredType) type)
+                .filter(it ->
+                        Objects.nonNull(it.asElement().getAnnotation(annotation)) ||
+                                it.getTypeArguments().size() > 0 &&
+                                        Objects.nonNull(
+                                                ((DeclaredType) it.getTypeArguments().get(0))
+                                                        .asElement()
+                                                        .getAnnotation(annotation)
+                                        )
                 )
-                .map(type -> (DeclaredType) type)
-                .map(DeclaredType::asElement)
-                .map(e -> Objects.nonNull(e.getAnnotation(annotation)))
-                .orElse(false);
+                .isPresent();
     }
 
     private static String getInsertSQL(ClassDto classDto) {
