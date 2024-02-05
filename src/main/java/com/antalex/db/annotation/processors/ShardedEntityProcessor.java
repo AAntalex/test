@@ -1,5 +1,6 @@
 package com.antalex.db.annotation.processors;
 
+import com.antalex.db.annotation.ParentShard;
 import com.antalex.db.annotation.ShardEntity;
 import com.antalex.db.model.Cluster;
 import com.antalex.db.model.StorageAttributes;
@@ -10,17 +11,22 @@ import com.antalex.db.service.ShardEntityRepository;
 import com.antalex.db.model.dto.ClassDto;
 import com.antalex.db.model.dto.FieldDto;
 import com.google.auto.service.AutoService;
+import com.google.common.base.CaseFormat;
 import org.springframework.stereotype.Repository;
 
 import javax.annotation.processing.*;
 import javax.lang.model.element.Element;
-import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.TypeElement;
+import javax.lang.model.type.ArrayType;
+import javax.lang.model.type.DeclaredType;
+import javax.lang.model.type.TypeKind;
+import javax.lang.model.util.ElementFilter;
 import javax.persistence.Column;
 import javax.persistence.Table;
 import javax.tools.JavaFileObject;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.lang.annotation.Annotation;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -41,9 +47,8 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                 final String annotatedElementName = annotatedElement.getSimpleName().toString();
                 final ShardEntity shardEntity = annotatedElement.getAnnotation(ShardEntity.class);
 
-                Map<String, String> getters = annotatedElement.getEnclosedElements()
+                Map<String, String> getters = ElementFilter.methodsIn(annotatedElement.getEnclosedElements())
                         .stream()
-                        .filter(this::isMethod)
                         .map(e -> e.getSimpleName().toString())
                         .filter(it -> it.startsWith("get"))
                         .collect(Collectors.toMap(String::toLowerCase, it -> it));
@@ -82,7 +87,7 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                                                                                             .orElse(getColumnName(e))
                                                                             )
                                                                             .getter(this.findGetter(getters, e))
-                                                                            .clazz(this.getClassForName(e.toString()))
+                                                                            .element(e)
                                                                             .build()
                                                     )
                                                     .collect(Collectors.toList())
@@ -103,24 +108,13 @@ public class ShardedEntityProcessor extends AbstractProcessor {
         ).orElse(null);
     }
 
-    private Class getClassForName(String className) {
-        try {
-            return Class.forName(className);
-        } catch (ClassNotFoundException err) {
-            return null;
-        }
-    }
-
     private static String getColumnName(Element element) {
-        return COLUMN_PREFIX + element.getSimpleName().toString().toUpperCase();
+        return COLUMN_PREFIX + CaseFormat.LOWER_CAMEL.to(CaseFormat.UPPER_UNDERSCORE,
+                element.getSimpleName().toString());
     }
 
     private boolean isField(Element element) {
         return element != null && element.getKind().isField();
-    }
-
-    private boolean isMethod(Element element) {
-        return element != null && element.getKind() == ElementKind.METHOD;
     }
 
     private static String getPackage(String className) {
@@ -128,6 +122,11 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                 .filter(it -> it > 0)
                 .map(it -> className.substring(0, it))
                 .orElse(null);
+    }
+
+    private static <A extends Annotation> boolean isAnnotationPresent(Element element, Class<A> annotation) {
+        return Optional.ofNullable(element.getAnnotation(annotation))
+                .isPresent();
     }
 
     private static String getInsertSQL(ClassDto classDto) {
@@ -228,25 +227,10 @@ public class ShardedEntityProcessor extends AbstractProcessor {
         return classDto.getFields()
                 .stream()
                 .filter(it -> Objects.nonNull(it.getGetter()))
-                .filter(it ->
-                        it.getClazz().isAnnotationPresent(ShardEntity.class) ||
-                                it.getClazz().isArray() &&
-                                        it.getClazz().getComponentType().isAnnotationPresent(ShardEntity.class)
-                )
+                .filter(it -> isAnnotationPresent(it.getElement(), ParentShard.class))
                 .map(field -> {
-                    if (field.getClazz().isAnnotationPresent(ShardEntity.class)) {
-                        return  "        dataBaseManager.setStorage(entity." + field.getGetter()
+                        return  "        entityManager.setStorage(entity." + field.getGetter()
                                 + "(), entity.getStorageAttributes());\n";
-                    } else {
-                        if (field.getClazz().isArray() &&
-                                field.getClazz().getComponentType().isAnnotationPresent(ShardEntity.class))
-                        {
-                            return "        entity." + field.getGetter() +
-                                    "().forEach(it -> " +
-                                    "dataBaseManager.setStorage(it, entity.getStorageAttributes()));\n";
-                        }
-                    }
-                    return "";
                 })
                 .reduce(
                         "    @Override\n" +

@@ -138,4 +138,8 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
                 });
     }
 
+    @Override
+    public <T extends ShardInstance> void setStorage(List<T> entities, StorageAttributes storage) {
+        entities.forEach(entity -> setStorage(entity, storage));
+    }
 }
