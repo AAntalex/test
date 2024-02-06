@@ -20,7 +20,7 @@ public class TestCEntity extends BaseShardEntity {
     @Column(name = "C_VALUE")
     private String value;
     @Column(name = "C_B_REF")
-    private TestBEntity b;
+    private Long b;
     @Column(name = "C_NEW_VALUE")
     private String newValue;
 }

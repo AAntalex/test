@@ -23,6 +23,8 @@ logging:
 spring:
   liquibase:
     enabled: false
+  main:
+    allow-circular-references: true
 
 shardDbConfig:
   timeOut: 10
@@ -42,27 +44,3 @@ shardDbConfig:
             pass: ${PMTS_DB_PUBLIC_PASSWORD:123}
             owner: pmts_public_1
           id: 63
-        - database:
-            driver: oracle.jdbc.driver.OracleDriver
-            url: jdbc:oracle:thin:@d5cftm-apc005ln.corp.dev.vtb:1521/ELVIS
-            user: IBS
-            pass: IBS
-          id: 1
-        - database:
-            driver: oracle.jdbc.driver.OracleDriver
-            url: jdbc:oracle:thin:@localhost:1521/eks
-            user: TEST
-            pass: TEST
-            owner: IBS
-          id: 2
-          hikari:
-            minimumIdle: 20
-            maximumPoolSize: 200
-    - name: RAW
-      id: 3
-      shards:
-        - database:
-            driver: oracle.jdbc.driver.OracleDriver
-            url: jdbc:oracle:thin:@d5ubss-or5001lk.corp.dev.vtb:1521/TARIFA
-            user: IBS
-            pass: IBS

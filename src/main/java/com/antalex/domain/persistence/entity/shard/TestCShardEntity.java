@@ -11,7 +11,7 @@ import javax.persistence.Table;
 
 @Table(name = "TEST_C")
 @Data
-@ShardEntity
+//@ShardEntity
 public class TestCShardEntity extends BaseShardEntity {
     private String value;
     private String newValue;

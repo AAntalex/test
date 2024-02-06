@@ -1,12 +1,15 @@
 import com.antalex.db.service.ShardDataBaseManager;
 import com.antalex.db.service.ShardEntityManager;
 import com.antalex.db.utils.ShardUtils;
+import com.antalex.domain.persistence.entity.hiber.TestAEntity;
+import com.antalex.domain.persistence.entity.hiber.TestBEntity;
 import com.antalex.domain.persistence.repository.AdditionalParameterRepository;
 import com.antalex.domain.persistence.repository.TestARepository;
 import com.antalex.domain.persistence.repository.TestBRepository;
 import com.antalex.optimizer.OptimizerApplication;
 import com.antalex.profiler.service.ProfilerService;
 import com.antalex.service.AdditionalParameterService;
+import com.antalex.service.TestService;
 import org.hibernate.dialect.Dialect;
 import org.hibernate.engine.jdbc.dialect.internal.StandardDialectResolver;
 import org.hibernate.engine.jdbc.dialect.spi.DatabaseMetaDataDialectResolutionInfoAdapter;
@@ -39,11 +42,11 @@ public class ApplicationTests {
 	private TestARepository testARepository;
 	@Autowired
 	private TestBRepository testBRepository;
+	@Autowired
+	private TestService testService;
 
-
-	@Test
-	public void ins() {
-
+//	@Test
+	public void dialect() {
 		try {
 			DialectResolver dialectResolver = new StandardDialectResolver();
 			Connection connection = databaseManager.getCluster(ShardUtils.DEFAULT_CLUSTER_NAME).getMainShard().getDataSource().getConnection();
@@ -56,8 +59,10 @@ public class ApplicationTests {
 		} catch (Exception err) {
 			throw new RuntimeException(err);
 		}
+	}
 
-
+//	@Test
+	public void sequence() {
 		/*
 		SequenceGenerator sequenceGenerator = new ApplicationSequenceGenerator(
 				"SEQ_ID",
@@ -98,8 +103,30 @@ public class ApplicationTests {
 		profiler.stop();
 		System.out.println(profiler.printTimeCounter());
 */
+	}
 
-/*
+	@Test
+	public void saveJPA() {
+		profiler.start("testService.saveJPA");
+
+		testService.saveJPA();
+
+		profiler.stop();
+		System.out.println(profiler.printTimeCounter());
+
+		profiler.start("testService.saveJPA");
+
+		testService.saveTransactionalJPA();
+
+		profiler.stop();
+		System.out.println(profiler.printTimeCounter());
+	}
+
+
+//	@Test
+	public void ins() {
+
+		/*
 		TestAEntity a = new TestAEntity();
 		a.setValue("A1");
 		a.setValue("A2");
