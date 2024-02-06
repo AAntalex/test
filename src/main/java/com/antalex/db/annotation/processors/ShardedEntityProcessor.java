@@ -17,9 +17,7 @@ import org.springframework.stereotype.Repository;
 import javax.annotation.processing.*;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.TypeElement;
-import javax.lang.model.type.ArrayType;
 import javax.lang.model.type.DeclaredType;
-import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.ElementFilter;
 import javax.persistence.Column;
@@ -69,8 +67,8 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                                     .cluster(shardEntity.cluster())
                                     .shardType(shardEntity.type())
                                     .fields(
-                                            annotatedElement.getEnclosedElements().stream()
-                                                    .filter(this::isField)
+                                            ElementFilter.fieldsIn(annotatedElement.getEnclosedElements())
+                                                    .stream()
                                                     .map(
                                                             e ->
                                                                     FieldDto
@@ -112,10 +110,6 @@ public class ShardedEntityProcessor extends AbstractProcessor {
     private static String getColumnName(Element element) {
         return COLUMN_PREFIX + CaseFormat.LOWER_CAMEL.to(CaseFormat.UPPER_UNDERSCORE,
                 element.getSimpleName().toString());
-    }
-
-    private boolean isField(Element element) {
-        return element != null && element.getKind().isField();
     }
 
     private static String getPackage(String className) {
@@ -185,7 +179,6 @@ public class ShardedEntityProcessor extends AbstractProcessor {
             );
 
             out.println();
-            out.println("    private final ShardDataBaseManager dataBaseManager;");
             out.println("    private final ShardEntityManager entityManager;");
             out.println("    private final Cluster cluster;");
 
@@ -199,6 +192,8 @@ public class ShardedEntityProcessor extends AbstractProcessor {
             out.println(getClusterCode(classDto));
             out.println();
             out.println(getSetDependentStorageCode(classDto));
+            out.println();
+            out.println(getGenerateDependentIdCode(classDto));
             out.println("}");
             out.println();
         }
@@ -207,7 +202,6 @@ public class ShardedEntityProcessor extends AbstractProcessor {
     private static String getConstructorCode(ClassDto classDto) {
         return "    " + classDto.getClassName() + "(ShardDataBaseManager dataBaseManager,\n" +
                 "                              ShardEntityManager entityManager) {\n" +
-                "       this.dataBaseManager = dataBaseManager;\n" +
                 "       this.entityManager = entityManager;\n" +
                 "       this.cluster = dataBaseManager.getCluster(String.valueOf(\"" + classDto.getCluster() +
                 "\"));\n    }";
@@ -219,9 +213,9 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                 " save(" + classDto.getTargetClassName() + " entity) {\n" +
                 "       if (Objects.isNull(entity.getId())) {\n" +
                 "           entityManager.setStorage(entity, null);\n" +
-                "           entity.setId(dataBaseManager.generateId(entity));\n" +
+                "           entityManager.generateId(entity);\n" +
                 "       }\n" +
-                "       return null;\n" +
+                "       return entity;\n" +
                 "   }";
     }
 
@@ -247,15 +241,26 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                     if (isAnnotationPresent(field.getElement(), ParentShard.class)) {
                         return  "        entityManager.setStorage(entity." + field.getGetter()
                                 + "(), entity.getStorageAttributes());\n";
+                    } else {
+                        return isAnnotationPresent(field.getElement().asType(), ShardEntity.class) ?
+                                "        entityManager.setStorage(entity." + field.getGetter() + "(), null);\n" : "";
                     }
-                    if (isAnnotationPresent(field.getElement().asType(), ShardEntity.class)) {
-                        return  "        entityManager.setStorage(entity." + field.getGetter() + "(), null);\n";
-                    }
-                    return "";
                 })
                 .reduce(
                         "    @Override\n" +
                                 "    public void setDependentStorage(" + classDto.getTargetClassName() + " entity) {\n",
+                        String::concat
+                ) + "    }";
+    }
+    private static String getGenerateDependentIdCode(ClassDto classDto) {
+        return classDto.getFields()
+                .stream()
+                .filter(it -> Objects.nonNull(it.getGetter()))
+                .filter(it -> isAnnotationPresent(it.getElement().asType(), ShardEntity.class))
+                .map(field -> "        entityManager.generateId(entity." + field.getGetter() + "());\n")
+                .reduce(
+                        "    @Override\n" +
+                                "    public void generateDependentId(" + classDto.getTargetClassName() + " entity) {\n",
                         String::concat
                 ) + "    }";
     }

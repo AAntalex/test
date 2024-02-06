@@ -8,5 +8,6 @@ public interface ShardEntityRepository<T extends ShardInstance> {
     ShardType getShardType(T entity);
     Cluster getCluster(T entity);
     T save(T entity);
+    void generateDependentId(T entity);
     void setDependentStorage(T entity);
 }

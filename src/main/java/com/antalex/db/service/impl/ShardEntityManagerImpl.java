@@ -4,6 +4,7 @@ import com.antalex.db.entity.abstraction.ShardInstance;
 import com.antalex.db.model.Cluster;
 import com.antalex.db.model.StorageAttributes;
 import com.antalex.db.model.enums.ShardType;
+import com.antalex.db.service.ShardDataBaseManager;
 import com.antalex.db.service.ShardEntityManager;
 import com.antalex.db.service.ShardEntityRepository;
 import com.antalex.db.utils.ShardUtils;
@@ -20,6 +21,9 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
     private static final Map<Class<?>, ShardEntityRepository> REPOSITORIES = new HashMap<>();
     private ShardEntityRepository<?> currentShardEntityRepository;
     private Class<?> currentSourceClass;
+
+    @Autowired
+    private ShardDataBaseManager dataBaseManager;
 
     @Autowired
     public void setRepositories(List<ShardEntityRepository> entityRepositories) {
@@ -89,6 +93,13 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
     }
 
     @Override
+    public <T extends ShardInstance> void generateDependentId(T entity) {
+        if (Objects.nonNull(entity)) {
+            getEntityRepository(entity).generateDependentId(entity);
+        }
+    }
+
+    @Override
     public <T extends ShardInstance> void setStorage(T entity, StorageAttributes storage) {
         Cluster cluster = getCluster(entity);
         Optional.ofNullable(entity.getStorageAttributes())
@@ -139,7 +150,20 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
     }
 
     @Override
-    public <T extends ShardInstance> void setStorage(List<T> entities, StorageAttributes storage) {
+    public <T extends ShardInstance> void setStorage(Iterable<T> entities, StorageAttributes storage) {
         entities.forEach(entity -> setStorage(entity, storage));
+    }
+
+    @Override
+    public <T extends ShardInstance> void generateId(T entity) {
+        if (Objects.isNull(entity.getId())) {
+            entity.setId(dataBaseManager.generateId(entity.getStorageAttributes()));
+            generateDependentId(entity);
+        }
+    }
+
+    @Override
+    public <T extends ShardInstance> void generateId(Iterable<T> entities) {
+        entities.forEach(this::generateId);
     }
 }

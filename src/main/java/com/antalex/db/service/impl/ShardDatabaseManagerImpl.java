@@ -2,13 +2,10 @@ package com.antalex.db.service.impl;
 
 import com.antalex.db.api.SQLRunnable;
 import com.antalex.db.config.*;
-import com.antalex.db.entity.abstraction.ShardInstance;
 import com.antalex.db.model.*;
-import com.antalex.db.model.enums.ShardType;
 import com.antalex.db.service.ShardDataBaseManager;
 import com.antalex.db.service.LiquibaseManager;
 import com.antalex.db.service.SequenceGenerator;
-import com.antalex.db.service.ShardEntityManager;
 import com.antalex.db.utils.ShardUtils;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
@@ -133,8 +130,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     }
 
     @Override
-    public <T extends ShardInstance> Long generateId(T entity) {
-        StorageAttributes storageAttributes = entity.getStorageAttributes();
+    public Long generateId(StorageAttributes storageAttributes) {
         Assert.notNull(storageAttributes, "Не определены аттрибуты хранения");
         Assert.notNull(
                 storageAttributes.getCluster(),
