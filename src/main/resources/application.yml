@@ -1,8 +1,8 @@
 #dialect: org.hibernate.dialect.PostgreSQL82Dialect
-dialect: org.hibernate.dialect.Oracle10gDialect
+#dialect: org.hibernate.dialect.Oracle10gDialect
 
 hibernate:
-  dialect: org.hibernate.dialect.PostgreSQL82Dialect
+  dialect: org.hibernate.dialect.Oracle10gDialect
   jdbc:
     batch_size: 10000
   order_inserts: true
@@ -39,8 +39,12 @@ shardDbConfig:
       defaultCluster: true
       shards:
         - database:
-            url: ${PMTS_DATASOURCE_JDBC_URL_PUBLIC_1:jdbc:postgresql://d5pmts-pgc001lk.corp.dev.vtb:5432/pmts_public_1}
-            user: ${PMTS_DB_PUBLIC_USER:pmts_public_1_admin}
-            pass: ${PMTS_DB_PUBLIC_PASSWORD:123}
-            owner: pmts_public_1
-          id: 63
+            driver: oracle.jdbc.driver.OracleDriver
+            url: jdbc:oracle:thin:@localhost:1521/eks
+            user: IBS
+            pass: IBS
+            owner: IBS
+          id: 2
+          hikari:
+            minimumIdle: 20
+            maximumPoolSize: 200

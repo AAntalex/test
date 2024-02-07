@@ -19,8 +19,9 @@ public class TestCEntity extends BaseShardEntity {
     private Long shardValue;
     @Column(name = "C_VALUE")
     private String value;
-    @Column(name = "C_B_REF")
-    private Long b;
+    @OneToOne
+    @JoinColumn(name = "C_B_REF")
+    private TestBEntity b;
     @Column(name = "C_NEW_VALUE")
     private String newValue;
 }

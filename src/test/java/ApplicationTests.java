@@ -3,6 +3,7 @@ import com.antalex.db.service.ShardEntityManager;
 import com.antalex.db.utils.ShardUtils;
 import com.antalex.domain.persistence.entity.hiber.TestAEntity;
 import com.antalex.domain.persistence.entity.hiber.TestBEntity;
+import com.antalex.domain.persistence.entity.shard.TestBShardEntity;
 import com.antalex.domain.persistence.repository.AdditionalParameterRepository;
 import com.antalex.domain.persistence.repository.TestARepository;
 import com.antalex.domain.persistence.repository.TestBRepository;
@@ -10,6 +11,7 @@ import com.antalex.optimizer.OptimizerApplication;
 import com.antalex.profiler.service.ProfilerService;
 import com.antalex.service.AdditionalParameterService;
 import com.antalex.service.TestService;
+import com.antalex.service.TestShardService;
 import org.hibernate.dialect.Dialect;
 import org.hibernate.engine.jdbc.dialect.internal.StandardDialectResolver;
 import org.hibernate.engine.jdbc.dialect.spi.DatabaseMetaDataDialectResolutionInfoAdapter;
@@ -21,6 +23,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.sql.Connection;
+import java.util.List;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes = OptimizerApplication.class)
@@ -44,6 +47,9 @@ public class ApplicationTests {
 	private TestBRepository testBRepository;
 	@Autowired
 	private TestService testService;
+	@Autowired
+	private TestShardService testShardService;
+
 
 //	@Test
 	public void dialect() {
@@ -105,25 +111,54 @@ public class ApplicationTests {
 */
 	}
 
-	@Test
+//	@Test
 	public void saveJPA() {
-		profiler.start("testService.saveJPA");
-
-		testService.saveJPA();
-
+/*
+		profiler.start("testService.generate");
+		List<TestBEntity> testBEntities = testService.generate(100, 10, null);
 		profiler.stop();
 		System.out.println(profiler.printTimeCounter());
 
 		profiler.start("testService.saveJPA");
-
-		testService.saveTransactionalJPA();
-
+		testService.saveJPA(testBEntities);
 		profiler.stop();
 		System.out.println(profiler.printTimeCounter());
+*/
+		profiler.start("testService.generate");
+		List<TestBEntity> testBEntities = testService.generate(100, 10, null);
+		profiler.stop();
+		System.out.println(profiler.printTimeCounter());
+
+		profiler.start("testService.saveJPA");
+		testService.saveTransactionalJPA(testBEntities);
+		profiler.stop();
+		System.out.println(profiler.printTimeCounter());
+/*
+		System.out.println("AAA!!!!!!!!!!!!!!");
+		testBEntities.get(0).setNewValue("newVal!!!");
+		testService.saveTransactionalJPA(testBEntities);
+*/
+	}
+
+	@Test
+	public void saveShard() {
+		profiler.start("testShardService.generate");
+		List<TestBShardEntity> testBEntities = testShardService.generate(100, 10, null);
+		profiler.stop();
+		System.out.println(profiler.printTimeCounter());
+
+		profiler.start("testShardService.save");
+		testShardService.save(testBEntities);
+		profiler.stop();
+		System.out.println(profiler.printTimeCounter());
+
+		System.out.println("AAA!!!!!!!!!!!!!!");
+		testBEntities.get(0).setNewValue("newVal!!!");
+		testShardService.save(testBEntities);
 	}
 
 
-//	@Test
+	//	@Test
 	public void ins() {
 
 		/*

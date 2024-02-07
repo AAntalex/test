@@ -2,58 +2,53 @@ package com.antalex.service.impl;
 
 import com.antalex.domain.persistence.entity.hiber.TestAEntity;
 import com.antalex.domain.persistence.entity.hiber.TestBEntity;
-import com.antalex.domain.persistence.repository.TestARepository;
+import com.antalex.domain.persistence.entity.hiber.TestCEntity;
 import com.antalex.domain.persistence.repository.TestBRepository;
-import com.antalex.domain.persistence.repository.TestCRepository;
 import com.antalex.service.TestService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Service
 public class TestServiceImpl implements TestService{
     @Autowired
-    private TestARepository testARepository;
-    @Autowired
     private TestBRepository testBRepository;
-    @Autowired
-    private TestCRepository testCRepository;
 
     @Override
-    public void saveJPA() {
-        TestAEntity a = new TestAEntity();
-        a.setValue("A1");
-        a.setValue("newA1");
+    public List<TestBEntity> generate(int cnt, int cntArray, TestAEntity testAEntity) {
+        List<TestBEntity> bList = new ArrayList<>();;
+        for (int i = 0; i < cnt; i++) {
+            TestBEntity b = new TestBEntity();
+            b.setA(testAEntity);
+            b.setShardValue(1L);
+            b.setValue("B" + i);
+            b.setNewValue("newB" + i);
 
-        System.out.println("AAA BEFORE SAVE A");
-        testARepository.save(a);
-        System.out.println("AAA AFTER SAVE A");
-
-        TestBEntity b = new TestBEntity();
-        b.setA(a);
-        b.setShardValue(1L);
-        b.setValue("B1");
-        b.setNewValue("newB1");
-
-        System.out.println("AAA BEFORE SAVE B");
-        testBRepository.save(b);
-        System.out.println("AAA AFTER SAVE B");
-
-        b.setNewValue("newB2");
+            List<TestCEntity> cEntities = new ArrayList<>();
+            for (int j = 0; j < cntArray; j++) {
+                TestCEntity c = new TestCEntity();
+                c.setValue("C" + (i * cntArray + j));
+                c.setNewValue("newC" + (i * cntArray + j));
+                cEntities.add(c);
+            }
+            b.getCList().addAll(cEntities);
+            bList.add(b);
+        }
+        return bList;
+    }
 
 
-        System.out.println("AAA BEFORE SAVE B");
-        testBRepository.save(b);
-        System.out.println("AAA AFTER SAVE B");
-
-        System.out.println("AAA BEFORE SAVE B");
-        testBRepository.save(b);
-        System.out.println("AAA AFTER SAVE B");
+    @Override
+    public void saveJPA(List<TestBEntity> testBEntities) {
+        testBRepository.saveAll(testBEntities);
     }
 
     @Transactional
     @Override
-    public void saveTransactionalJPA() {
-        saveJPA();
+    public void saveTransactionalJPA(List<TestBEntity> testBEntities) {
+        saveJPA(testBEntities);
     }
 }

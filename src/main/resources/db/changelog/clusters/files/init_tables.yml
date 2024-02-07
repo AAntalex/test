@@ -84,5 +84,5 @@ databaseChangeLog:
                 foreignKey:
                   referencedColumnNames: ID
                   referencedTableName: TEST_B
-                nullable: false
+                nullable: true
 

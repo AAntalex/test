@@ -9,7 +9,7 @@ import javax.persistence.*;
 
 @Table(name = "TEST_A")
 @Data
-//@ShardEntity
+@ShardEntity
 public class TestAShardEntity extends BaseShardEntity {
     private String value;
     private String newValue;
