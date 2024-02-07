@@ -100,7 +100,10 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
     }
 
     @Override
-    public <T extends ShardInstance> void setStorage(T entity, StorageAttributes storage) {
+    public <T extends ShardInstance> void setStorage(T entity, StorageAttributes storage, boolean isSave) {
+        if (Objects.isNull(entity)) {
+            return;
+        }
         Cluster cluster = getCluster(entity);
         Optional.ofNullable(entity.getStorageAttributes())
                 .map(entityStorage ->
@@ -111,10 +114,10 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
                                                 Objects.nonNull(entityStorage.getShard()) &&
                                                 cluster.getId().equals(it.getCluster().getId())
                                 )
-                                .map(storageAttributes ->
-                                        Optional.ofNullable(storageAttributes.getShardValue())
+                                .map(it ->
+                                        Optional.ofNullable(storage.getShardValue())
                                                 .map(shardValue -> {
-                                                    storageAttributes.setShardValue(
+                                                    storage.setShardValue(
                                                             ShardUtils.addShardValue(
                                                                     shardValue,
                                                                     entityStorage.getShardValue()
@@ -123,12 +126,17 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
                                                     return null;
                                                 })
                                                 .orElseGet(() -> {
-                                                    storageAttributes.setShard(entityStorage.getShard());
-                                                    storageAttributes.setShardValue(entityStorage.getShardValue());
+                                                    storage.setShard(entityStorage.getShard());
+                                                    storage.setShardValue(entityStorage.getShardValue());
                                                     return null;
                                                 })
                                 )
-                                .orElse(null)
+                                .orElseGet(() -> {
+                                    if (isSave) {
+                                        setDependentStorage(entity);
+                                    }
+                                    return null;
+                                })
                 )
                 .orElseGet(() -> {
                     entity.setStorageAttributes(
@@ -150,16 +158,33 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
     }
 
     @Override
+    public <T extends ShardInstance> void setStorage(T entity, StorageAttributes storage) {
+        setStorage(entity, storage, false);
+    }
+
+    @Override
     public <T extends ShardInstance> void setStorage(Iterable<T> entities, StorageAttributes storage) {
         entities.forEach(entity -> setStorage(entity, storage));
     }
 
     @Override
-    public <T extends ShardInstance> void generateId(T entity) {
+    public <T extends ShardInstance> void generateId(T entity, boolean isSave) {
+        if (Objects.isNull(entity)) {
+            return;
+        }
         if (Objects.isNull(entity.getId())) {
             entity.setId(dataBaseManager.generateId(entity.getStorageAttributes()));
             generateDependentId(entity);
+        } else {
+            if (isSave) {
+                generateDependentId(entity);
+            }
         }
+    }
+
+    @Override
+    public <T extends ShardInstance> void generateId(T entity) {
+        generateId(entity, false);
     }
 
     @Override

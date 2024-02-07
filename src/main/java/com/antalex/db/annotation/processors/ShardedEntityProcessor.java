@@ -12,6 +12,8 @@ import com.antalex.db.model.dto.ClassDto;
 import com.antalex.db.model.dto.FieldDto;
 import com.google.auto.service.AutoService;
 import com.google.common.base.CaseFormat;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Repository;
 
 import javax.annotation.processing.*;
@@ -158,6 +160,8 @@ public class ShardedEntityProcessor extends AbstractProcessor {
             out.println("import " + ShardEntityRepository.class.getCanonicalName() + ";");
             out.println("import " + ShardEntityManager.class.getCanonicalName() + ";");
             out.println("import " + Repository.class.getCanonicalName() + ";");
+            out.println("import " + Autowired.class.getCanonicalName() + ";");
+            out.println("import " + Lazy.class.getCanonicalName() + ";");
             out.println("import " + ShardType.class.getCanonicalName() + ";");
             out.println("import " + Cluster.class.getCanonicalName() + ";");
             out.println("import " + StorageAttributes.class.getCanonicalName() + ";");
@@ -200,8 +204,9 @@ public class ShardedEntityProcessor extends AbstractProcessor {
     }
 
     private static String getConstructorCode(ClassDto classDto) {
-        return "    " + classDto.getClassName() + "(ShardDataBaseManager dataBaseManager,\n" +
-                "                              ShardEntityManager entityManager) {\n" +
+        return "    @Autowired\n" +
+                "    " + classDto.getClassName() + "(ShardDataBaseManager dataBaseManager,\n" +
+                "                                    @Lazy ShardEntityManager entityManager) {\n" +
                 "       this.entityManager = entityManager;\n" +
                 "       this.cluster = dataBaseManager.getCluster(String.valueOf(\"" + classDto.getCluster() +
                 "\"));\n    }";
@@ -211,10 +216,8 @@ public class ShardedEntityProcessor extends AbstractProcessor {
         return "    @Override\n" +
                 "    public " + classDto.getTargetClassName() +
                 " save(" + classDto.getTargetClassName() + " entity) {\n" +
-                "       if (Objects.isNull(entity.getId())) {\n" +
-                "           entityManager.setStorage(entity, null);\n" +
-                "           entityManager.generateId(entity);\n" +
-                "       }\n" +
+                "       entityManager.setStorage(entity, null, true);\n" +
+                "       entityManager.generateId(entity, true);\n" +
                 "       return entity;\n" +
                 "   }";
     }

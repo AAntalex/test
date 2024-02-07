@@ -47,8 +47,8 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     private static final String SELECT_DB_INFO = "SELECT SHARD_ID,MAIN_SHARD,CLUSTER_ID,CLUSTER_NAME,DEFAULT_CLUSTER" +
             ",SEGMENT_NAME,ACCESSIBLE FROM $$$.APP_DATABASE";
     private static final String INS_DB_INFO = "INSERT INTO $$$.APP_DATABASE " +
-            "(SHARD_ID,MAIN_SHARD,CLUSTER_ID,CLUSTER_NAME,DEFAULT_CLUSTER,ACCESSIBLE) " +
-            " VALUES (?, ?, ?, ?, ?, ?)";
+            "(SHARD_ID,MAIN_SHARD,CLUSTER_ID,CLUSTER_NAME,DEFAULT_CLUSTER,SEGMENT_NAME,ACCESSIBLE) " +
+            " VALUES (?, ?, ?, ?, ?, ?, ?)";
 
     private static final String SELECT_DYNAMIC_DB_INFO = "SELECT SEGMENT_NAME,ACCESSIBLE FROM $$$.APP_DATABASE";
 
@@ -203,7 +203,13 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     }
 
     private Shard getNextShard(Cluster cluster) {
-        return cluster.getShards().get((int) shardSequences.get(cluster).nextValue());
+        Shard shard = cluster.getShards().get((int) shardSequences.get(cluster).nextValue());
+        Short shardId = shard.getId();
+        while (!isEnabled(shard.getDynamicDataBaseInfo())) {
+            shard = cluster.getShards().get((int) shardSequences.get(cluster).nextValue());
+            Assert.isTrue(!shardId.equals(shard.getId()), "Отсутсвуют доступные шарды!");
+        }
+        return shard;
     }
 
     private void processDataBaseInfo() {
@@ -396,15 +402,11 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                                                                 .defaultCluster(resultSet.getBoolean(5))
                                                                 .build()
                                                 );
-                                                shard.setDynamicDataBaseInfo(
-                                                        DynamicDataBaseInfo
-                                                                .builder()
-                                                                .lastTime(System.currentTimeMillis())
-                                                                .available(true)
-                                                                .segment(resultSet.getString(6))
-                                                                .accessible(resultSet.getBoolean(7))
-                                                                .build()
-                                                );
+                                                DynamicDataBaseInfo dynamicDBInfo = shard.getDynamicDataBaseInfo();
+                                                dynamicDBInfo.setLastTime(System.currentTimeMillis());
+                                                dynamicDBInfo.setAvailable(true);
+                                                dynamicDBInfo.setSegment(resultSet.getString(6));
+                                                dynamicDBInfo.setAccessible(resultSet.getBoolean(7));
                                             }
                                            connection.close();
                                         },
@@ -529,14 +531,11 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                         .defaultCluster(cluster.getName().equals(getDefaultCluster().getName()))
                         .build()
         );
-        shard.setDynamicDataBaseInfo(
-                DynamicDataBaseInfo
-                        .builder()
-                        .lastTime(System.currentTimeMillis())
-                        .available(true)
-                        .accessible(true)
-                        .build()
-        );
+
+        DynamicDataBaseInfo dynamicDBInfo = shard.getDynamicDataBaseInfo();
+        dynamicDBInfo.setLastTime(System.currentTimeMillis());
+        dynamicDBInfo.setAvailable(true);
+        dynamicDBInfo.setAccessible(Optional.ofNullable(dynamicDBInfo.getAccessible()).orElse(true));
 
         return this.runSQLThread(
                 shard,
@@ -551,7 +550,8 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                     preparedStatement.setShort(3, shard.getDataBaseInfo().getClusterId());
                     preparedStatement.setString(4, shard.getDataBaseInfo().getClusterName());
                     preparedStatement.setBoolean(5, shard.getDataBaseInfo().isDefaultCluster());
-                    preparedStatement.setBoolean(6, true);
+                    preparedStatement.setString(6, dynamicDBInfo.getSegment());
+                    preparedStatement.setBoolean(7, dynamicDBInfo.getAccessible());
 
                     preparedStatement.executeUpdate();
                 },
@@ -700,6 +700,17 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                                                                 .orElse(null)
                                                 )
                                 )
+                );
+                shard.setDynamicDataBaseInfo(
+                        DynamicDataBaseInfo
+                                .builder()
+                                .segment(shardConfig.getSegment())
+                                .accessible(
+                                        Optional.ofNullable(shardConfig.getAccessible())
+                                                .orElse(true)
+                                )
+                                .available(true)
+                                .build()
                 );
                 shard.setDataSource(dataSource);
                 shard.setOwner(

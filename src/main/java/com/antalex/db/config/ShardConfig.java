@@ -9,4 +9,6 @@ public class ShardConfig {
     private DataBaseConfig dataBase;
     private HikariSettings hikari;
     private Integer sequenceCacheSize;
+    private String segment;
+    private Boolean accessible;
 }
