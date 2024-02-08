@@ -59,8 +59,8 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     private Cluster defaultCluster;
     private Map<String, Cluster> clusters = new HashMap<>();
     private Map<Short, Cluster> clusterIds = new HashMap<>();
-    private Map<Cluster, SequenceGenerator> shardSequences = new HashMap<>();
-    private Map<String, Map<Shard, SequenceGenerator>> sequences = new HashMap<>();
+    private Map<String, SequenceGenerator> shardSequences = new HashMap<>();
+    private Map<String, Map<Short, SequenceGenerator>> sequences = new HashMap<>();
     private List<ImmutablePair<Cluster, Shard>> newShards = new ArrayList<>();
 
     private String changLogPath;
@@ -150,15 +150,15 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
 
     @Override
     public long sequenceNextVal(String sequenceName, Shard shard) {
-        Map<Shard, SequenceGenerator> shardSequences = sequences.get(sequenceName);
+        Map<Short, SequenceGenerator> shardSequences = sequences.get(sequenceName);
         if (Objects.isNull(shardSequences)) {
             shardSequences = new HashMap<>();
             sequences.put(sequenceName, shardSequences);
         }
-        SequenceGenerator sequenceGenerator = shardSequences.get(shard);
+        SequenceGenerator sequenceGenerator = shardSequences.get(shard.getId());
         if (Objects.isNull(sequenceGenerator)) {
             sequenceGenerator = new ApplicationSequenceGenerator(sequenceName, shard);
-            shardSequences.put(shard, sequenceGenerator);
+            shardSequences.put(shard.getId(), sequenceGenerator);
         }
         return sequenceGenerator.nextValue();
     }
@@ -190,7 +190,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     }
 
     @Override
-    public StorageAttributes getStorageAttributes(Short id, Long shardValue) {
+    public StorageAttributes getStorageAttributes(Long id, Long shardValue) {
         Assert.notNull(id, "Не указан идентификатор сущности");
         Cluster cluster = getCluster((short) (id / ShardUtils.MAX_SHARDS % ShardUtils.MAX_CLUSTERS + 1));
         Shard shard = getShard(cluster, (short) (id % ShardUtils.MAX_SHARDS + 1));
@@ -203,10 +203,10 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     }
 
     private Shard getNextShard(Cluster cluster) {
-        Shard shard = cluster.getShards().get((int) shardSequences.get(cluster).nextValue());
+        Shard shard = cluster.getShards().get((int) shardSequences.get(cluster.getName()).nextValue());
         Short shardId = shard.getId();
         while (!isEnabled(shard.getDynamicDataBaseInfo())) {
-            shard = cluster.getShards().get((int) shardSequences.get(cluster).nextValue());
+            shard = cluster.getShards().get((int) shardSequences.get(cluster.getName()).nextValue());
             Assert.isTrue(!shardId.equals(shard.getId()), "Отсутсвуют доступные шарды!");
         }
         return shard;
@@ -226,10 +226,10 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
             Assert.isTrue(
                     shard.getId().equals(shardId),
                     String.format(
-                            "Идентификатор шарды в настройках 'dbConfig.clusters.shards.id' = '%d' " +
+                            "Идентификатор шарды в настройках '%s.clusters.shards.id' = '%d' " +
                                     "кластера '%s' " +
                                     "не соответсвует идентификатору в БД = '%d'.",
-                            shard.getId(), cluster.getName(), shardId
+                            ShardDataBaseConfig.CONFIG_NAME, shard.getId(), cluster.getName(), shardId
                     )
             );
         }
@@ -255,9 +255,9 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
             Assert.isTrue(
                     cluster.getId().equals(clusterId),
                     String.format(
-                            "Идентификатор кластера '%s' в настройках 'dbConfig.clusters.id' = '%d' " +
+                            "Идентификатор кластера '%s' в настройках '%s.clusters.id' = '%d' " +
                                     "не соответсвует идентификатору в БД = '%d'.",
-                            cluster.getName(), cluster.getId(), clusterId
+                            ShardDataBaseConfig.CONFIG_NAME, cluster.getName(), cluster.getId(), clusterId
                     )
             );
         }
@@ -267,9 +267,9 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         Assert.isTrue(
                 cluster.getName().equals(clusterName),
                 String.format(
-                        "Наименование кластера '%s' в настройках 'dbConfig.clusters.name' = '%s' " +
+                        "Наименование кластера '%s' в настройках '%s.clusters.name' = '%s' " +
                                 "не соответсвует наименованию в БД = '%s'.",
-                        cluster.getName(), cluster.getName(), clusterName
+                        ShardDataBaseConfig.CONFIG_NAME, cluster.getName(), cluster.getName(), clusterName
                 )
         );
     }
@@ -669,6 +669,10 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         shardDataBaseConfig.getClusters().forEach(clusterConfig->{
             Cluster cluster = new Cluster();
             cluster.setName(clusterConfig.getName());
+            Assert.notNull(
+                    cluster.getName(),
+                    String.format("Property '%s.clusters.name' must not be empty", ShardDataBaseConfig.CONFIG_NAME)
+            );
             if (Objects.isNull(getDefaultCluster()) ||
                     Optional.ofNullable(clusterConfig.getDefaultCluster()).orElse(false))
             {
@@ -731,7 +735,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                 }
                 cluster.getShards().add(shard);
             });
-            shardSequences.put(cluster, new SimpleSequenceGenerator(1L, (long) cluster.getShards().size()));
+            shardSequences.put(cluster.getName(), new SimpleSequenceGenerator(0L, (long) cluster.getShards().size()-1));
             this.addCluster(cluster.getName(), cluster);
         });
     }

@@ -19,8 +19,6 @@ import java.util.*;
 @Primary
 public class ShardEntityManagerImpl implements ShardEntityManager {
     private static final Map<Class<?>, ShardEntityRepository> REPOSITORIES = new HashMap<>();
-    private ShardEntityRepository<?> currentShardEntityRepository;
-    private Class<?> currentSourceClass;
 
     @Autowired
     private ShardDataBaseManager dataBaseManager;
@@ -36,26 +34,13 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
         }
     }
 
-    private synchronized <T extends ShardInstance> ShardEntityRepository<T> getEntityRepository(T entity) {
-        if (entity == null) {
-            return null;
-        }
-        if (currentShardEntityRepository != null && currentSourceClass == entity.getClass()) {
-            return (ShardEntityRepository<T>) currentShardEntityRepository;
-        }
-        if (!REPOSITORIES.containsKey(entity.getClass())) {
-            throw new IllegalStateException(
-                    String.format("Can't find shard entity repository for %s", entity.getClass().getName())
-            );
-        }
-        currentShardEntityRepository = REPOSITORIES.get(entity.getClass());
-        currentSourceClass = entity.getClass();
-        return (ShardEntityRepository<T>) currentShardEntityRepository;
+    private <T extends ShardInstance> ShardEntityRepository<T> getEntityRepository(T entity) {
+        return REPOSITORIES.get(entity.getClass());
     }
 
     @Override
     public <T extends ShardInstance> ShardType getShardType(T entity) {
-        if (Objects.isNull(entity)) {
+        if (entity == null) {
             return null;
         }
         return getEntityRepository(entity).getShardType(entity);
@@ -63,7 +48,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
 
     @Override
     public <T extends ShardInstance> Cluster getCluster(T entity) {
-        if (Objects.isNull(entity)) {
+        if (entity == null) {
             return null;
         }
         return getEntityRepository(entity).getCluster(entity);
@@ -71,7 +56,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
 
     @Override
     public <T extends ShardInstance> T save(T entity) {
-        if (Objects.isNull(entity)) {
+        if (entity == null) {
             return null;
         }
         return getEntityRepository(entity).save(entity);
@@ -79,29 +64,32 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
 
     @Override
     public <T extends ShardInstance> Iterable save(Iterable<T> entities) {
-        if (Objects.nonNull(entities)) {
-            entities.forEach(it -> it = save(it));
+        if (entities == null) {
+            return null;
         }
+        entities.forEach(it -> it = save(it));
         return entities;
     }
 
     @Override
     public <T extends ShardInstance> void setDependentStorage(T entity) {
-        if (Objects.nonNull(entity)) {
-            getEntityRepository(entity).setDependentStorage(entity);
+        if (entity == null) {
+            return;
         }
+        getEntityRepository(entity).setDependentStorage(entity);
     }
 
     @Override
     public <T extends ShardInstance> void generateDependentId(T entity) {
-        if (Objects.nonNull(entity)) {
-            getEntityRepository(entity).generateDependentId(entity);
+        if (entity == null) {
+            return;
         }
+        getEntityRepository(entity).generateDependentId(entity);
     }
 
     @Override
     public <T extends ShardInstance> void setStorage(T entity, StorageAttributes storage, boolean isSave) {
-        if (Objects.isNull(entity)) {
+        if (entity == null) {
             return;
         }
         Cluster cluster = getCluster(entity);
@@ -123,19 +111,19 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
                                                                     entityStorage.getShardValue()
                                                             )
                                                     );
-                                                    return null;
+                                                    return storage;
                                                 })
                                                 .orElseGet(() -> {
                                                     storage.setShard(entityStorage.getShard());
                                                     storage.setShardValue(entityStorage.getShardValue());
-                                                    return null;
+                                                    return storage;
                                                 })
                                 )
                                 .orElseGet(() -> {
                                     if (isSave) {
                                         setDependentStorage(entity);
                                     }
-                                    return null;
+                                    return entity.getStorageAttributes();
                                 })
                 )
                 .orElseGet(() -> {
@@ -153,7 +141,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
                                     )
                     );
                     setDependentStorage(entity);
-                    return null;
+                    return entity.getStorageAttributes();
                 });
     }
 
@@ -164,12 +152,15 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
 
     @Override
     public <T extends ShardInstance> void setStorage(Iterable<T> entities, StorageAttributes storage) {
+        if (entities == null) {
+            return;
+        }
         entities.forEach(entity -> setStorage(entity, storage));
     }
 
     @Override
     public <T extends ShardInstance> void generateId(T entity, boolean isSave) {
-        if (Objects.isNull(entity)) {
+        if (entity == null) {
             return;
         }
         if (Objects.isNull(entity.getId())) {
@@ -189,6 +180,9 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
 
     @Override
     public <T extends ShardInstance> void generateId(Iterable<T> entities) {
+        if (entities == null) {
+            return;
+        }
         entities.forEach(this::generateId);
     }
 }
