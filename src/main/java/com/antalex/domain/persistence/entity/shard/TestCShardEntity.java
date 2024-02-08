@@ -1,7 +1,6 @@
 package com.antalex.domain.persistence.entity.shard;
 
 
-import com.antalex.db.annotation.ParentShard;
 import com.antalex.db.annotation.ShardEntity;
 import com.antalex.db.entity.abstraction.BaseShardEntity;
 import lombok.Data;
@@ -15,7 +14,6 @@ import javax.persistence.Table;
 public class TestCShardEntity extends BaseShardEntity {
     private String value;
     private String newValue;
-    @ParentShard
     @Column(name = "C_B_REF")
-    private TestBShardEntity b;
+    private Long b;
 }

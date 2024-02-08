@@ -8,7 +8,7 @@ hibernate:
   order_inserts: true
   order_updates: true
   enable_lazy_load_no_trans: true
-  show_sql: true
+  show_sql: flase
   format_sql: false
   id.new_generator_mappings: false
 

@@ -1,3 +1,4 @@
+import com.antalex.db.model.Shard;
 import com.antalex.db.service.ShardDataBaseManager;
 import com.antalex.db.service.ShardEntityManager;
 import com.antalex.db.utils.ShardUtils;
@@ -12,6 +13,7 @@ import com.antalex.profiler.service.ProfilerService;
 import com.antalex.service.AdditionalParameterService;
 import com.antalex.service.TestService;
 import com.antalex.service.TestShardService;
+import com.antalex.service.impl.TestBShardEntityRepository;
 import org.hibernate.dialect.Dialect;
 import org.hibernate.engine.jdbc.dialect.internal.StandardDialectResolver;
 import org.hibernate.engine.jdbc.dialect.spi.DatabaseMetaDataDialectResolutionInfoAdapter;
@@ -125,38 +127,65 @@ public class ApplicationTests {
 		System.out.println(profiler.printTimeCounter());
 */
 		profiler.start("testService.generate");
-		List<TestBEntity> testBEntities = testService.generate(100, 10, null);
+		List<TestBEntity> testBEntities = testService.generate(100, 10, null, "JPA");
 		profiler.stop();
 		System.out.println(profiler.printTimeCounter());
 
-		profiler.start("testService.saveJPA");
+		profiler.start("testService.saveTransactionalJPA");
 		testService.saveTransactionalJPA(testBEntities);
 		profiler.stop();
 		System.out.println(profiler.printTimeCounter());
-/*
+
+		profiler.start("ADD testService.saveTransactionalJPA");
 		System.out.println("AAA!!!!!!!!!!!!!!");
 		testBEntities.get(0).setNewValue("newVal!!!");
 		testService.saveTransactionalJPA(testBEntities);
-*/
+		profiler.stop();
+		System.out.println(profiler.printTimeCounter());
+	}
+
+//	@Test
+	public void saveStatement() {
+		profiler.start("testService.generate");
+		List<TestBEntity> testBEntities = testService.generate(100, 10, null, "Statement");
+		profiler.stop();
+		System.out.println(profiler.printTimeCounter());
+
+		profiler.start("testService.save");
+		testService.save(testBEntities);
+		profiler.stop();
+		System.out.println(profiler.printTimeCounter());
 	}
 
 	@Test
 	public void saveShard() {
 		profiler.start("testShardService.generate");
-		List<TestBShardEntity> testBEntities = testShardService.generate(100, 10, null);
+		List<TestBShardEntity> testBEntities = testShardService.generate(1, 1, null);
 		profiler.stop();
 		System.out.println(profiler.printTimeCounter());
+
+		profiler.start("testShardService.saveLocal");
+		testShardService.saveLocal(testBEntities);
+		profiler.stop();
+		System.out.println(profiler.printTimeCounter());
+
+		/*
+		profiler.start("ADD testShardService.save");
+		testBEntities.get(0).setNewValue("newVal!!!");
+		testShardService.save(testBEntities);
+		profiler.stop();
+		System.out.println(profiler.printTimeCounter());
+
+
+		testBEntities = testShardService.generate(1000, 10, null);
 
 		profiler.start("testShardService.save");
 		testShardService.save(testBEntities);
 		profiler.stop();
 		System.out.println(profiler.printTimeCounter());
-
-		System.out.println("AAA!!!!!!!!!!!!!!");
-		testBEntities.get(0).setNewValue("newVal!!!");
-		testShardService.save(testBEntities);
+*/
+		System.out.println("STOP");
 	}
-
 
 	//	@Test
 	public void ins() {

@@ -15,6 +15,9 @@ import java.util.List;
 public class TestShardServiceImpl implements TestShardService {
     @Autowired
     private ShardEntityManager entityManager;
+    @Autowired
+    private TestBShardEntityRepository testBShardEntityRepository;
+
 
     @Override
     public List<TestBShardEntity> generate(int cnt, int cntArray, TestAShardEntity testAEntity) {
@@ -42,6 +45,11 @@ public class TestShardServiceImpl implements TestShardService {
     @Override
     public void save(List<TestBShardEntity> testBEntities) {
         entityManager.save(testBEntities);
+    }
+
+    @Override
+    public void saveLocal(List<TestBShardEntity> testBEntities) {
+        testBShardEntityRepository.saveAll(testBEntities);
     }
 
     @Override
