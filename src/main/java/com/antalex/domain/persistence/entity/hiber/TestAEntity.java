@@ -6,14 +6,14 @@ import lombok.Data;
 
 import javax.persistence.*;
 
-@Table(name = "TEST_A")
+@Table(name = "TEST_A", schema = "pmts_public_1")
 @Data
 @Entity
 public class TestAEntity extends BaseShardEntity {
     @Id
     @Column(name = "ID")
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "seq_id")
-    @SequenceGenerator(name = "seq_id", sequenceName = "SEQ_ID")
+    @SequenceGenerator(name = "seq_id", sequenceName = "SEQ_ID", schema = "pmts_public_1")
     private Long id;
     @Column(name = "SHARD_VALUE")
     private Long shardValue;

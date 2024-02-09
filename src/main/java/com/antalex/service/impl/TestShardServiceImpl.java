@@ -44,7 +44,7 @@ public class TestShardServiceImpl implements TestShardService {
 
     @Override
     public void save(List<TestBShardEntity> testBEntities) {
-        entityManager.save(testBEntities);
+        entityManager.saveAll(testBEntities);
     }
 
     @Override

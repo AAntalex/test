@@ -12,7 +12,7 @@ import java.util.List;
 
 @Table(name = "TEST_B")
 @Data
-//@ShardEntity
+@ShardEntity
 public class TestBShardEntity extends BaseShardEntity {
     private String value;
     @ParentShard

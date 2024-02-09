@@ -5,70 +5,60 @@ import com.antalex.db.model.StorageAttributes;
 import com.antalex.db.model.enums.ShardType;
 import com.antalex.db.service.ShardDataBaseManager;
 import com.antalex.db.utils.ShardUtils;
-import com.antalex.domain.persistence.entity.shard.TestBShardEntity;
+import com.antalex.domain.persistence.entity.shard.TestCShardEntity;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Repository;
 
 import java.util.Objects;
 import java.util.Optional;
 
 @Component
-public class TestBShardEntityRepository {
+public class TestCShardEntityRepository {
     private static final ShardType SHARD_TYPE = ShardType.SHARDABLE;
-    private static final String INS_QUERY = "INSERT INTO $$$.TEST_B (ID,SHARD_VALUE,C_VALUE,C_A,C_NEW_VALUE,C_C_LIST) VALUES (?,?,?,?,?,?)";
+    private static final String INS_QUERY = "INSERT INTO $$$.TEST_C (ID,SHARD_VALUE,C_VALUE,C_NEW_VALUE,C_B_REF) VALUES (?,?,?,?,?)";
 
-    private final TestCShardEntityRepository testCShardEntityRepository;
-    private final TestAShardEntityRepository testAShardEntityRepository;
     private final ShardDataBaseManager dataBaseManager;
     private final Cluster cluster;
 
     @Autowired
-    TestBShardEntityRepository(ShardDataBaseManager dataBaseManager,
-                               TestCShardEntityRepository testCShardEntityRepository,
-                               TestAShardEntityRepository testAShardEntityRepository) {
+    TestCShardEntityRepository(ShardDataBaseManager dataBaseManager) {
        this.dataBaseManager = dataBaseManager;
-       this.testCShardEntityRepository = testCShardEntityRepository;
-       this.testAShardEntityRepository = testAShardEntityRepository;
        this.cluster = dataBaseManager.getCluster(String.valueOf("DEFAULT"));
     }
 
-    public TestBShardEntity save(TestBShardEntity entity) {
+    public TestCShardEntity save(TestCShardEntity entity) {
        setStorage(entity, null, true);
        generateId(entity, true);
        return entity;
    }
 
-    public Iterable saveAll(Iterable<TestBShardEntity> entities) {
-        if (entities == null) {
-            return null;
-        }
-        entities.forEach(it -> it = save(it));
-        return entities;
-    }
-
-
-    public ShardType getShardType(TestBShardEntity entity) {
+    public ShardType getShardType(TestCShardEntity entity) {
        return SHARD_TYPE;
     }
 
-    public Cluster getCluster(TestBShardEntity entity) {
+    public Cluster getCluster(TestCShardEntity entity) {
        return cluster;
     }
 
-    public void setDependentStorage(TestBShardEntity entity) {
-        testAShardEntityRepository.setStorage(entity.getA(), entity.getStorageAttributes(), false);
-        testCShardEntityRepository.setAllStorage(entity.getCList(), null);
+    public void setDependentStorage(TestCShardEntity entity) {
+        String a = INS_QUERY;
     }
 
-    public void generateDependentId(TestBShardEntity entity) {
-        testAShardEntityRepository.generateId(entity.getA());
-        testCShardEntityRepository.generateAllId(entity.getCList());
-        entity.getCList().forEach(it ->
-                it.setB(entity.getId())
-        );
+    public void generateDependentId(TestCShardEntity entity) {
+        String a = INS_QUERY;
     }
 
-    public void generateId(TestBShardEntity entity, boolean isSave) {
+
+    public void generateAllId(Iterable<TestCShardEntity> entities) {
+        if (entities == null) {
+            return;
+        }
+        entities.forEach(this::generateId);
+    }
+
+    public void generateId(TestCShardEntity entity, boolean isSave) {
         if (entity == null) {
             return;
         }
@@ -82,7 +72,18 @@ public class TestBShardEntityRepository {
         }
     }
 
-    public void setStorage(TestBShardEntity entity, StorageAttributes storage, boolean isSave) {
+    public void generateId(TestCShardEntity entity) {
+        generateId(entity, false);
+    }
+
+    public void setAllStorage(Iterable<TestCShardEntity> entities, StorageAttributes storage) {
+        if (entities == null) {
+            return;
+        }
+        entities.forEach(entity -> setStorage(entity, storage, false));
+    }
+
+    public void setStorage(TestCShardEntity entity, StorageAttributes storage, boolean isSave) {
         if (entity == null) {
             return;
         }
