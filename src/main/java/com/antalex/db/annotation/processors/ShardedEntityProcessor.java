@@ -14,7 +14,7 @@ import com.google.auto.service.AutoService;
 import com.google.common.base.CaseFormat;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
-import org.springframework.stereotype.Repository;
+import org.springframework.stereotype.Component;
 
 import javax.annotation.processing.*;
 import javax.lang.model.element.Element;
@@ -126,17 +126,23 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                 .isPresent();
     }
 
-    private static <A extends Annotation> boolean isAnnotationPresent(TypeMirror type, Class<A> annotation) {
+    private static <A extends Annotation> boolean isAnnotationPresentByType(TypeMirror type, Class<A> annotation) {
+        return Optional.ofNullable(type)
+                .map(it -> (DeclaredType) type)
+                .filter(it -> Objects.nonNull(it.asElement().getAnnotation(annotation)))
+                .isPresent();
+    }
+
+    private static <A extends Annotation> boolean isAnnotationPresentInArgument(TypeMirror type, Class<A> annotation) {
         return Optional.ofNullable(type)
                 .map(it -> (DeclaredType) type)
                 .filter(it ->
-                        Objects.nonNull(it.asElement().getAnnotation(annotation)) ||
-                                it.getTypeArguments().size() > 0 &&
-                                        Objects.nonNull(
-                                                ((DeclaredType) it.getTypeArguments().get(0))
-                                                        .asElement()
-                                                        .getAnnotation(annotation)
-                                        )
+                        it.getTypeArguments().size() > 0 &&
+                                Objects.nonNull(
+                                        ((DeclaredType) it.getTypeArguments().get(0))
+                                                .asElement()
+                                                .getAnnotation(annotation)
+                                )
                 )
                 .isPresent();
     }
@@ -159,7 +165,7 @@ public class ShardedEntityProcessor extends AbstractProcessor {
             out.println();
             out.println("import " + ShardEntityRepository.class.getCanonicalName() + ";");
             out.println("import " + ShardEntityManager.class.getCanonicalName() + ";");
-            out.println("import " + Repository.class.getCanonicalName() + ";");
+            out.println("import " + Component.class.getCanonicalName() + ";");
             out.println("import " + Autowired.class.getCanonicalName() + ";");
             out.println("import " + Lazy.class.getCanonicalName() + ";");
             out.println("import " + ShardType.class.getCanonicalName() + ";");
@@ -169,7 +175,7 @@ public class ShardedEntityProcessor extends AbstractProcessor {
             out.println();
             out.println("import " + Objects.class.getCanonicalName() + ";");
             out.println();
-            out.println("@Repository");
+            out.println("@Component");
             out.println("public class " +
                     classDto.getClassName() +
                     " implements ShardEntityRepository<" +
@@ -183,7 +189,8 @@ public class ShardedEntityProcessor extends AbstractProcessor {
             );
 
             out.println();
-            out.println("    private final ShardEntityManager entityManager;");
+            out.println("    @Autowired");
+            out.println("    private ShardEntityManager entityManager;");
             out.println("    private final Cluster cluster;");
 
             out.println();
@@ -205,9 +212,7 @@ public class ShardedEntityProcessor extends AbstractProcessor {
 
     private static String getConstructorCode(ClassDto classDto) {
         return "    @Autowired\n" +
-                "    " + classDto.getClassName() + "(ShardDataBaseManager dataBaseManager,\n" +
-                "                                    @Lazy ShardEntityManager entityManager) {\n" +
-                "       this.entityManager = entityManager;\n" +
+                "    " + classDto.getClassName() + "(ShardDataBaseManager dataBaseManager) {\n" +
                 "       this.cluster = dataBaseManager.getCluster(String.valueOf(\"" + classDto.getCluster() +
                 "\"));\n    }";
     }
@@ -240,15 +245,23 @@ public class ShardedEntityProcessor extends AbstractProcessor {
         return classDto.getFields()
                 .stream()
                 .filter(it -> Objects.nonNull(it.getGetter()))
-                .map(field -> {
-                    if (isAnnotationPresent(field.getElement(), ParentShard.class)) {
-                        return  "        entityManager.setStorage(entity." + field.getGetter()
-                                + "(), entity.getStorageAttributes());\n";
-                    } else {
-                        return isAnnotationPresent(field.getElement().asType(), ShardEntity.class) ?
-                                "        entityManager.setStorage(entity." + field.getGetter() + "(), null);\n" : "";
-                    }
-                })
+                .map(field ->
+                    isAnnotationPresent(field.getElement(), ParentShard.class) ||
+                            isAnnotationPresentByType(field.getElement().asType(), ShardEntity.class) ||
+                            isAnnotationPresentInArgument(field.getElement().asType(), ShardEntity.class) ?
+                            "        entityManager." +
+                                    (isAnnotationPresentInArgument(field.getElement().asType(), ShardEntity.class) ?
+                                            "setAllStorage" :
+                                            "setStorage"
+                                    ) + "(entity." + field.getGetter() + "(), " +
+                                    (
+                                            isAnnotationPresent(field.getElement(), ParentShard.class) ?
+                                                    "entity.getStorageAttributes()" :
+                                                    "null"
+                                    ) +
+                                    ");\n" :
+                            ""
+                )
                 .reduce(
                         "    @Override\n" +
                                 "    public void setDependentStorage(" + classDto.getTargetClassName() + " entity) {\n",
@@ -259,8 +272,19 @@ public class ShardedEntityProcessor extends AbstractProcessor {
         return classDto.getFields()
                 .stream()
                 .filter(it -> Objects.nonNull(it.getGetter()))
-                .filter(it -> isAnnotationPresent(it.getElement().asType(), ShardEntity.class))
-                .map(field -> "        entityManager.generateId(entity." + field.getGetter() + "());\n")
+                .map(field ->
+                                isAnnotationPresentByType(field.getElement().asType(), ShardEntity.class) ||
+                                        isAnnotationPresentInArgument(field.getElement().asType(), ShardEntity.class) ?
+                                        "        entityManager." +
+                                                (
+                                                        isAnnotationPresentInArgument(
+                                                                field.getElement().asType(),
+                                                                ShardEntity.class
+                                                        ) ? "generateAllId" : "generateId"
+                                                ) +
+                                                "(entity." + field.getGetter() + "());\n" :
+                                        ""
+                )
                 .reduce(
                         "    @Override\n" +
                                 "    public void generateDependentId(" + classDto.getTargetClassName() + " entity) {\n",

@@ -35,7 +35,10 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
     }
 
     private <T extends ShardInstance> ShardEntityRepository<T> getEntityRepository(T entity) {
-        return REPOSITORIES.get(entity.getClass());
+
+        ShardEntityRepository<T> repository = REPOSITORIES.get(entity.getClass());
+
+        return repository;
     }
 
     @Override
@@ -63,7 +66,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
     }
 
     @Override
-    public <T extends ShardInstance> Iterable save(Iterable<T> entities) {
+    public <T extends ShardInstance> Iterable saveAll(Iterable<T> entities) {
         if (entities == null) {
             return null;
         }
@@ -151,7 +154,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
     }
 
     @Override
-    public <T extends ShardInstance> void setStorage(Iterable<T> entities, StorageAttributes storage) {
+    public <T extends ShardInstance> void setAllStorage(Iterable<T> entities, StorageAttributes storage) {
         if (entities == null) {
             return;
         }
@@ -179,7 +182,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
     }
 
     @Override
-    public <T extends ShardInstance> void generateId(Iterable<T> entities) {
+    public <T extends ShardInstance> void generateAllId(Iterable<T> entities) {
         if (entities == null) {
             return;
         }
