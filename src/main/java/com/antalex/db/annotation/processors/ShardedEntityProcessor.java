@@ -12,8 +12,8 @@ import com.antalex.db.model.dto.ClassDto;
 import com.antalex.db.model.dto.FieldDto;
 import com.google.auto.service.AutoService;
 import com.google.common.base.CaseFormat;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.processing.*;
@@ -22,16 +22,12 @@ import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.ElementFilter;
-import javax.persistence.Column;
-import javax.persistence.Table;
+import javax.persistence.*;
 import javax.tools.JavaFileObject;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.lang.annotation.Annotation;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @SupportedAnnotationTypes("com.antalex.db.annotation.ShardEntity")
@@ -41,60 +37,14 @@ public class ShardedEntityProcessor extends AbstractProcessor {
     private static final String TABLE_PREFIX = "T_";
     private static final String COLUMN_PREFIX = "C_";
 
+    private Map<Element, ClassDto> annotatedClasses = new HashMap<>();
+
     @Override
     public boolean process(Set<? extends TypeElement> set, RoundEnvironment roundEnvironment) {
         for (TypeElement annotation : set) {
             for (Element annotatedElement : roundEnvironment.getElementsAnnotatedWith(annotation)) {
-                final String annotatedElementName = annotatedElement.getSimpleName().toString();
-                final ShardEntity shardEntity = annotatedElement.getAnnotation(ShardEntity.class);
-
-                Map<String, String> getters = ElementFilter.methodsIn(annotatedElement.getEnclosedElements())
-                        .stream()
-                        .map(e -> e.getSimpleName().toString())
-                        .filter(it -> it.startsWith("get"))
-                        .collect(Collectors.toMap(String::toLowerCase, it -> it));
-
                 try {
-                    writeBuilderFile(
-                            ClassDto
-                                    .builder()
-                                    .className(annotatedElementName + CLASS_POSTFIX)
-                                    .targetClassName(annotatedElementName)
-                                    .tableName(
-                                            Optional.ofNullable(annotatedElement.getAnnotation(Table.class))
-                                                    .map(Table::name)
-                                                    .orElse(TABLE_PREFIX + annotatedElementName.toUpperCase())
-                                    )
-                                    .classPackage(getPackage(annotatedElement.asType().toString()))
-                                    .cluster(shardEntity.cluster())
-                                    .shardType(shardEntity.type())
-                                    .fields(
-                                            ElementFilter.fieldsIn(annotatedElement.getEnclosedElements())
-                                                    .stream()
-                                                    .map(
-                                                            e ->
-                                                                    FieldDto
-                                                                            .builder()
-                                                                            .fieldName(
-                                                                                    e.getSimpleName().toString()
-                                                                            )
-                                                                            .columnName(
-                                                                                    Optional.ofNullable(
-                                                                                            e.getAnnotation(
-                                                                                                    Column.class
-                                                                                            )
-                                                                                    )
-                                                                                            .map(Column::name)
-                                                                                            .orElse(getColumnName(e))
-                                                                            )
-                                                                            .getter(this.findGetter(getters, e))
-                                                                            .element(e)
-                                                                            .build()
-                                                    )
-                                                    .collect(Collectors.toList())
-                                    )
-                                    .build()
-                    );
+                    writeBuilderFile(getClassDtoByElement(annotatedElement));
                 } catch (IOException err) {
                     err.printStackTrace();
                 }
@@ -103,14 +53,100 @@ public class ShardedEntityProcessor extends AbstractProcessor {
         return true;
     }
 
+    private ClassDto getClassDtoByElement(Element classElement) {
+        ShardEntity shardEntity = classElement.getAnnotation(ShardEntity.class);
+        if (shardEntity == null) {
+            return null;
+        }
+        if (!annotatedClasses.containsKey(classElement)) {
+            String elementName = classElement.getSimpleName().toString();
+
+            Map<String, String> getters = ElementFilter.methodsIn(classElement.getEnclosedElements())
+                    .stream()
+                    .map(e -> e.getSimpleName().toString())
+                    .filter(it -> it.startsWith("get"))
+                    .collect(Collectors.toMap(String::toLowerCase, it -> it));
+
+            Map<String, String> setters = ElementFilter.methodsIn(classElement.getEnclosedElements())
+                    .stream()
+                    .map(e -> e.getSimpleName().toString())
+                    .filter(it -> it.startsWith("set"))
+                    .collect(Collectors.toMap(String::toLowerCase, it -> it));
+
+            annotatedClasses.put(
+                    classElement,
+                    ClassDto
+                            .builder()
+                            .className(elementName + CLASS_POSTFIX)
+                            .targetClassName(elementName)
+                            .tableName(
+                                    Optional.ofNullable(classElement.getAnnotation(Table.class))
+                                            .map(Table::name)
+                                            .orElse(getTableName(classElement))
+                            )
+                            .classPackage(getPackage(classElement.asType().toString()))
+                            .cluster(shardEntity.cluster())
+                            .shardType(shardEntity.type())
+                            .fields(
+                                    ElementFilter.fieldsIn(classElement.getEnclosedElements())
+                                            .stream()
+                                            .map(
+                                                    fieldElement ->
+                                                            FieldDto
+                                                                    .builder()
+                                                                    .fieldName(fieldElement.getSimpleName().toString())
+                                                                    .columnName(getColumnName(fieldElement))
+                                                                    .isLinked(isLinkedField(fieldElement))
+                                                                    .getter(this.findGetter(getters, fieldElement))
+                                                                    .setter(this.findSetter(setters, fieldElement))
+                                                                    .element(fieldElement)
+                                                                    .build()
+                                            )
+                                            .collect(Collectors.toList())
+                            )
+                            .build()
+            );
+        }
+        return annotatedClasses.get(classElement);
+    }
+
+    private boolean isLinkedField(Element element) {
+        return isAnnotationPresent(element, OneToMany.class)
+                && isAnnotationPresent(element, JoinColumn.class);
+    }
+
     private String findGetter(Map<String, String> getters, Element element) {
         return Optional.ofNullable(
                 getters.get("get" + element.getSimpleName().toString().toLowerCase())
         ).orElse(null);
     }
 
+    private String findSetter(Map<String, String> setters, Element element) {
+        return Optional.ofNullable(
+                setters.get("set" + element.getSimpleName().toString().toLowerCase())
+        ).orElse(null);
+    }
+
     private static String getColumnName(Element element) {
-        return COLUMN_PREFIX + CaseFormat.LOWER_CAMEL.to(CaseFormat.UPPER_UNDERSCORE,
+        if (isAnnotationPresent(element, Transient.class)) {
+            return null;
+        }
+        String columnName =
+                Optional.ofNullable(element.getAnnotation(Column.class))
+                        .map(Column::name)
+                        .orElse(
+                                Optional.ofNullable(element.getAnnotation(JoinColumn.class))
+                                        .map(JoinColumn::name)
+                                        .orElse(StringUtils.EMPTY)
+                        );
+        return StringUtils.isEmpty(columnName) ?
+                COLUMN_PREFIX +
+                        CaseFormat.LOWER_CAMEL.to(CaseFormat.UPPER_UNDERSCORE, element.getSimpleName().toString()) :
+                columnName;
+    }
+
+    private static String getTableName(Element element) {
+        return TABLE_PREFIX + CaseFormat.LOWER_CAMEL.to(CaseFormat.UPPER_UNDERSCORE,
                 element.getSimpleName().toString());
     }
 
@@ -147,18 +183,50 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                 .isPresent();
     }
 
+    private String findSetterByLinkedColumn(FieldDto field) {
+        ClassDto fieldClass = getClassDtoByElement(
+                ((DeclaredType) ((DeclaredType) field.getElement().asType()).getTypeArguments().get(0)).asElement()
+        );
+        if (fieldClass == null || fieldClass.getFields() == null) {
+            return null;
+        }
+        return fieldClass.getFields()
+                .stream()
+                .filter(it ->
+                        field.getColumnName().equals(
+                                Optional.ofNullable(it.getColumnName()).orElse(StringUtils.EMPTY)
+                        ) && getClassByType(it.getElement().asType()) == Long.class
+                )
+                .map(FieldDto::getSetter)
+                .filter(Objects::nonNull)
+                .findFirst()
+                .orElse(null);
+    }
+
+    private static Class<?> getClassByType(TypeMirror type) {
+        try {
+            return Class.forName(type.toString());
+        } catch (ClassNotFoundException err) {
+            return null;
+        }
+    }
+
     private static String getInsertSQL(ClassDto classDto) {
-        String sql = "INSERT INTO $$$." + classDto.getTableName() + " (";
-        String columns = "ID,SHARD_VALUE,";
-        String values = "?,?,";
+        String columns = "ID,SHARD_VALUE";
+        String values = "?,?";
         for (int i = 0; i < classDto.getFields().size(); i++) {
-            columns = columns.concat(i == 0 ? "" : ",").concat(classDto.getFields().get(i).getColumnName());
-            values = values.concat(i == 0 ? "?" : ",?");
+            if (classDto.getFields().get(i).getColumnName() != null && !classDto.getFields().get(i).getIsLinked()) {
+                columns = columns.concat(",").concat(classDto.getFields().get(i).getColumnName());
+                values = values.concat(",?");
+            }
         }
         return "INSERT INTO $$$." + classDto.getTableName() + " (" + columns + ") VALUES (" + values + ")";
     }
 
     private void writeBuilderFile(ClassDto classDto) throws IOException {
+        if (classDto == null) {
+            return;
+        }
         JavaFileObject builderFile = processingEnv.getFiler().createSourceFile(classDto.getClassName());
         try (PrintWriter out = new PrintWriter(builderFile.openWriter())) {
             out.println("package " + classDto.getClassPackage() + ";");
@@ -167,7 +235,6 @@ public class ShardedEntityProcessor extends AbstractProcessor {
             out.println("import " + ShardEntityManager.class.getCanonicalName() + ";");
             out.println("import " + Component.class.getCanonicalName() + ";");
             out.println("import " + Autowired.class.getCanonicalName() + ";");
-            out.println("import " + Lazy.class.getCanonicalName() + ";");
             out.println("import " + ShardType.class.getCanonicalName() + ";");
             out.println("import " + Cluster.class.getCanonicalName() + ";");
             out.println("import " + StorageAttributes.class.getCanonicalName() + ";");
@@ -268,23 +335,29 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                         String::concat
                 ) + "    }";
     }
-    private static String getGenerateDependentIdCode(ClassDto classDto) {
+
+
+    private String getGenerateDependentIdCode(ClassDto classDto) {
         return classDto.getFields()
                 .stream()
                 .filter(it -> Objects.nonNull(it.getGetter()))
-                .map(field ->
-                                isAnnotationPresentByType(field.getElement().asType(), ShardEntity.class) ||
-                                        isAnnotationPresentInArgument(field.getElement().asType(), ShardEntity.class) ?
-                                        "        entityManager." +
-                                                (
-                                                        isAnnotationPresentInArgument(
-                                                                field.getElement().asType(),
-                                                                ShardEntity.class
-                                                        ) ? "generateAllId" : "generateId"
-                                                ) +
-                                                "(entity." + field.getGetter() + "());\n" :
-                                        ""
-                )
+                .map(field -> {
+                    String code = "";
+                    if (isAnnotationPresentByType(field.getElement().asType(), ShardEntity.class)) {
+                        code = "        entityManager.generateId(entity." + field.getGetter() + "());\n";
+                    }
+                    if (isAnnotationPresentInArgument(field.getElement().asType(), ShardEntity.class)) {
+                        code = "        entityManager.generateAllId(entity." + field.getGetter() + "());\n";
+                        if (field.getIsLinked()) {
+                            String linkedSetter = findSetterByLinkedColumn(field);
+                            if (linkedSetter != null) {
+                                code = code + "        entity." + field.getGetter() +
+                                        "().forEach(it -> it." + linkedSetter + "(entity.getId()));\n";
+                            }
+                        }
+                    }
+                    return code;
+                })
                 .reduce(
                         "    @Override\n" +
                                 "    public void generateDependentId(" + classDto.getTargetClassName() + " entity) {\n",
