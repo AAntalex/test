@@ -164,18 +164,19 @@ public class ApplicationTests {
 		profiler.stop();
 		System.out.println(profiler.printTimeCounter());
 
+		/*
 		profiler.start("testShardService.saveLocal");
 		testShardService.saveLocal(testBEntities);
 		profiler.stop();
 		System.out.println(profiler.printTimeCounter());
+*/
 
-/*
 		profiler.start("ADD testShardService.save");
 		testBEntities.get(0).setNewValue("newVal!!!");
 		testShardService.save(testBEntities);
 		profiler.stop();
 		System.out.println(profiler.printTimeCounter());
-*/
+
 
 		List<TestBShardEntity>  testBEntities3 = testShardService.generate(1000, 100, null);
 		profiler.start("testShardService.saveLocal2");
