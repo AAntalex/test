@@ -6,6 +6,7 @@ import com.antalex.db.model.enums.ShardType;
 import com.antalex.db.service.ShardDataBaseManager;
 import com.antalex.db.utils.ShardUtils;
 import com.antalex.domain.persistence.entity.shard.TestBShardEntity;
+import com.antalex.domain.persistence.entity.shard.TestBShardEntityExt;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -30,6 +31,10 @@ public class TestBShardEntityRepository {
        this.testCShardEntityRepository = testCShardEntityRepository;
        this.testAShardEntityRepository = testAShardEntityRepository;
        this.cluster = dataBaseManager.getCluster(String.valueOf("DEFAULT"));
+    }
+
+    public TestBShardEntity factory() {
+        return new TestBShardEntityExt();
     }
 
     public TestBShardEntity save(TestBShardEntity entity) {

@@ -5,6 +5,7 @@ import com.antalex.db.utils.ShardUtils;
 import com.antalex.domain.persistence.entity.hiber.TestAEntity;
 import com.antalex.domain.persistence.entity.hiber.TestBEntity;
 import com.antalex.domain.persistence.entity.shard.TestBShardEntity;
+import com.antalex.domain.persistence.entity.shard.TestBShardEntityExt;
 import com.antalex.domain.persistence.repository.AdditionalParameterRepository;
 import com.antalex.domain.persistence.repository.TestARepository;
 import com.antalex.domain.persistence.repository.TestBRepository;
@@ -160,7 +161,7 @@ public class ApplicationTests {
 	@Test
 	public void saveShard() {
 		profiler.start("testShardService.generate");
-		List<TestBShardEntity> testBEntities = testShardService.generate(1000, 100, null);
+		List<TestBShardEntity> testBEntities = testShardService.generate(100000, 0, null);
 		profiler.stop();
 		System.out.println(profiler.printTimeCounter());
 
@@ -169,7 +170,7 @@ public class ApplicationTests {
 		testShardService.saveLocal(testBEntities);
 		profiler.stop();
 		System.out.println(profiler.printTimeCounter());
-*/
+
 
 		profiler.start("ADD testShardService.save");
 		testBEntities.get(0).setNewValue("newVal!!!");
@@ -231,7 +232,7 @@ public class ApplicationTests {
 		testShardService.save(testBEntities10);
 		profiler.stop();
 		System.out.println(profiler.printTimeCounter());
-
+*/
 		System.out.println("STOP");
 	}
 
