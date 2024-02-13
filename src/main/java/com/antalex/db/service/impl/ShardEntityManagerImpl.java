@@ -44,8 +44,8 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
             return repository;
         }
         repository = Optional
-                .ofNullable(REPOSITORIES.get(clazz))
-                .orElse(REPOSITORIES.get(clazz.getSuperclass()));
+                .ofNullable(REPOSITORIES.get(clazz.getSuperclass()))
+                .orElse(REPOSITORIES.get(clazz));
         if (repository == null) {
             throw new IllegalStateException(
                     String.format(
