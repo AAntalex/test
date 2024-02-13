@@ -13,12 +13,16 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.core.GenericTypeResolver;
 import org.springframework.stereotype.Component;
 
+import javax.persistence.EntityTransaction;
 import java.util.*;
 
 @Component
 @Primary
 public class ShardEntityManagerImpl implements ShardEntityManager {
     private static final Map<Class<?>, ShardEntityRepository> REPOSITORIES = new HashMap<>();
+
+    private ThreadLocal<ShardEntityRepository<?>> currentShardEntityRepository = new ThreadLocal<>();
+    private ThreadLocal<Class<?>> currentSourceClass = new ThreadLocal<>();
 
     @Autowired
     private ShardDataBaseManager dataBaseManager;
@@ -34,10 +38,25 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
         }
     }
 
-    private <T extends ShardInstance> ShardEntityRepository<T> getEntityRepository(T entity) {
-
-        ShardEntityRepository<T> repository = REPOSITORIES.get(entity.getClass());
-
+    private <T extends ShardInstance> ShardEntityRepository<T> getEntityRepository(Class<?> clazz) {
+        ShardEntityRepository repository = currentShardEntityRepository.get();
+        if (repository != null && currentSourceClass.get() == clazz) {
+            return repository;
+        }
+        repository = Optional
+                .ofNullable(REPOSITORIES.get(clazz))
+                .orElse(REPOSITORIES.get(clazz.getSuperclass()));
+        if (repository == null) {
+            throw new IllegalStateException(
+                    String.format(
+                            "Can't find shard entity repository for class %s or superclass %s",
+                            clazz.getName(),
+                            clazz.getSuperclass().getName()
+                    )
+            );
+        }
+        currentShardEntityRepository.set(repository);
+        currentSourceClass.set(clazz);
         return repository;
     }
 
@@ -46,7 +65,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
         if (entity == null) {
             return null;
         }
-        return getEntityRepository(entity).getShardType(entity);
+        return getEntityRepository(entity.getClass()).getShardType(entity);
     }
 
     @Override
@@ -54,7 +73,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
         if (entity == null) {
             return null;
         }
-        return getEntityRepository(entity).getCluster(entity);
+        return getEntityRepository(entity.getClass()).getCluster(entity);
     }
 
     @Override
@@ -62,7 +81,8 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
         if (entity == null) {
             return null;
         }
-        return getEntityRepository(entity).save(entity);
+        ShardEntityRepository<T> repository = getEntityRepository(entity.getClass());
+        return repository.save(entity);
     }
 
     @Override
@@ -79,7 +99,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
         if (entity == null) {
             return;
         }
-        getEntityRepository(entity).setDependentStorage(entity);
+        getEntityRepository(entity.getClass()).setDependentStorage(entity);
     }
 
     @Override
@@ -87,7 +107,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
         if (entity == null) {
             return;
         }
-        getEntityRepository(entity).generateDependentId(entity);
+        getEntityRepository(entity.getClass()).generateDependentId(entity);
     }
 
     @Override
@@ -187,5 +207,16 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
             return;
         }
         entities.forEach(this::generateId);
+    }
+
+    @Override
+    public <T extends ShardInstance> T newEntity(Class<T> clazz) {
+        ShardEntityRepository<T> repository = getEntityRepository(clazz);
+        return repository.newEntity(clazz);
+    }
+
+    @Override
+    public EntityTransaction getTransaction() {
+        return null;
     }
 }

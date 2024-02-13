@@ -33,7 +33,8 @@ import java.util.stream.Collectors;
 @SupportedAnnotationTypes("com.antalex.db.annotation.ShardEntity")
 @AutoService(Processor.class)
 public class ShardedEntityProcessor extends AbstractProcessor {
-    private static final String CLASS_POSTFIX = "RepositoryImpl$";
+    private static final String CLASS_REPOSITORY_POSTFIX = "$RepositoryImpl";
+    private static final String CLASS_INTERCEPT_POSTFIX = "Interceptor$";
     private static final String TABLE_PREFIX = "T_";
     private static final String COLUMN_PREFIX = "C_";
 
@@ -44,7 +45,9 @@ public class ShardedEntityProcessor extends AbstractProcessor {
         for (TypeElement annotation : set) {
             for (Element annotatedElement : roundEnvironment.getElementsAnnotatedWith(annotation)) {
                 try {
-                    writeBuilderFile(getClassDtoByElement(annotatedElement));
+                    ClassDto classDto = getClassDtoByElement(annotatedElement);
+                    createInterceptorClass(classDto);
+                    createRepositoryClass(classDto);
                 } catch (IOException err) {
                     err.printStackTrace();
                 }
@@ -77,7 +80,6 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                     classElement,
                     ClassDto
                             .builder()
-                            .className(elementName + CLASS_POSTFIX)
                             .targetClassName(elementName)
                             .tableName(
                                     Optional.ofNullable(classElement.getAnnotation(Table.class))
@@ -223,14 +225,19 @@ public class ShardedEntityProcessor extends AbstractProcessor {
         return "INSERT INTO $$$." + classDto.getTableName() + " (" + columns + ") VALUES (" + values + ")";
     }
 
-    private void writeBuilderFile(ClassDto classDto) throws IOException {
+    private void createRepositoryClass(ClassDto classDto) throws IOException {
         if (classDto == null) {
             return;
         }
-        JavaFileObject builderFile = processingEnv.getFiler().createSourceFile(classDto.getClassName());
+        String className = classDto.getTargetClassName() + CLASS_REPOSITORY_POSTFIX;
+        JavaFileObject builderFile = processingEnv.getFiler().createSourceFile(className);
         try (PrintWriter out = new PrintWriter(builderFile.openWriter())) {
             out.println("package " + classDto.getClassPackage() + ";");
             out.println();
+            out.println(
+                    "import " + classDto.getClassPackage() + "." +
+                            classDto.getTargetClassName() + CLASS_INTERCEPT_POSTFIX + ";"
+            );
             out.println("import " + ShardEntityRepository.class.getCanonicalName() + ";");
             out.println("import " + ShardEntityManager.class.getCanonicalName() + ";");
             out.println("import " + Component.class.getCanonicalName() + ";");
@@ -244,7 +251,7 @@ public class ShardedEntityProcessor extends AbstractProcessor {
             out.println();
             out.println("@Component");
             out.println("public class " +
-                    classDto.getClassName() +
+                    className +
                     " implements ShardEntityRepository<" +
                     classDto.getTargetClassName() + "> {"
             );
@@ -261,7 +268,9 @@ public class ShardedEntityProcessor extends AbstractProcessor {
             out.println("    private final Cluster cluster;");
 
             out.println();
-            out.println(getConstructorCode(classDto));
+            out.println(getConstructorCode(classDto, className));
+            out.println();
+            out.println(getNewEntityCode(classDto));
             out.println();
             out.println(getSaveCode(classDto));
             out.println();
@@ -273,15 +282,37 @@ public class ShardedEntityProcessor extends AbstractProcessor {
             out.println();
             out.println(getGenerateDependentIdCode(classDto));
             out.println("}");
-            out.println();
         }
     }
 
-    private static String getConstructorCode(ClassDto classDto) {
+    private void createInterceptorClass(ClassDto classDto) throws IOException {
+        if (classDto == null) {
+            return;
+        }
+        String className = classDto.getTargetClassName() + CLASS_INTERCEPT_POSTFIX;
+        JavaFileObject builderFile = processingEnv.getFiler().createSourceFile(className);
+        try (PrintWriter out = new PrintWriter(builderFile.openWriter())) {
+            out.println("package " + classDto.getClassPackage() + ";");
+            out.println();
+            out.println("public class " + className + " extends " + classDto.getTargetClassName() + " {");
+            out.println();
+            out.println("}");
+        }
+    }
+
+    private static String getConstructorCode(ClassDto classDto, String className) {
         return "    @Autowired\n" +
-                "    " + classDto.getClassName() + "(ShardDataBaseManager dataBaseManager) {\n" +
+                "    " + className + "(ShardDataBaseManager dataBaseManager) {\n" +
                 "       this.cluster = dataBaseManager.getCluster(String.valueOf(\"" + classDto.getCluster() +
                 "\"));\n    }";
+    }
+
+    private static String getNewEntityCode(ClassDto classDto) {
+        return "    @Override\n" +
+                "    public " + classDto.getTargetClassName() + " newEntity(Class<" +
+                classDto.getTargetClassName() + "> clazz) {\n" +
+                "       return new " + classDto.getTargetClassName() + CLASS_INTERCEPT_POSTFIX + "();\n" +
+                "    }";
     }
 
     private static String getSaveCode(ClassDto classDto) {

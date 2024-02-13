@@ -1,5 +1,6 @@
 package com.antalex.db.entity.abstraction;
 
+import com.antalex.db.annotation.ShardEntity;
 import com.antalex.db.model.StorageAttributes;
 import com.antalex.db.utils.ShardUtils;
 
@@ -8,6 +9,17 @@ import java.util.Optional;
 public abstract class BaseShardEntity implements ShardInstance {
     private Long id;
     private StorageAttributes storageAttributes;
+
+    public BaseShardEntity () {
+        if (this.getClass().isAnnotationPresent(ShardEntity.class)) {
+            throw new RuntimeException(
+                    String.format(
+                            "Запрещено использовать конструктор класса %s напрямую. " +
+                                    "Следует использовать ShardEntityManager.newEntity(Class<?>)",
+                            this.getClass().getName())
+            );
+        }
+    }
 
     @Override
     public Long getId() {

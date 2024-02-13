@@ -18,10 +18,7 @@ import org.springframework.util.Assert;
 
 import javax.sql.DataSource;
 import java.io.File;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -347,7 +344,9 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                 }
                 connection.close();
             } catch (SQLException err) {
-                //dynamicDataBaseInfo.setAvailable(false);
+                if (err instanceof SQLTransientConnectionException) {
+                    dynamicDataBaseInfo.setAvailable(false);
+                }
                 throw new RuntimeException(err);
             }
         }
@@ -357,6 +356,9 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         try {
             return runSQLThread(getConnection(shard), target, description);
         } catch (SQLException err) {
+            if (err instanceof SQLTransientConnectionException) {
+                shard.getDynamicDataBaseInfo().setAvailable(false);
+            }
             throw new RuntimeException(err);
         }
     }

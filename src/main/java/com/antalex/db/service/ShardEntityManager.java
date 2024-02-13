@@ -2,8 +2,11 @@ package com.antalex.db.service;
 
 import com.antalex.db.entity.abstraction.ShardInstance;
 import com.antalex.db.model.Cluster;
+import com.antalex.db.model.Shard;
 import com.antalex.db.model.StorageAttributes;
 import com.antalex.db.model.enums.ShardType;
+
+import javax.persistence.EntityTransaction;
 
 public interface ShardEntityManager {
     <T extends ShardInstance> ShardType getShardType(T entity);
@@ -18,4 +21,6 @@ public interface ShardEntityManager {
     <T extends ShardInstance> void setStorage(T entity, StorageAttributes storage, boolean isSave);
     <T extends ShardInstance> void setStorage(T entity, StorageAttributes storage);
     <T extends ShardInstance> void setAllStorage(Iterable<T> entities, StorageAttributes storage);
+    <T extends ShardInstance> T newEntity(Class<T> clazz);
+    EntityTransaction getTransaction();
 }
