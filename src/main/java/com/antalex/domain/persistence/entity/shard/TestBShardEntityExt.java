@@ -1,13 +1,15 @@
 package com.antalex.domain.persistence.entity.shard;
 
 
+import javax.persistence.EntityManager;
+
 public class TestBShardEntityExt extends TestBShardEntity {
-    public TestBShardEntityExt() {
-        super.setNewValue("AAA");
-    }
+    EntityManager entityManager;
 
     @Override
     public void setNewValue(String newValue) {
         super.setNewValue(newValue);
+        entityManager.getTransaction();
+
     }
 }

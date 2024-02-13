@@ -5,6 +5,7 @@ import com.antalex.domain.persistence.entity.shard.TestAShardEntity;
 import com.antalex.domain.persistence.entity.shard.TestBShardEntity;
 import com.antalex.domain.persistence.entity.shard.TestBShardEntityExt;
 import com.antalex.domain.persistence.entity.shard.TestCShardEntity;
+import com.antalex.profiler.service.ProfilerService;
 import com.antalex.service.TestShardService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -18,23 +19,29 @@ public class TestShardServiceImpl implements TestShardService {
     private ShardEntityManager entityManager;
     @Autowired
     private TestBShardEntityRepository testBShardEntityRepository;
+    @Autowired
+    private ProfilerService profiler;
 
 
     @Override
     public List<TestBShardEntity> generate(int cnt, int cntArray, TestAShardEntity testAEntity) {
         List<TestBShardEntity> bList = new ArrayList<>();;
         for (int i = 0; i < cnt; i++) {
-//            TestBShardEntity b = new TestBShardEntityExt();
+
+            profiler.startTimeCounter("new TestBShardEntityExt", "AAA");
+            TestBShardEntity b = entityManager.newEntity(TestBShardEntity.class);
+            profiler.fixTimeCounter();
 
 //            TestBShardEntity b = testBShardEntityRepository.factory();
 
+            /*
             TestBShardEntity b;
             try {
                 b = TestBShardEntityExt.class.newInstance();
             } catch (Exception err) {
                 throw new RuntimeException(err);
             }
-
+*/
 
             b.setA(testAEntity);
             b.setValue("BShard" + i);
@@ -42,7 +49,7 @@ public class TestShardServiceImpl implements TestShardService {
 
             List<TestCShardEntity> cEntities = new ArrayList<>();
             for (int j = 0; j < cntArray; j++) {
-                TestCShardEntity c = new TestCShardEntity();
+                TestCShardEntity c = entityManager.newEntity(TestCShardEntity.class);
                 c.setValue("CShard" + (i * cntArray + j));
                 c.setNewValue("newCShard" + (i * cntArray + j));
                 cEntities.add(c);

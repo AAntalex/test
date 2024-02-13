@@ -160,12 +160,30 @@ public class ApplicationTests {
 
 	@Test
 	public void saveShard() {
-		profiler.start("testShardService.generate");
+
+		profiler.start("testShardService.generate 0");
 		List<TestBShardEntity> testBEntities = testShardService.generate(100000, 0, null);
 		profiler.stop();
 		System.out.println(profiler.printTimeCounter());
 
-		/*
+
+		profiler.start("testShardService.generate 1");
+		testBEntities = testShardService.generate(100000, 0, null);
+		profiler.stop();
+		System.out.println(profiler.printTimeCounter());
+
+
+		profiler.start("testShardService.generate 2");
+		testBEntities = testShardService.generate(100000, 0, null);
+		profiler.stop();
+		System.out.println(profiler.printTimeCounter());
+
+
+		profiler.start("testShardService.generate");
+		testBEntities = testShardService.generate(1000, 100, null);
+		profiler.stop();
+		System.out.println(profiler.printTimeCounter());
+
 		profiler.start("testShardService.saveLocal");
 		testShardService.saveLocal(testBEntities);
 		profiler.stop();
@@ -179,43 +197,71 @@ public class ApplicationTests {
 		System.out.println(profiler.printTimeCounter());
 
 
+		profiler.start("testShardService.generate");
 		List<TestBShardEntity>  testBEntities3 = testShardService.generate(1000, 100, null);
+		profiler.stop();
+		System.out.println(profiler.printTimeCounter());
+
 		profiler.start("testShardService.saveLocal2");
 		testShardService.saveLocal(testBEntities3);
 		profiler.stop();
 		System.out.println(profiler.printTimeCounter());
 
+		profiler.start("testShardService.generate");
 		List<TestBShardEntity>  testBEntities2 = testShardService.generate(1000, 100, null);
+		profiler.stop();
+		System.out.println(profiler.printTimeCounter());
+
 		profiler.start("testShardService.save");
 		testShardService.save(testBEntities2);
 		profiler.stop();
 		System.out.println(profiler.printTimeCounter());
 
+		profiler.start("testShardService.generate");
 		List<TestBShardEntity>  testBEntities5 = testShardService.generate(1000, 100, null);
+		profiler.stop();
+		System.out.println(profiler.printTimeCounter());
+
 		profiler.start("testShardService.saveLocal3");
 		testShardService.saveLocal(testBEntities5);
 		profiler.stop();
 		System.out.println(profiler.printTimeCounter());
 
+		profiler.start("testShardService.generate");
 		List<TestBShardEntity>  testBEntities4 = testShardService.generate(1000, 100, null);
+		profiler.stop();
+		System.out.println(profiler.printTimeCounter());
+
 		profiler.start("testShardService.save2");
 		testShardService.save(testBEntities4);
 		profiler.stop();
 		System.out.println(profiler.printTimeCounter());
 
+		profiler.start("testShardService.generate");
 		List<TestBShardEntity>  testBEntities7 = testShardService.generate(1000, 100, null);
+		profiler.stop();
+		System.out.println(profiler.printTimeCounter());
+
 		profiler.start("testShardService.saveLocal4");
 		testShardService.saveLocal(testBEntities7);
 		profiler.stop();
 		System.out.println(profiler.printTimeCounter());
 
+		profiler.start("testShardService.generate");
 		List<TestBShardEntity>  testBEntities6 = testShardService.generate(1000, 100, null);
+		profiler.stop();
+		System.out.println(profiler.printTimeCounter());
+
 		profiler.start("testShardService.save3");
 		testShardService.save(testBEntities6);
 		profiler.stop();
 		System.out.println(profiler.printTimeCounter());
 
+		profiler.start("testShardService.generate");
 		List<TestBShardEntity>  testBEntities8 = testShardService.generate(1000, 100, null);
+		profiler.stop();
+		System.out.println(profiler.printTimeCounter());
+
 		profiler.start("testShardService.save4");
 		testShardService.save(testBEntities8);
 		profiler.stop();
@@ -232,7 +278,7 @@ public class ApplicationTests {
 		testShardService.save(testBEntities10);
 		profiler.stop();
 		System.out.println(profiler.printTimeCounter());
-*/
+
 		System.out.println("STOP");
 	}
 

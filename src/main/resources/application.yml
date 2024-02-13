@@ -42,3 +42,32 @@ shardDbConfig:
             pass: ${PMTS_DB_PUBLIC_1_PASSWORD:123}
             owner: pmts_public_1
           id: 63
+        - database:
+            url: ${PMTS_DATASOURCE_JDBC_URL_PUBLIC_1:jdbc:postgresql://d5pmts-pgc001lk.corp.dev.vtb:5432/pmts_public_2}
+            user: ${PMTS_DB_PUBLIC_2_USER:pmts_public_2_admin}
+            pass: ${PMTS_DB_PUBLIC_2_PASSWORD:123}
+            owner: pmts_public_2
+        - database:
+            driver: oracle.jdbc.driver.OracleDriver
+            url: jdbc:oracle:thin:@d5cftm-apc005ln.corp.dev.vtb:1521/ELVIS
+            user: IBS
+            pass: IBS
+          id: 1
+        - database:
+            driver: oracle.jdbc.driver.OracleDriver
+            url: jdbc:oracle:thin:@localhost:1521/eks
+            user: TEST
+            pass: TEST
+            owner: IBS
+          id: 2
+          hikari:
+            minimumIdle: 20
+            maximumPoolSize: 200
+    - name: RAW
+      id: 3
+      shards:
+        - database:
+            driver: oracle.jdbc.driver.OracleDriver
+            url: jdbc:oracle:thin:@d5ubss-or5001lk.corp.dev.vtb:1521/TARIFA
+            user: IBS
+            pass: IBS
