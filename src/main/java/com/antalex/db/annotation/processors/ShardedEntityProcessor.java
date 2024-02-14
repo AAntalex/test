@@ -214,15 +214,15 @@ public class ShardedEntityProcessor extends AbstractProcessor {
     }
 
     private static String getInsertSQL(ClassDto classDto) {
-        String columns = "ID,SHARD_VALUE";
-        String values = "?,?";
+        String columns = "SHARD_VALUE";
+        String values = "?";
         for (int i = 0; i < classDto.getFields().size(); i++) {
             if (classDto.getFields().get(i).getColumnName() != null && !classDto.getFields().get(i).getIsLinked()) {
                 columns = columns.concat(",").concat(classDto.getFields().get(i).getColumnName());
                 values = values.concat(",?");
             }
         }
-        return "INSERT INTO $$$." + classDto.getTableName() + " (" + columns + ") VALUES (" + values + ")";
+        return "INSERT INTO $$$." + classDto.getTableName() + " (" + columns + ",ID) VALUES (" + values + ",?)";
     }
 
     private void createRepositoryClass(ClassDto classDto) throws IOException {

@@ -7,4 +7,29 @@ public class ShardEntityTransaction implements EntityTransaction {
     public void begin() {
 
     }
+
+    @Override
+    public void rollback() {
+
+    }
+
+    @Override
+    public void commit() {
+
+    }
+
+    @Override
+    public void setRollbackOnly() {
+
+    }
+
+    @Override
+    public boolean getRollbackOnly() {
+        return false;
+    }
+
+    @Override
+    public boolean isActive() {
+        return false;
+    }
 }
