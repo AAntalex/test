@@ -1,4 +1,4 @@
-package com.antalex.db.service;
+package com.antalex.db.service.api;
 
 public interface SequenceGenerator {
     long nextValue();

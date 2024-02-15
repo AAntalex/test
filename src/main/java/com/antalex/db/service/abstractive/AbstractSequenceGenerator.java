@@ -1,6 +1,6 @@
 package com.antalex.db.service.abstractive;
 
-import com.antalex.db.service.SequenceGenerator;
+import com.antalex.db.service.api.SequenceGenerator;
 import lombok.Data;
 
 import java.util.Objects;

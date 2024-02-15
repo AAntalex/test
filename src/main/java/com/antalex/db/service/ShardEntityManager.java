@@ -23,4 +23,6 @@ public interface ShardEntityManager {
     <T extends ShardInstance> void setAllStorage(Iterable<T> entities, StorageAttributes storage);
     <T extends ShardInstance> T newEntity(Class<T> clazz);
     EntityTransaction getTransaction();
+    void setAutonomousTransaction();
+    void flush();
 }

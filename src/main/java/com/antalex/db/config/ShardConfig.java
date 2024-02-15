@@ -11,4 +11,5 @@ public class ShardConfig {
     private Integer sequenceCacheSize;
     private String segment;
     private Boolean accessible;
+    private String url;
 }

@@ -23,6 +23,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
 
     private ThreadLocal<ShardEntityRepository<?>> currentShardEntityRepository = new ThreadLocal<>();
     private ThreadLocal<Class<?>> currentSourceClass = new ThreadLocal<>();
+    private ThreadLocal<EntityTransaction> transaction = new ThreadLocal<>();
 
     @Autowired
     private ShardDataBaseManager dataBaseManager;
@@ -217,6 +218,23 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
 
     @Override
     public EntityTransaction getTransaction() {
-        return null;
+        if (this.transaction.get() == null) {
+            this.transaction.set(new SharedEntityTransaction());
+        }
+        return this.transaction.get();
+    }
+
+    @Override
+    public void setAutonomousTransaction() {
+        SharedEntityTransaction trn = new SharedEntityTransaction();
+        trn.setParentTransaction(this.transaction.get());
+        this.transaction.set(trn);
+    }
+
+    @Override
+    public void flush() {
+        SharedEntityTransaction trn = (SharedEntityTransaction) getTransaction();
+        trn.commit();
+        this.transaction.set(trn.getParentTransaction());
     }
 }

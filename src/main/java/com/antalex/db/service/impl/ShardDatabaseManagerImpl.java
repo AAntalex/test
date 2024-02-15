@@ -5,7 +5,7 @@ import com.antalex.db.config.*;
 import com.antalex.db.model.*;
 import com.antalex.db.service.ShardDataBaseManager;
 import com.antalex.db.service.LiquibaseManager;
-import com.antalex.db.service.SequenceGenerator;
+import com.antalex.db.service.api.SequenceGenerator;
 import com.antalex.db.utils.ShardUtils;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
@@ -328,11 +328,13 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     }
 
     private void getDynamicDataBaseInfo(Shard shard) {
-        if (System.currentTimeMillis() - shard.getDynamicDataBaseInfo().getLastTime() > this.timeOut) {
+        if (shard.getDynamicDataBaseInfo().getLastTime() != null &&
+                System.currentTimeMillis() - shard.getDynamicDataBaseInfo().getLastTime() > this.timeOut)
+        {
             DynamicDataBaseInfo dynamicDataBaseInfo = shard.getDynamicDataBaseInfo();
             dynamicDataBaseInfo.setLastTime(System.currentTimeMillis());
             try {
-                Connection connection = getConnection(shard);
+                Connection connection = shard.getDataSource().getConnection();
                 PreparedStatement preparedStatement = connection.prepareStatement(
                         ShardUtils.transformSQL(SELECT_DYNAMIC_DB_INFO, shard)
                 );
@@ -694,9 +696,20 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
 
             clusterConfig.getShards().forEach(shardConfig-> {
                 Shard shard = new Shard();
-                HikariDataSource dataSource = new HikariDataSource(
-                        getHikariConfig(shardDataBaseConfig, clusterConfig, shardConfig)
-                );
+                if (Optional.ofNullable(shardConfig.getDataBase()).map(DataBaseConfig::getUrl).isPresent()) {
+                    HikariDataSource dataSource = new HikariDataSource(
+                            getHikariConfig(shardDataBaseConfig, clusterConfig, shardConfig)
+                    );
+                    shard.setDataSource(dataSource);
+                    shard.setOwner(
+                            Optional.ofNullable(shardConfig.getDataBase())
+                                    .map(DataBaseConfig::getOwner)
+                                    .orElse(dataSource.getUsername())
+                    );
+                } else {
+                    shard.setExternal(true);
+                    shard.setUrl(shardConfig.getUrl());
+                }
                 shard.setSequenceCacheSize(
                         Optional.ofNullable(shardConfig.getSequenceCacheSize())
                                 .orElse(
@@ -717,12 +730,6 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                                 )
                                 .available(true)
                                 .build()
-                );
-                shard.setDataSource(dataSource);
-                shard.setOwner(
-                        Optional.ofNullable(shardConfig.getDataBase())
-                                .map(DataBaseConfig::getOwner)
-                                .orElse(dataSource.getUsername())
                 );
                 shard.setName(
                         String.format("%s: (%s)", cluster.getName(), shardConfig.getDataBase().getUrl())
@@ -789,6 +796,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
 
     private Connection getConnection(Shard shard) throws SQLException {
         if (Objects.nonNull(shard)) {
+            getDynamicDataBaseInfo(shard);
             return shard.getDataSource().getConnection();
         }
         return null;
