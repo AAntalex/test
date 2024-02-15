@@ -25,6 +25,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 
+import javax.persistence.EntityManager;
+import javax.persistence.EntityManagerFactory;
+import javax.persistence.EntityTransaction;
 import java.sql.Connection;
 import java.util.List;
 
@@ -52,6 +55,8 @@ public class ApplicationTests {
 	private TestService testService;
 	@Autowired
 	private TestShardService testShardService;
+	@Autowired
+	private EntityManagerFactory entityManagerFactory;
 
 
 //	@Test
@@ -160,6 +165,9 @@ public class ApplicationTests {
 
 	@Test
 	public void saveShard() {
+
+		EntityManager em = entityManagerFactory.createEntityManager();
+		Boolean active = em.getTransaction().isActive();
 
 		profiler.start("testShardService.generate 0");
 		List<TestBShardEntity> testBEntities = testShardService.generate(100000, 0, null);
