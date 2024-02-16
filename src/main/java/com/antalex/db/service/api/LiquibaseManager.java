@@ -1,4 +1,4 @@
-package com.antalex.db.service;
+package com.antalex.db.service.api;
 
 import liquibase.exception.LiquibaseException;
 

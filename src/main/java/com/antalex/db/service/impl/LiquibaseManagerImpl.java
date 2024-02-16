@@ -1,7 +1,7 @@
 package com.antalex.db.service.impl;
 
 import com.antalex.db.model.SQLRunInfo;
-import com.antalex.db.service.LiquibaseManager;
+import com.antalex.db.service.api.LiquibaseManager;
 import liquibase.Contexts;
 import liquibase.LabelExpression;
 import liquibase.Liquibase;

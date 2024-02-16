@@ -4,7 +4,7 @@ import com.antalex.db.api.SQLRunnable;
 import com.antalex.db.config.*;
 import com.antalex.db.model.*;
 import com.antalex.db.service.ShardDataBaseManager;
-import com.antalex.db.service.LiquibaseManager;
+import com.antalex.db.service.api.LiquibaseManager;
 import com.antalex.db.service.api.SequenceGenerator;
 import com.antalex.db.utils.ShardUtils;
 import com.zaxxer.hikari.HikariConfig;
@@ -20,6 +20,10 @@ import javax.sql.DataSource;
 import java.io.File;
 import java.sql.*;
 import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -50,7 +54,6 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     private static final String SELECT_DYNAMIC_DB_INFO = "SELECT SEGMENT_NAME,ACCESSIBLE FROM $$$.APP_DATABASE";
 
     private final ResourceLoader resourceLoader;
-    private final LiquibaseManager liquibaseManager;
     private final ShardDataBaseConfig shardDataBaseConfig;
 
     private Cluster defaultCluster;
@@ -59,6 +62,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     private Map<String, SequenceGenerator> shardSequences = new HashMap<>();
     private Map<String, Map<Short, SequenceGenerator>> sequences = new HashMap<>();
     private List<ImmutablePair<Cluster, Shard>> newShards = new ArrayList<>();
+    private LiquibaseManager liquibaseManager = new LiquibaseManagerImpl();
 
     private String changLogPath;
     private String changLogName;
@@ -69,7 +73,6 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
             ResourceLoader resourceLoader,
             ShardDataBaseConfig shardDataBaseConfig)
     {
-        this.liquibaseManager = new LiquibaseManagerImpl();
         this.resourceLoader = resourceLoader;
         this.shardDataBaseConfig = shardDataBaseConfig;
 
