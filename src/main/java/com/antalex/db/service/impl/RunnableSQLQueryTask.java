@@ -5,18 +5,24 @@ import com.antalex.db.service.api.RunnableQueryTask;
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.stream.Collectors;
 
 public class RunnableSQLQueryTask implements RunnableQueryTask {
     private ExecutorService executorService;
     private Connection connection;
     private String name;
-    private Future future;
+    private String error;
+    private Future<List<Object>> future;
+    private List<Object> result;
+    private List<RunnableQuery> queryList = new ArrayList<>();
     private Map<String, RunnableQuery> queries = new HashMap<>();
 
     private RunnableSQLQueryTask() {
@@ -46,7 +52,19 @@ public class RunnableSQLQueryTask implements RunnableQueryTask {
 
     @Override
     public void submit(Runnable target) {
-        this.future = this.executorService.submit(target);
+        this.future = this.executorService.submit(() ->
+            queryList
+                    .stream()
+                    .map(query -> {
+                        try {
+                            return query.execute();
+                        } catch (Exception err) {
+                            this.error = err.getLocalizedMessage();
+                            throw new RuntimeException(err);
+                        }
+                    })
+                    .collect(Collectors.toList())
+        );
     }
 
     @Override
@@ -55,7 +73,7 @@ public class RunnableSQLQueryTask implements RunnableQueryTask {
             return;
         }
         try {
-            this.future.get();
+            this.result = this.future.get();
         } catch (Exception err) {
             throw new RuntimeException(err);
         }
@@ -63,10 +81,13 @@ public class RunnableSQLQueryTask implements RunnableQueryTask {
 
     @Override
     public RunnableQuery getQuery(String query) throws SQLException {
+        RunnableQuery runnableQuery = this.queries.get(query);
         if (!this.queries.containsKey(query)) {
-            this.queries.put(query, new RunnableSQLQuery(connection.prepareStatement(query)));
+            runnableQuery = new RunnableSQLQuery(connection.prepareStatement(query));
+            this.queries.put(query, runnableQuery);
+            queryList.add(runnableQuery);
         }
-        return this.queries.get(query);
+        return runnableQuery;
     }
 
 }
