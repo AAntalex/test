@@ -1,10 +1,20 @@
 package com.antalex.db.service.impl;
 
+import com.antalex.db.model.Shard;
+import com.antalex.db.service.api.RunnableTask;
+
 import javax.persistence.EntityTransaction;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class SharedEntityTransaction implements EntityTransaction {
     private EntityTransaction parentTransaction;
     private boolean active;
+
+    private List<RunnableTask> tasks = new ArrayList<>();
+    private Map<Shard, RunnableTask> currentTasks = new HashMap<>();
 
     @Override
     public void begin() {
