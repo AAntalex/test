@@ -4,7 +4,9 @@ import com.antalex.db.api.SQLRunnable;
 import com.antalex.db.config.*;
 import com.antalex.db.model.*;
 import com.antalex.db.service.ShardDataBaseManager;
+import com.antalex.db.service.SharedTransactionManager;
 import com.antalex.db.service.api.LiquibaseManager;
+import com.antalex.db.service.api.RunnableTask;
 import com.antalex.db.service.api.SequenceGenerator;
 import com.antalex.db.utils.ShardUtils;
 import com.zaxxer.hikari.HikariConfig;
@@ -20,10 +22,6 @@ import javax.sql.DataSource;
 import java.io.File;
 import java.sql.*;
 import java.util.*;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -55,6 +53,8 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
 
     private final ResourceLoader resourceLoader;
     private final ShardDataBaseConfig shardDataBaseConfig;
+    private final SharedTransactionManager sharedTransactionManager;
+
 
     private Cluster defaultCluster;
     private Map<String, Cluster> clusters = new HashMap<>();
@@ -71,16 +71,30 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
 
     ShardDatabaseManagerImpl(
             ResourceLoader resourceLoader,
-            ShardDataBaseConfig shardDataBaseConfig)
+            ShardDataBaseConfig shardDataBaseConfig,
+            SharedTransactionManager sharedTransactionManager)
     {
         this.resourceLoader = resourceLoader;
         this.shardDataBaseConfig = shardDataBaseConfig;
+        this.sharedTransactionManager = sharedTransactionManager;
 
         getProperties();
         runInitLiquibase();
         processDataBaseInfo();
         runLiquibase();
     }
+
+
+    private RunnableTask getRunnableTask(Shard shard) {
+        SharedEntityTransaction transaction = (SharedEntityTransaction) sharedTransactionManager.getTransaction();
+        RunnableTask task = transaction.getTask(shard);
+        if (task == null) {
+            
+        }
+        return task;
+    }
+
+
 
     @Override
     public Connection getConnection() throws SQLException {

@@ -7,6 +7,7 @@ import com.antalex.db.model.enums.ShardType;
 import com.antalex.db.service.ShardDataBaseManager;
 import com.antalex.db.service.ShardEntityManager;
 import com.antalex.db.service.ShardEntityRepository;
+import com.antalex.db.service.SharedTransactionManager;
 import com.antalex.db.utils.ShardUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Primary;
@@ -23,10 +24,11 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
 
     private ThreadLocal<ShardEntityRepository<?>> currentShardEntityRepository = new ThreadLocal<>();
     private ThreadLocal<Class<?>> currentSourceClass = new ThreadLocal<>();
-    private ThreadLocal<EntityTransaction> transaction = new ThreadLocal<>();
 
     @Autowired
     private ShardDataBaseManager dataBaseManager;
+    @Autowired
+    private SharedTransactionManager sharedTransactionManager;
 
     @Autowired
     public void setRepositories(List<ShardEntityRepository> entityRepositories) {
@@ -218,23 +220,17 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
 
     @Override
     public EntityTransaction getTransaction() {
-        if (this.transaction.get() == null) {
-            this.transaction.set(new SharedEntityTransaction());
-        }
-        return this.transaction.get();
+        return sharedTransactionManager.getTransaction();
     }
 
     @Override
     public void setAutonomousTransaction() {
-        SharedEntityTransaction trn = new SharedEntityTransaction();
-        trn.setParentTransaction(this.transaction.get());
-        this.transaction.set(trn);
+        sharedTransactionManager.setAutonomousTransaction();
     }
 
     @Override
     public void flush() {
-        SharedEntityTransaction trn = (SharedEntityTransaction) getTransaction();
-        trn.commit();
-        this.transaction.set(trn.getParentTransaction());
+        SharedEntityTransaction transaction = (SharedEntityTransaction) getTransaction();
+        transaction.commit();
     }
 }

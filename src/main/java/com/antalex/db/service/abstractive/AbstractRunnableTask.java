@@ -13,9 +13,10 @@ public abstract class AbstractRunnableTask implements RunnableTask {
     private String error;
     private Future future;
     private List<Runnable> steps = new ArrayList<>();
+    private boolean isRunning;
 
     @Override
-    public void submit() {
+    public void run() {
         this.future = this.executorService.submit(() ->
                 steps
                     .forEach(step -> {
@@ -27,22 +28,28 @@ public abstract class AbstractRunnableTask implements RunnableTask {
                         }
                     })
         );
+        this.isRunning = true;
     }
 
     @Override
     public void waitTask() {
-        if (this.future == null) {
-            return;
-        }
-        try {
-            this.future.get();
-        } catch (Exception err) {
-            throw new RuntimeException(err);
+        if (this.isRunning) {
+            try {
+                this.future.get();
+            } catch (Exception err) {
+                throw new RuntimeException(err);
+            }
         }
     }
 
+    @Override
     public void addStep(Runnable target) {
         steps.add(target);
+    }
+
+    @Override
+    public boolean isRunning() {
+        return isRunning;
     }
 
     public String getName() {
