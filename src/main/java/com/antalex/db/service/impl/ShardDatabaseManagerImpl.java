@@ -5,15 +5,15 @@ import com.antalex.db.config.*;
 import com.antalex.db.model.*;
 import com.antalex.db.service.ShardDataBaseManager;
 import com.antalex.db.service.SharedTransactionManager;
-import com.antalex.db.service.api.LiquibaseManager;
-import com.antalex.db.service.api.RunnableTask;
-import com.antalex.db.service.api.SequenceGenerator;
+import com.antalex.db.service.api.*;
 import com.antalex.db.utils.ShardUtils;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import liquibase.exception.LiquibaseException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
@@ -22,6 +22,10 @@ import javax.sql.DataSource;
 import java.io.File;
 import java.sql.*;
 import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -54,7 +58,8 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     private final ResourceLoader resourceLoader;
     private final ShardDataBaseConfig shardDataBaseConfig;
     private final SharedTransactionManager sharedTransactionManager;
-
+    private final RunnableSQLTaskFactory runnableSQLTaskFactory;
+    private final RunnableExternalTaskFactory runnableExternalTaskFactory;
 
     private Cluster defaultCluster;
     private Map<String, Cluster> clusters = new HashMap<>();
@@ -67,16 +72,26 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     private String changLogPath;
     private String changLogName;
     private String segment;
+    private int parallelLimit;
     private int timeOut;
+    private boolean parallelCommit;
+    private ExecutorService executorService;
 
     ShardDatabaseManagerImpl(
             ResourceLoader resourceLoader,
             ShardDataBaseConfig shardDataBaseConfig,
-            SharedTransactionManager sharedTransactionManager)
+            SharedTransactionManager sharedTransactionManager,
+            RunnableSQLTaskFactory runnableSQLTaskFactory,
+            RunnableExternalTaskFactory runnableExternalTaskFactory)
     {
         this.resourceLoader = resourceLoader;
         this.shardDataBaseConfig = shardDataBaseConfig;
         this.sharedTransactionManager = sharedTransactionManager;
+        this.runnableSQLTaskFactory = runnableSQLTaskFactory;
+        this.runnableExternalTaskFactory = runnableExternalTaskFactory;
+        this.executorService = Executors.newCachedThreadPool();
+        this.runnableSQLTaskFactory.setExecutorService(this.executorService);
+        this.runnableExternalTaskFactory.setExecutorService(this.executorService);
 
         getProperties();
         runInitLiquibase();
@@ -84,17 +99,29 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         runLiquibase();
     }
 
-
-    private RunnableTask getRunnableTask(Shard shard) {
+    @Override
+    public RunnableTask getRunnableTask(Shard shard) {
         SharedEntityTransaction transaction = (SharedEntityTransaction) sharedTransactionManager.getTransaction();
-        RunnableTask task = transaction.getTask(shard);
-        if (task == null) {
-            
-        }
-        return task;
+        return Optional.of(
+                transaction.getCurrentTask(
+                        shard,
+                        ((HikariDataSource) shard.getDataSource())
+                                .getHikariPoolMXBean()
+                                .getActiveConnections() > parallelLimit
+                )
+        )
+                .orElseGet(() -> {
+                    try {
+                        RunnableTask task = shard.getExternal() ?
+                                runnableExternalTaskFactory.createTask() :
+                                runnableSQLTaskFactory.createTask(getConnection(shard));
+                        transaction.addTask(shard, task);
+                        return task;
+                    } catch (Exception err) {
+                        throw new RuntimeException(err);
+                    }
+                });
     }
-
-
 
     @Override
     public Connection getConnection() throws SQLException {
@@ -592,6 +619,26 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         procSQLRun(sqlRun, false);
     }
 
+    private <T> Optional<T> getTransactionConfigValue(ShardDataBaseConfig shardDataBaseConfig,
+                                          ClusterConfig clusterConfig,
+                                          ShardConfig shardConfig,
+                                          Function<SharedTransactionConfig, T> functionGet)
+    {
+        return Optional.ofNullable(
+                Optional.ofNullable(shardConfig.getTransactionConfig())
+                        .map(functionGet)
+                        .orElse(
+                                Optional.ofNullable(clusterConfig.getTransactionConfig())
+                                        .map(functionGet)
+                                        .orElse(
+                                                Optional.ofNullable(shardDataBaseConfig.getTransactionConfig())
+                                                        .map(functionGet)
+                                                        .orElse(null)
+                                        )
+                        )
+        );
+    }
+
     private <T> void setHikariConfigValue(ShardDataBaseConfig shardDataBaseConfig,
                                           ClusterConfig clusterConfig,
                                           ShardConfig shardConfig,
@@ -654,6 +701,17 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         );
     }
 
+    private void setOptionalHikariConfig(ShardDataBaseConfig shardDataBaseConfig,
+                                         ClusterConfig clusterConfig,
+                                         ShardConfig shardConfig) {
+        this.parallelLimit = getTransactionConfigValue(shardDataBaseConfig, clusterConfig, shardConfig,
+                SharedTransactionConfig::getActiveConnectionParallelLimit)
+                .orElse(0);
+        this.parallelCommit = getTransactionConfigValue(shardDataBaseConfig, clusterConfig, shardConfig,
+                SharedTransactionConfig::getParallelCommit)
+                .orElse(false);
+    }
+
     private HikariConfig getHikariConfig(
             ShardDataBaseConfig shardDataBaseConfig,
             ClusterConfig clusterConfig,
@@ -665,7 +723,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         return config;
     }
 
-    private void getProperties() {
+    private void processLiquibaseConfig() {
         this.changLogPath = Optional
                 .ofNullable(shardDataBaseConfig.getLiquibase())
                 .map(LiquibaseConfig::getChangeLogSrc)
@@ -674,11 +732,28 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                 .ofNullable(shardDataBaseConfig.getLiquibase())
                 .map(LiquibaseConfig::getChangeLogName)
                 .orElse(DEFAULT_CHANGE_LOG_NAME);
+    }
+
+    private void processThreadPoolConfig() {
+        ThreadPoolExecutor executor = (ThreadPoolExecutor) this.executorService;
+        Optional.ofNullable(shardDataBaseConfig.getThreadPool())
+                .map(ThreadPoolConfig::getCorePoolSize)
+                .ifPresent(executor::setCorePoolSize);
+        Optional.ofNullable(shardDataBaseConfig.getThreadPool())
+                .map(ThreadPoolConfig::getMaximumPoolSize)
+                .ifPresent(executor::setMaximumPoolSize);
+        Optional.ofNullable(shardDataBaseConfig.getThreadPool())
+                .map(ThreadPoolConfig::getKeepAliveTime)
+                .ifPresent(keepAliveTime -> executor.setKeepAliveTime(keepAliveTime, TimeUnit.SECONDS));
+    }
+
+    private void getProperties() {
         this.segment = shardDataBaseConfig.getSegment();
         this.timeOut = Optional
                 .ofNullable(shardDataBaseConfig.getTimeOut())
                 .orElse(DEFAULT_TIME_OUT_REFRESH_DB_INFO) * 1000;
-
+        this.processLiquibaseConfig();
+        this.processThreadPoolConfig();
         Assert.notEmpty(
                 shardDataBaseConfig.getClusters(),
                 String.format("Property '%s.clusters' must not be empty", ShardDataBaseConfig.CONFIG_NAME)
@@ -713,6 +788,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
 
             clusterConfig.getShards().forEach(shardConfig-> {
                 Shard shard = new Shard();
+                setOptionalHikariConfig(shardDataBaseConfig, clusterConfig, shardConfig);
                 if (Optional.ofNullable(shardConfig.getDataBase()).map(DataBaseConfig::getUrl).isPresent()) {
                     HikariDataSource dataSource = new HikariDataSource(
                             getHikariConfig(shardDataBaseConfig, clusterConfig, shardConfig)
@@ -723,6 +799,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                                     .map(DataBaseConfig::getOwner)
                                     .orElse(dataSource.getUsername())
                     );
+                    shard.setExternal(false);
                 } else {
                     shard.setExternal(true);
                     shard.setUrl(shardConfig.getUrl());
@@ -836,10 +913,23 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     }
 
     private void runLiquibase(Shard shard, String changeLog) {
-        if (isEnabled(shard.getDynamicDataBaseInfo())) {
+        if (!shard.getExternal() && isEnabled(shard.getDynamicDataBaseInfo())) {
             try {
                 String description = String.format("changelog \"%s\" on shard %s", changeLog, shard.getName());
                 log.debug("Run " + description);
+
+                RunnableSQLTask task = (RunnableSQLTask) getRunnableTask(shard);
+                task.setName(String.format("changelog \"%s\" on shard %s", changeLog, shard.getName()));
+                task.addStep(() -> {
+                    try {
+                        liquibaseManager.run(task.getConnection(), changeLog, shard.getOwner());
+                    } catch (LiquibaseException err) {
+                        throw new RuntimeException(err);
+                    }
+                });
+
+
+
                 liquibaseManager.runThread(
                         getConnection(shard),
                         shard,
@@ -847,6 +937,8 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                         shard.getOwner(),
                         description
                 );
+
+
             } catch (Exception err) {
                 throw new RuntimeException(err);
             }
@@ -867,6 +959,8 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     }
 
     private void runInitLiquibase() {
+
+
         runLiquibase(INIT_CHANGE_LOG);
         liquibaseManager.waitAll();
     }

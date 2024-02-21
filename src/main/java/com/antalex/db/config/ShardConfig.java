@@ -8,6 +8,7 @@ public class ShardConfig {
     private Boolean main;
     private DataBaseConfig dataBase;
     private HikariSettings hikari;
+    private SharedTransactionConfig transactionConfig;
     private Integer sequenceCacheSize;
     private String segment;
     private Boolean accessible;

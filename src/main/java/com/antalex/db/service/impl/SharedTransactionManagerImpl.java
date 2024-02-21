@@ -1,27 +1,27 @@
 package com.antalex.db.service.impl;
 
 import com.antalex.db.service.SharedTransactionManager;
-import com.antalex.db.service.api.SharedTransactionFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import javax.persistence.EntityTransaction;
+import java.util.Optional;
 
 @Component
 public class SharedTransactionManagerImpl implements SharedTransactionManager {
-    @Autowired
-    private SharedTransactionFactory sharedTransactionFactory;
-
     private ThreadLocal<SharedEntityTransaction> transaction = new ThreadLocal<>();
 
     @Override
     public EntityTransaction getTransaction() {
-        SharedEntityTransaction transaction = this.transaction.get();
-        if (transaction == null || transaction.isCompleted()) {
-            transaction = sharedTransactionFactory.createTransaction();
-            this.transaction.set(transaction);
-        }
-        return transaction;
+        return Optional.ofNullable(this.transaction.get())
+                .filter(it -> !it.isCompleted())
+                .orElseGet(() -> {
+                    this.transaction.set(
+                            Optional.ofNullable(this.transaction.get())
+                                    .map(SharedEntityTransaction::getParentTransaction)
+                                    .orElse(new SharedEntityTransaction())
+                    );
+                    return this.transaction.get();
+                });
     }
 
     @Override
@@ -31,8 +31,13 @@ public class SharedTransactionManagerImpl implements SharedTransactionManager {
 
     @Override
     public void setAutonomousTransaction() {
-        SharedEntityTransaction transaction = sharedTransactionFactory.createTransaction();
+        SharedEntityTransaction transaction = new SharedEntityTransaction();
         transaction.setParentTransaction(this.transaction.get());
         this.transaction.set(transaction);
     }
+
+    public SharedEntityTransaction createTransaction() {
+        return null;
+    }
+
 }

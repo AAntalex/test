@@ -9,5 +9,10 @@ public interface RunnableTask {
     void waitTask();
     boolean isRunning();
     RunnableQuery addQuery(String query, QueryType queryType);
+    RunnableQuery addQuery(String query, QueryType queryType, String name);
     void addStep(Runnable target);
+    void addStep(Runnable target, String name);
+    String getName();
+    void setName(String name);
+    String getError();
 }

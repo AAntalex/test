@@ -17,6 +17,8 @@ public class ShardDataBaseConfig {
     private List<ClusterConfig> clusters;
     private LiquibaseConfig liquibase;
     private HikariSettings hikari;
+    private ThreadPoolConfig threadPool;
+    private SharedTransactionConfig transactionConfig;
     private Integer sequenceCacheSize;
 }
 
