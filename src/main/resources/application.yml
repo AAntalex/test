@@ -26,6 +26,10 @@ spring:
 
 shardDbConfig:
   timeOut: 10
+  ThreadPool:
+    corePoolSize: 10
+    keepAliveTime: 60
+    maximumPoolSize: 1000
   liquibase:
     changeLogSrc: classpath:db/changelog
     changeLogName: db.changelog-master.yaml
@@ -63,6 +67,7 @@ shardDbConfig:
           hikari:
             minimumIdle: 20
             maximumPoolSize: 200
+            activeConnectionParallelLimit: 100
     - name: RAW
       id: 3
       shards:
