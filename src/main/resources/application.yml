@@ -26,6 +26,9 @@ spring:
 
 shardDbConfig:
   timeOut: 10
+  TransactionConfig:
+    activeConnectionParallelLimit: 12
+    parallelCommit: true
   ThreadPool:
     corePoolSize: 10
     keepAliveTime: 60
