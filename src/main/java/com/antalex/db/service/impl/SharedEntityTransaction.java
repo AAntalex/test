@@ -27,6 +27,14 @@ public class SharedEntityTransaction implements EntityTransaction {
 
     @Override
     public void commit() {
+        this.tasks.forEach(RunnableTask::run);
+        this.tasks.forEach(task -> {
+            task.waitTask();
+            if (Objects.nonNull(task.getError())) {
+                this.hasError = true;
+            }
+        });
+
         this.completed = true;
     }
 

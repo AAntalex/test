@@ -1,6 +1,7 @@
 package com.antalex.db.service.abstractive;
 
 import com.antalex.db.model.enums.QueryType;
+import com.antalex.db.model.enums.TaskStatus;
 import com.antalex.db.service.api.RunnableQuery;
 import com.antalex.db.service.api.RunnableTask;
 import lombok.extern.slf4j.Slf4j;
@@ -14,36 +15,41 @@ import java.util.concurrent.Future;
 public abstract class AbstractRunnableTask implements RunnableTask {
     protected ExecutorService executorService;
     protected String name;
+    protected String error;
+    protected Future future;
+    protected TaskStatus status = TaskStatus.CREATED;
+    protected boolean parallelCommit;
     private List<Step> steps = new ArrayList<>();
-    private String error;
-    private Future future;
-    private boolean isRunning;
 
     @Override
     public void run() {
-        this.future = this.executorService.submit(() ->
-                steps
-                    .forEach(step -> {
-                        try {
-                            log.debug(String.format("Running \"%s\", step \"%s\"...", this.name, step.name));
-                            step.target.run();
-                        } catch (Exception err) {
-                            this.error = err.getLocalizedMessage();
-                            throw new RuntimeException(err);
-                        }
-                    })
-        );
-        this.isRunning = true;
+        if (this.status == TaskStatus.CREATED) {
+            this.future = this.executorService.submit(() ->
+                    steps
+                            .forEach(step -> {
+                                try {
+                                    log.debug(String.format("Running \"%s\", step \"%s\"...", this.name, step.name));
+                                    step.target.run();
+                                } catch (Exception err) {
+                                    this.error = err.getLocalizedMessage();
+                                    throw new RuntimeException(err);
+                                }
+                            })
+            );
+            this.status = TaskStatus.RUNNING;
+        }
     }
 
     @Override
     public void waitTask() {
-        if (this.isRunning) {
+        if (this.status == TaskStatus.RUNNING) {
             try {
                 log.debug(String.format("Waiting \"%s\"...", this.name));
                 this.future.get();
             } catch (Exception err) {
                 throw new RuntimeException(err);
+            } finally {
+                this.status = TaskStatus.DONE;
             }
         }
     }
@@ -61,11 +67,6 @@ public abstract class AbstractRunnableTask implements RunnableTask {
     @Override
     public RunnableQuery addQuery(String query, QueryType queryType) {
         return addQuery(query, queryType, String.valueOf(steps.size() + 1));
-    }
-
-    @Override
-    public boolean isRunning() {
-        return isRunning;
     }
 
     @Override
@@ -91,5 +92,10 @@ public abstract class AbstractRunnableTask implements RunnableTask {
             this.target = target;
             this.name = name;
         }
+    }
+
+    @Override
+    public void setParallelCommit(boolean parallelCommit) {
+        this.parallelCommit = parallelCommit;
     }
 }

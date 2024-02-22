@@ -6,4 +6,5 @@ import java.util.concurrent.ExecutorService;
 public interface RunnableSQLTaskFactory {
     void setExecutorService(ExecutorService executorService);
     RunnableTask createTask(Connection connection);
+    void setParallelCommit(boolean parallelCommit);
 }

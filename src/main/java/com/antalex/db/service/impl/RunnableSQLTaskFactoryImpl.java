@@ -8,6 +8,7 @@ import java.util.concurrent.ExecutorService;
 
 public class RunnableSQLTaskFactoryImpl implements RunnableSQLTaskFactory {
     private ExecutorService executorService;
+    private boolean parallelCommit;
 
     @Override
     public RunnableTask createTask(Connection connection) {
@@ -17,5 +18,10 @@ public class RunnableSQLTaskFactoryImpl implements RunnableSQLTaskFactory {
     @Override
     public void setExecutorService(ExecutorService executorService) {
         this.executorService = executorService;
+    }
+
+    @Override
+    public void setParallelCommit(boolean parallelCommit) {
+        this.parallelCommit = parallelCommit;
     }
 }

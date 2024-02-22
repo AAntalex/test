@@ -1,8 +1,10 @@
 package com.antalex.db.service.impl;
 
 import com.antalex.db.model.enums.QueryType;
+import com.antalex.db.model.enums.TaskStatus;
 import com.antalex.db.service.abstractive.AbstractRunnableTask;
 import com.antalex.db.service.api.RunnableQuery;
+import lombok.extern.slf4j.Slf4j;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -10,6 +12,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 
+@Slf4j
 public class RunnableSQLTask extends AbstractRunnableTask {
     private Connection connection;
     private Map<String, RunnableQuery> queries = new HashMap<>();
@@ -21,23 +24,28 @@ public class RunnableSQLTask extends AbstractRunnableTask {
 
     @Override
     public void confirm() throws SQLException {
-        if (!this.connection.isClosed()) {
-            if (!this.connection.getAutoCommit()) {
-
-
-                this.connection.commit();
-            }
-            this.connection.close();
-        }
+        completion(false);
     }
 
     @Override
     public void revoke() throws SQLException {
-        if (!this.connection.isClosed()) {
-            if (!this.connection.getAutoCommit()) {
-                this.connection.rollback();
+        completion(true);
+    }
+
+    @Override
+    public void finish() {
+        if (this.status == TaskStatus.COMPLETION) {
+            try {
+                if (this.parallelCommit) {
+                    this.future.get();
+                }
+                if (!this.connection.isClosed()) {
+                    this.connection.close();
+                }
+            } catch (Exception err) {
+                throw new RuntimeException(err);
             }
-            this.connection.close();
+            this.status = TaskStatus.FINISHED;
         }
     }
 
@@ -61,5 +69,31 @@ public class RunnableSQLTask extends AbstractRunnableTask {
 
     public Connection getConnection() {
         return connection;
+    }
+
+    private void completion(boolean revoke) throws SQLException {
+        if (this.status == TaskStatus.DONE) {
+            if (!this.connection.isClosed() && !this.connection.getAutoCommit()) {
+                Runnable target = () -> {
+                    try {
+                        log.debug(String.format("%s for \"%s\"...", revoke ? "ROLLBACK" : "COMMIT", this.name));
+                        if (revoke) {
+                            this.connection.rollback();
+                        } else {
+                            this.connection.commit();
+                        }
+                    } catch (Exception err) {
+                        this.error = err.getLocalizedMessage();
+                        throw new RuntimeException(err);
+                    }
+                };
+                if (this.parallelCommit) {
+                    this.future = this.executorService.submit(target);
+                } else {
+                    target.run();
+                }
+            }
+            this.status = TaskStatus.COMPLETION;
+        }
     }
 }

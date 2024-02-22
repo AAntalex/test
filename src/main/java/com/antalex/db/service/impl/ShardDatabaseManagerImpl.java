@@ -709,7 +709,8 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                 .orElse(0);
         this.parallelCommit = getTransactionConfigValue(shardDataBaseConfig, clusterConfig, shardConfig,
                 SharedTransactionConfig::getParallelCommit)
-                .orElse(false);
+                .orElse(true);
+        this.runnableSQLTaskFactory.setParallelCommit(this.parallelCommit);
     }
 
     private HikariConfig getHikariConfig(
@@ -891,6 +892,9 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     private Connection getConnection(Shard shard) throws SQLException {
         if (Objects.nonNull(shard)) {
             getDynamicDataBaseInfo(shard);
+            if (!this.isAvailable(shard.getDynamicDataBaseInfo())) {
+                throw new SQLException(String.format("The shard \"%s\" is unavailable", shard.getName()));
+            }
             return shard.getDataSource().getConnection();
         }
         return null;
