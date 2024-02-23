@@ -60,6 +60,8 @@ shardDbConfig:
             user: IBS
             pass: IBS
           id: 1
+        - id: 33
+          url: https://test
         - database:
             driver: oracle.jdbc.driver.OracleDriver
             url: jdbc:oracle:thin:@localhost:1521/eks
