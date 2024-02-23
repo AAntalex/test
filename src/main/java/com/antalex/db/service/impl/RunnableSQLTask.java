@@ -82,7 +82,7 @@ public class RunnableSQLTask extends AbstractRunnableTask {
                         } else {
                             this.connection.commit();
                         }
-                    } catch (Exception err) {
+                    } catch (SQLException err) {
                         this.error = err.getLocalizedMessage();
                         throw new RuntimeException(err);
                     }

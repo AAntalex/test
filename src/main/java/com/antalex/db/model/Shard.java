@@ -15,4 +15,5 @@ public class Shard {
     private Integer sequenceCacheSize;
     private Boolean external;
     private String url;
+    private Integer hashCode;
 }

@@ -37,16 +37,24 @@ public class RunnableSQLQuery implements RunnableQuery, Runnable {
     }
 
     @Override
-    public RunnableQuery bind(Object o) throws SQLException {
-        preparedStatement.setObject(++currentIndex, o);
+    public RunnableQuery bind(Object o) {
+        try {
+            preparedStatement.setObject(++currentIndex, o);
+        } catch (SQLException err) {
+            throw new RuntimeException(err);
+        }
         return this;
     }
 
     @Override
-    public RunnableQuery addBatch() throws SQLException {
+    public RunnableQuery addBatch() {
         this.currentIndex = 0;
         this.isButch = true;
-        this.preparedStatement.addBatch();
+        try {
+            this.preparedStatement.addBatch();
+        } catch (SQLException err) {
+            throw new RuntimeException(err);
+        }
         return this;
     }
 

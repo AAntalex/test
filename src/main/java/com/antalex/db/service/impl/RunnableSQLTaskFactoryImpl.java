@@ -2,10 +2,12 @@ package com.antalex.db.service.impl;
 
 import com.antalex.db.service.api.RunnableSQLTaskFactory;
 import com.antalex.db.service.api.RunnableTask;
+import org.springframework.stereotype.Component;
 
 import java.sql.Connection;
 import java.util.concurrent.ExecutorService;
 
+@Component
 public class RunnableSQLTaskFactoryImpl implements RunnableSQLTaskFactory {
     private ExecutorService executorService;
     private boolean parallelCommit;
