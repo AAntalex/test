@@ -43,7 +43,7 @@ public class RunnableSQLTask extends AbstractRunnableTask {
                     this.connection.close();
                 }
             } catch (Exception err) {
-                throw new RuntimeException(err);
+                this.error = err.getLocalizedMessage();
             }
             this.status = TaskStatus.FINISHED;
         }
@@ -84,7 +84,6 @@ public class RunnableSQLTask extends AbstractRunnableTask {
                         }
                     } catch (SQLException err) {
                         this.error = err.getLocalizedMessage();
-                        throw new RuntimeException(err);
                     }
                 };
                 if (this.parallelCommit) {

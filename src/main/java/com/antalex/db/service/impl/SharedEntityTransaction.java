@@ -43,26 +43,19 @@ public class SharedEntityTransaction implements EntityTransaction {
             task.waitTask();
             processTask(task, SQL_ERROR_TEXT);
         });
-        if (this.hasError) {
-            this.tasks.forEach(task -> {
-                try {
+        this.tasks.forEach(task -> {
+            try {
+                if (this.hasError) {
                     task.revoke();
-                } catch (Exception err) {
-                    throw new RuntimeException(err);
-                }
-                processTask(task, SQL_ERROR_ROLLBACK_TEXT);
-            });
-        } else {
-            this.tasks.forEach(task -> {
-                try {
+                } else {
                     task.confirm();
-                } catch (Exception err) {
-                    throw new RuntimeException(err);
                 }
-                processTask(task, SQL_ERROR_COMMIT_TEXT);
-            });
-        }
+            } catch (Exception err) {
+                throw new RuntimeException(err);
+            }
+        });
         this.tasks.forEach(RunnableTask::finish);
+        this.tasks.forEach(task -> processTask(task, this.hasError ? SQL_ERROR_ROLLBACK_TEXT : SQL_ERROR_COMMIT_TEXT));
         this.completed = true;
         if (this.hasError) {
             throw new RuntimeException(this.error);

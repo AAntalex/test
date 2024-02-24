@@ -1,6 +1,5 @@
 package com.antalex.db.service.impl;
 
-import com.antalex.db.api.SQLRunnable;
 import com.antalex.db.config.*;
 import com.antalex.db.model.*;
 import com.antalex.db.model.enums.QueryType;
@@ -805,18 +804,20 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     private void runLiquibase(Shard shard, String changeLog) {
         if (!shard.getExternal() && isEnabled(shard.getDynamicDataBaseInfo())) {
             try {
-                String description = String.format("changelog \"%s\" on shard %s", changeLog, shard.getName());
-                log.debug("Run " + description);
-
+                log.debug(String.format("Run changelog \"%s\" on shard %s", changeLog, shard.getName()));
                 RunnableSQLTask task = (RunnableSQLTask) getRunnableTask(shard);
-                task.setName(String.format("changelog \"%s\" on shard %s", changeLog, shard.getName()));
+                task.setName("Changelog on shard " + shard.getName());
                 task.addStep(() -> {
                     try {
-                        liquibaseManager.run(task.getConnection(), changeLog, shard.getOwner());
+                        liquibaseManager.run(
+                                task.getConnection(),
+                                changeLog.startsWith(CLASSPATH) ? changeLog.substring(CLASSPATH.length()) : changeLog,
+                                shard.getOwner()
+                        );
                     } catch (LiquibaseException err) {
                         throw new RuntimeException(err);
                     }
-                });
+                }, changeLog);
             } catch (Exception err) {
                 throw new RuntimeException(err);
             }
@@ -894,6 +895,6 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                             });
                     runLiquibaseFromPath(path, getDefaultCluster().getMainShard());
                 });
-        sharedTransactionManager.getTransaction().begin();
+        sharedTransactionManager.getTransaction().commit();
     }
 }

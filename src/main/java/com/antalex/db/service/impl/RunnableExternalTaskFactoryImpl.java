@@ -17,6 +17,7 @@ public class RunnableExternalTaskFactoryImpl implements RunnableExternalTaskFact
 
     @Override
     public void setExecutorService(ExecutorService executorService) {
+        System.out.println("AAA setExecutorService");
         this.executorService = executorService;
     }
 }

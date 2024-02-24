@@ -32,7 +32,6 @@ public abstract class AbstractRunnableTask implements RunnableTask {
                                     step.target.run();
                                 } catch (Exception err) {
                                     this.error = err.getLocalizedMessage();
-                                    throw new RuntimeException(err);
                                 }
                             })
             );
