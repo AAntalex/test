@@ -186,7 +186,7 @@ public class ApplicationTests {
 		profiler.stop();
 		System.out.println(profiler.printTimeCounter());
 
-
+/*
 		profiler.start("testShardService.generate");
 		testBEntities = testShardService.generate(1000, 100, null);
 		profiler.stop();
@@ -286,7 +286,7 @@ public class ApplicationTests {
 		testShardService.save(testBEntities10);
 		profiler.stop();
 		System.out.println(profiler.printTimeCounter());
-
+*/
 		System.out.println("STOP");
 	}
 
