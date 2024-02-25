@@ -3,7 +3,7 @@ package com.antalex.db.service;
 import com.antalex.db.model.Cluster;
 import com.antalex.db.model.Shard;
 import com.antalex.db.model.StorageAttributes;
-import com.antalex.db.service.api.RunnableTask;
+import com.antalex.db.service.api.TransactionalTask;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
@@ -23,5 +23,5 @@ public interface ShardDataBaseManager {
     long sequenceNextVal(String sequenceName, Cluster cluster);
     long sequenceNextVal(String sequenceName);
     long sequenceNextVal();
-    RunnableTask getRunnableTask(Shard shard);
+    TransactionalTask getTransactionalTask(Shard shard);
 }

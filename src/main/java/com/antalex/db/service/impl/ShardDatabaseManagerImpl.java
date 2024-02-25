@@ -51,8 +51,8 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     private final ResourceLoader resourceLoader;
     private final ShardDataBaseConfig shardDataBaseConfig;
     private final SharedTransactionManager sharedTransactionManager;
-    private final RunnableSQLTaskFactory runnableSQLTaskFactory;
-    private final RunnableExternalTaskFactory runnableExternalTaskFactory;
+    private final TransactionalSQLTaskFactory taskFactory;
+    private final TransactionalExternalTaskFactory externalTaskFactory;
 
     private Cluster defaultCluster;
     private Map<String, Cluster> clusters = new HashMap<>();
@@ -67,24 +67,23 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     private String segment;
     private int parallelLimit;
     private int timeOut;
-    private boolean parallelCommit;
     private ExecutorService executorService;
 
     ShardDatabaseManagerImpl(
             ResourceLoader resourceLoader,
             ShardDataBaseConfig shardDataBaseConfig,
             SharedTransactionManager sharedTransactionManager,
-            RunnableSQLTaskFactory runnableSQLTaskFactory,
-            RunnableExternalTaskFactory runnableExternalTaskFactory)
+            TransactionalSQLTaskFactory taskFactory,
+            TransactionalExternalTaskFactory externalTaskFactory)
     {
         this.resourceLoader = resourceLoader;
         this.shardDataBaseConfig = shardDataBaseConfig;
         this.sharedTransactionManager = sharedTransactionManager;
-        this.runnableSQLTaskFactory = runnableSQLTaskFactory;
-        this.runnableExternalTaskFactory = runnableExternalTaskFactory;
+        this.taskFactory = taskFactory;
+        this.externalTaskFactory = externalTaskFactory;
         this.executorService = Executors.newCachedThreadPool();
-        this.runnableSQLTaskFactory.setExecutorService(this.executorService);
-        this.runnableExternalTaskFactory.setExecutorService(this.executorService);
+        this.taskFactory.setExecutorService(this.executorService);
+        this.externalTaskFactory.setExecutorService(this.executorService);
 
         getProperties();
         runInitLiquibase();
@@ -93,7 +92,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     }
 
     @Override
-    public RunnableTask getRunnableTask(Shard shard) {
+    public TransactionalTask getTransactionalTask(Shard shard) {
         SharedEntityTransaction transaction = (SharedEntityTransaction) sharedTransactionManager.getTransaction();
         return Optional.ofNullable(
                 transaction.getCurrentTask(
@@ -105,9 +104,9 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         )
                 .orElseGet(() -> {
                     try {
-                        RunnableTask task = shard.getExternal() ?
-                                runnableExternalTaskFactory.createTask() :
-                                runnableSQLTaskFactory.createTask(getConnection(shard));
+                        TransactionalTask task = shard.getExternal() ?
+                                externalTaskFactory.createTask() :
+                                taskFactory.createTask(getConnection(shard));
                         transaction.addTask(shard, task);
                         return task;
                     } catch (Exception err) {
@@ -397,9 +396,9 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                 .stream()
                 .filter(it -> !it.getExternal())
                 .forEach(shard -> {
-                    RunnableSQLTask task = (RunnableSQLTask) getRunnableTask(shard);
+                    TransactionalSQLTask task = (TransactionalSQLTask) getTransactionalTask(shard);
                     task.setName(String.format("GET DataBase Info on shard '%s'", shard.getName()));
-                    RunnableSQLQuery query = (RunnableSQLQuery) task.addQuery(
+                    TransactionalSQLQuery query = (TransactionalSQLQuery) task.addQuery(
                             ShardUtils.transformSQL(SELECT_DB_INFO, shard),
                             QueryType.SELCT
                     );
@@ -465,7 +464,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         dynamicDBInfo.setAvailable(true);
         dynamicDBInfo.setAccessible(Optional.ofNullable(dynamicDBInfo.getAccessible()).orElse(true));
 
-        RunnableSQLTask task = (RunnableSQLTask) getRunnableTask(shard);
+        TransactionalSQLTask task = (TransactionalSQLTask) getTransactionalTask(shard);
         task.setName(String.format("SAVE DataBase Info on shard '%s'", shard.getName()));
         task.addQuery(ShardUtils.transformSQL(INS_DB_INFO, shard), QueryType.DML)
                 .bind(shard.getDataBaseInfo().getShardId())
@@ -574,10 +573,11 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         this.parallelLimit = getTransactionConfigValue(shardDataBaseConfig, clusterConfig, shardConfig,
                 SharedTransactionConfig::getActiveConnectionParallelLimit)
                 .orElse(0);
-        this.parallelCommit = getTransactionConfigValue(shardDataBaseConfig, clusterConfig, shardConfig,
-                SharedTransactionConfig::getParallelCommit)
-                .orElse(true);
-        this.runnableSQLTaskFactory.setParallelCommit(this.parallelCommit);
+        this.taskFactory.setParallelCommit(
+                getTransactionConfigValue(shardDataBaseConfig, clusterConfig, shardConfig,
+                        SharedTransactionConfig::getParallelCommit)
+                        .orElse(true)
+        );
     }
 
     private HikariConfig getHikariConfig(
@@ -805,7 +805,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         if (!shard.getExternal() && isEnabled(shard.getDynamicDataBaseInfo())) {
             try {
                 log.debug(String.format("Run changelog \"%s\" on shard %s", changeLog, shard.getName()));
-                RunnableSQLTask task = (RunnableSQLTask) getRunnableTask(shard);
+                TransactionalSQLTask task = (TransactionalSQLTask) getTransactionalTask(shard);
                 task.setName("Changelog on shard " + shard.getName());
                 task.addStep(() -> {
                     try {

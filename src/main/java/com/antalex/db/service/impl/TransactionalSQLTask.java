@@ -2,8 +2,8 @@ package com.antalex.db.service.impl;
 
 import com.antalex.db.model.enums.QueryType;
 import com.antalex.db.model.enums.TaskStatus;
-import com.antalex.db.service.abstractive.AbstractRunnableTask;
-import com.antalex.db.service.api.RunnableQuery;
+import com.antalex.db.service.abstractive.AbstractTransactionalTask;
+import com.antalex.db.service.api.TransactionalQuery;
 import lombok.extern.slf4j.Slf4j;
 
 import java.sql.Connection;
@@ -13,22 +13,22 @@ import java.util.Map;
 import java.util.concurrent.ExecutorService;
 
 @Slf4j
-public class RunnableSQLTask extends AbstractRunnableTask {
+public class TransactionalSQLTask extends AbstractTransactionalTask {
     private Connection connection;
-    private Map<String, RunnableQuery> queries = new HashMap<>();
+    private Map<String, TransactionalQuery> queries = new HashMap<>();
 
-    RunnableSQLTask(Connection connection, ExecutorService executorService) {
+    TransactionalSQLTask(Connection connection, ExecutorService executorService) {
         this.connection = connection;
         this.executorService = executorService;
     }
 
     @Override
-    public void confirm() throws SQLException {
+    public void commit() throws SQLException {
         completion(false);
     }
 
     @Override
-    public void revoke() throws SQLException {
+    public void rollback() throws SQLException {
         completion(true);
     }
 
@@ -50,21 +50,21 @@ public class RunnableSQLTask extends AbstractRunnableTask {
     }
 
     @Override
-    public RunnableQuery addQuery(String query, QueryType queryType, String name) {
-        RunnableQuery runnableQuery = this.queries.get(query);
-        if (runnableQuery == null) {
+    public TransactionalQuery addQuery(String query, QueryType queryType, String name) {
+        TransactionalQuery transactionalQuery = this.queries.get(query);
+        if (transactionalQuery == null) {
             try {
                 if (queryType == QueryType.DML) {
                     connection.setAutoCommit(false);
                 }
-                runnableQuery = new RunnableSQLQuery(queryType, connection.prepareStatement(query));
+                transactionalQuery = new TransactionalSQLQuery(queryType, connection.prepareStatement(query));
             } catch (SQLException err) {
                 throw new RuntimeException(err);
             }
-            this.queries.put(query, runnableQuery);
-            this.addStep((Runnable) runnableQuery, name);
+            this.queries.put(query, transactionalQuery);
+            this.addStep((Runnable) transactionalQuery, name);
         }
-        return runnableQuery;
+        return transactionalQuery;
     }
 
     public Connection getConnection() {

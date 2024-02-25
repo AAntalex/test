@@ -2,8 +2,8 @@ package com.antalex.db.service.abstractive;
 
 import com.antalex.db.model.enums.QueryType;
 import com.antalex.db.model.enums.TaskStatus;
-import com.antalex.db.service.api.RunnableQuery;
-import com.antalex.db.service.api.RunnableTask;
+import com.antalex.db.service.api.TransactionalQuery;
+import com.antalex.db.service.api.TransactionalTask;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
@@ -12,7 +12,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
 @Slf4j
-public abstract class AbstractRunnableTask implements RunnableTask {
+public abstract class AbstractTransactionalTask implements TransactionalTask {
     protected ExecutorService executorService;
     protected String name;
     protected String error;
@@ -20,6 +20,8 @@ public abstract class AbstractRunnableTask implements RunnableTask {
     protected TaskStatus status = TaskStatus.CREATED;
     protected boolean parallelCommit;
     private List<Step> steps = new ArrayList<>();
+    private List<Step> stepsBeforeCommit = new ArrayList<>();
+    private List<Step> stepsBeforeRollback = new ArrayList<>();
 
     @Override
     public void run() {
@@ -64,7 +66,17 @@ public abstract class AbstractRunnableTask implements RunnableTask {
     }
 
     @Override
-    public RunnableQuery addQuery(String query, QueryType queryType) {
+    public void addStepBeforeRollback(Runnable target) {
+        addStepBeforeRollback(target, String.valueOf(stepsBeforeRollback.size() + 1));
+    }
+
+    @Override
+    public void addStepBeforeRollback(Runnable target, String name) {
+        stepsBeforeRollback.add(new Step(target, name));
+    }
+
+    @Override
+    public TransactionalQuery addQuery(String query, QueryType queryType) {
         return addQuery(query, queryType, String.valueOf(steps.size() + 1));
     }
 

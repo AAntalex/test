@@ -1,20 +1,20 @@
 package com.antalex.db.service.impl;
 
 import com.antalex.db.model.enums.QueryType;
-import com.antalex.db.service.api.RunnableQuery;
+import com.antalex.db.service.api.TransactionalQuery;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-public class RunnableSQLQuery implements RunnableQuery, Runnable {
+public class TransactionalSQLQuery implements TransactionalQuery, Runnable {
     private PreparedStatement preparedStatement;
     private QueryType queryType;
     private ResultSet result;
     private int currentIndex;
     private boolean isButch;
 
-    RunnableSQLQuery(QueryType queryType, PreparedStatement preparedStatement) {
+    TransactionalSQLQuery(QueryType queryType, PreparedStatement preparedStatement) {
         this.queryType = queryType;
         this.preparedStatement = preparedStatement;
     }
@@ -24,9 +24,9 @@ public class RunnableSQLQuery implements RunnableQuery, Runnable {
         try {
             if (queryType == QueryType.DML) {
                 if (this.isButch) {
-                    preparedStatement.executeUpdate();
-                } else {
                     preparedStatement.executeBatch();
+                } else {
+                    preparedStatement.executeUpdate();
                 }
             } else {
                 this.result = preparedStatement.executeQuery();
@@ -37,7 +37,7 @@ public class RunnableSQLQuery implements RunnableQuery, Runnable {
     }
 
     @Override
-    public RunnableQuery bind(Object o) {
+    public TransactionalQuery bind(Object o) {
         try {
             preparedStatement.setObject(++currentIndex, o);
         } catch (SQLException err) {
@@ -47,7 +47,7 @@ public class RunnableSQLQuery implements RunnableQuery, Runnable {
     }
 
     @Override
-    public RunnableQuery addBatch() {
+    public TransactionalQuery addBatch() {
         this.currentIndex = 0;
         this.isButch = true;
         try {

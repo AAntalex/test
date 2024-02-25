@@ -1,20 +1,20 @@
 package com.antalex.db.service.impl;
 
-import com.antalex.db.service.api.RunnableSQLTaskFactory;
-import com.antalex.db.service.api.RunnableTask;
+import com.antalex.db.service.api.TransactionalSQLTaskFactory;
+import com.antalex.db.service.api.TransactionalTask;
 import org.springframework.stereotype.Component;
 
 import java.sql.Connection;
 import java.util.concurrent.ExecutorService;
 
 @Component
-public class RunnableSQLTaskFactoryImpl implements RunnableSQLTaskFactory {
+public class TransactionalSQLTaskFactoryImpl implements TransactionalSQLTaskFactory {
     private ExecutorService executorService;
     private boolean parallelCommit;
 
     @Override
-    public RunnableTask createTask(Connection connection) {
-        return new RunnableSQLTask(connection, executorService);
+    public TransactionalTask createTask(Connection connection) {
+        return new TransactionalSQLTask(connection, executorService);
     }
 
     @Override

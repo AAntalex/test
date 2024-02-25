@@ -230,7 +230,11 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
 
     @Override
     public void flush() {
-        SharedEntityTransaction transaction = (SharedEntityTransaction) getTransaction();
-        transaction.commit();
+        getTransaction().commit();
+    }
+
+    @Override
+    public void addParallel() {
+        ((SharedEntityTransaction) getTransaction()).addParallel();
     }
 }

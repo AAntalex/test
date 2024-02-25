@@ -1,17 +1,17 @@
 package com.antalex.db.service.impl;
 
-import com.antalex.db.service.api.RunnableExternalTaskFactory;
-import com.antalex.db.service.api.RunnableTask;
+import com.antalex.db.service.api.TransactionalExternalTaskFactory;
+import com.antalex.db.service.api.TransactionalTask;
 import org.springframework.stereotype.Component;
 
 import java.util.concurrent.ExecutorService;
 
 @Component
-public class RunnableExternalTaskFactoryImpl implements RunnableExternalTaskFactory {
+public class TransactionalExternalTaskFactoryImpl implements TransactionalExternalTaskFactory {
     private ExecutorService executorService;
 
     @Override
-    public RunnableTask createTask() {
+    public TransactionalTask createTask() {
         throw new UnsupportedOperationException();
     }
 

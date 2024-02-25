@@ -24,5 +24,6 @@ public interface ShardEntityManager {
     <T extends ShardInstance> T newEntity(Class<T> clazz);
     EntityTransaction getTransaction();
     void setAutonomousTransaction();
+    void addParallel();
     void flush();
 }

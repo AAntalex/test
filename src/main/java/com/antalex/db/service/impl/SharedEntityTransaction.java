@@ -1,7 +1,7 @@
 package com.antalex.db.service.impl;
 
 import com.antalex.db.model.Shard;
-import com.antalex.db.service.api.RunnableTask;
+import com.antalex.db.service.api.TransactionalTask;
 import org.apache.commons.lang3.StringUtils;
 
 import javax.persistence.EntityTransaction;
@@ -19,8 +19,8 @@ public class SharedEntityTransaction implements EntityTransaction {
     private boolean hasError;
     private String error;
 
-    private List<RunnableTask> tasks = new ArrayList<>();
-    private Map<Integer, RunnableTask> currentTasks = new HashMap<>();
+    private List<TransactionalTask> tasks = new ArrayList<>();
+    private Map<Integer, TransactionalTask> currentTasks = new HashMap<>();
     private Map<Integer, Chunk> chunks = new HashMap<>();
 
     @Override
@@ -38,7 +38,7 @@ public class SharedEntityTransaction implements EntityTransaction {
 
     @Override
     public void commit() {
-        this.tasks.forEach(RunnableTask::run);
+        this.tasks.forEach(TransactionalTask::run);
         this.tasks.forEach(task -> {
             task.waitTask();
             processTask(task, SQL_ERROR_TEXT);
@@ -46,15 +46,15 @@ public class SharedEntityTransaction implements EntityTransaction {
         this.tasks.forEach(task -> {
             try {
                 if (this.hasError) {
-                    task.revoke();
+                    task.rollback();
                 } else {
-                    task.confirm();
+                    task.commit();
                 }
             } catch (Exception err) {
                 throw new RuntimeException(err);
             }
         });
-        this.tasks.forEach(RunnableTask::finish);
+        this.tasks.forEach(TransactionalTask::finish);
         this.tasks.forEach(task -> processTask(task, this.hasError ? SQL_ERROR_ROLLBACK_TEXT : SQL_ERROR_COMMIT_TEXT));
         this.completed = true;
         if (this.hasError) {
@@ -89,7 +89,7 @@ public class SharedEntityTransaction implements EntityTransaction {
         return this.completed;
     }
 
-    public RunnableTask getCurrentTask(Shard shard, boolean limitParallel) {
+    public TransactionalTask getCurrentTask(Shard shard, boolean limitParallel) {
         return Optional.ofNullable(currentTasks.get(shard.getHashCode()))
                 .orElse(
                         Optional.ofNullable(chunks.get(shard.getHashCode()))
@@ -103,7 +103,7 @@ public class SharedEntityTransaction implements EntityTransaction {
                 );
     }
 
-    public void addTask(Shard shard, RunnableTask task) {
+    public void addTask(Shard shard, TransactionalTask task) {
         currentTasks.put(shard.getHashCode(), task);
         tasks.add(task);
         Optional.ofNullable(chunks.get(shard.getHashCode()))
@@ -119,7 +119,7 @@ public class SharedEntityTransaction implements EntityTransaction {
         currentTasks.clear();
     }
 
-    private void processTask(RunnableTask task, String errorText) {
+    private void processTask(TransactionalTask task, String errorText) {
         if (Objects.nonNull(task.getError())) {
             this.hasError = true;
             this.error = Optional.ofNullable(this.error)
@@ -132,14 +132,14 @@ public class SharedEntityTransaction implements EntityTransaction {
     }
 
     private class Chunk {
-        private List<RunnableTask> chunks = new ArrayList<>();
+        private List<TransactionalTask> chunks = new ArrayList<>();
         private int currentIndex;
 
-        void addTask(RunnableTask task) {
+        void addTask(TransactionalTask task) {
             chunks.add(task);
         }
 
-        RunnableTask getTask() {
+        TransactionalTask getTask() {
             if (chunks.isEmpty()) {
                 return null;
             }
