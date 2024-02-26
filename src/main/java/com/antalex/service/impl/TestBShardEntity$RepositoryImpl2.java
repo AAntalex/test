@@ -1,19 +1,14 @@
 package com.antalex.service.impl;
 
 import com.antalex.db.model.Cluster;
+import com.antalex.db.model.enums.QueryType;
 import com.antalex.db.model.enums.ShardType;
 import com.antalex.db.service.ShardDataBaseManager;
 import com.antalex.db.service.ShardEntityManager;
-import com.antalex.db.service.ShardEntityRepository;
 import com.antalex.domain.persistence.entity.shard.TestBShardEntity;
 import com.antalex.domain.persistence.entity.shard.TestBShardEntityInterceptor$;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-
-import javax.persistence.EntityManager;
-import javax.persistence.Query;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
 
 @Component
 public class TestBShardEntity$RepositoryImpl2 {
@@ -30,51 +25,29 @@ public class TestBShardEntity$RepositoryImpl2 {
        this.cluster = dataBaseManager.getCluster(String.valueOf("DEFAULT"));
     }
 
-/*
+
+
+
     private void persist(TestBShardEntity entity) {
+        entityManager.persist(entity.getA());
         entityManager
-                .getQuery(entity, entity.getStorageAttributes().getStored() ? UPD_QUERY : INS_QUERY)
-                .filtr(TestBShardEntity::getValue)
+                .getQuery(entity, entity.getStorageAttributes().getStored() ? UPD_QUERY : INS_QUERY, QueryType.DML)
                 .bind(entity.getStorageAttributes().getShardValue())
                 .bind(entity.getValue())
-                .bind(entity.getId())
+                .bind(entity.getA())
                 .bind(entity.getNewValue())
+                .bind(entity.getId())
                 .addBatch();
-
+        entityManager.persistAll(entity.getCList());
         if (!entityManager.getTransaction().isActive()) {
-
             entityManager.getTransaction().commit();
         }
-
-        try {
-
-            Connection connection = dataSource.getConnection();
-            connection.setAutoCommit(false);
-            PreparedStatement preparedStatement = connection.prepareStatement(INS_QUERY);
-
-
-            preparedStatement.setObject(1, entity.getId());
-            preparedStatement.setObject(2, entity.getStorageAttributes().getShardValue());
-            preparedStatement.setObject(3, entity.getValue());
-            preparedStatement.setObject(4, entity.getNewValue());
-            preparedStatement.addBatch();
-
-
-            preparedStatement.executeBatch();
-
-
-            connection.commit();
-
-            connection.close();
-
-
-        } catch (Exception err) {
-            throw new RuntimeException(err);
-        }
-
     }
 
-*/
+
+
+
+
     public TestBShardEntity newEntity(Class<TestBShardEntity> clazz) {
        return new TestBShardEntityInterceptor$();
     }
@@ -82,6 +55,12 @@ public class TestBShardEntity$RepositoryImpl2 {
     public TestBShardEntity save(TestBShardEntity entity) {
        entityManager.setStorage(entity, null, true);
        entityManager.generateId(entity, true);
+
+
+       persist(entity);
+
+
+
        return entity;
    }
 

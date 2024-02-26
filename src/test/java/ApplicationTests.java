@@ -58,7 +58,6 @@ public class ApplicationTests {
 	@Autowired
 	private EntityManagerFactory entityManagerFactory;
 
-
 //	@Test
 	public void dialect() {
 		try {
@@ -165,7 +164,6 @@ public class ApplicationTests {
 
 	@Test
 	public void saveShard() {
-
 		EntityManager em = entityManagerFactory.createEntityManager();
 		Boolean active = em.getTransaction().isActive();
 

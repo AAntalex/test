@@ -70,11 +70,11 @@ shardDbConfig:
             owner: IBS
           id: 2
           hikari:
-            minimumIdle: 20
+            minimumIdle: 30
             maximumPoolSize: 200
             activeConnectionParallelLimit: 100
     - name: RAW
-      id: 3
+      id: 1
       shards:
         - database:
             driver: oracle.jdbc.driver.OracleDriver
