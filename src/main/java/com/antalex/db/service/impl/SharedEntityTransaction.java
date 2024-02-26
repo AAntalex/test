@@ -11,13 +11,15 @@ public class SharedEntityTransaction implements EntityTransaction {
     private static final String SQL_ERROR_TEXT = "Ошибки при выполнении запроса: ";
     private static final String SQL_ERROR_COMMIT_TEXT = "Ошибки при подтверждении транзакции: ";
     private static final String SQL_ERROR_ROLLBACK_TEXT = "Ошибки при откате транзакции: ";
-    private static final String SQL_ERROR_PREFIX = "   : ";
+    private static final String SQL_ERROR_PREFIX = "\n\t\t";
+    private static final String TASK_PREFIX = "\n\t";
 
     private SharedEntityTransaction parentTransaction;
     private boolean active;
     private boolean completed;
     private boolean hasError;
     private String error;
+    private String errorCommit;
 
     private List<TransactionalTask> tasks = new ArrayList<>();
     private Map<Integer, TransactionalTask> currentTasks = new HashMap<>();
@@ -41,24 +43,30 @@ public class SharedEntityTransaction implements EntityTransaction {
         this.tasks.forEach(TransactionalTask::run);
         this.tasks.forEach(task -> {
             task.waitTask();
-            processTask(task, SQL_ERROR_TEXT);
+            this.error = processTask(task, task.getError(), this.error, SQL_ERROR_TEXT);
         });
-        this.tasks.forEach(task -> {
-            try {
-                if (this.hasError) {
-                    task.rollback();
-                } else {
-                    task.commit();
-                }
-            } catch (Exception err) {
-                throw new RuntimeException(err);
-            }
-        });
+        this.tasks.forEach(task -> task.completion(this.hasError));
         this.tasks.forEach(TransactionalTask::finish);
-        this.tasks.forEach(task -> processTask(task, this.hasError ? SQL_ERROR_ROLLBACK_TEXT : SQL_ERROR_COMMIT_TEXT));
+        this.tasks.forEach(task ->
+                this.errorCommit =
+                        processTask(
+                                task,
+                                task.getErrorCompletion(),
+                                this.errorCommit,
+                                this.hasError ? SQL_ERROR_ROLLBACK_TEXT : SQL_ERROR_COMMIT_TEXT
+                        )
+        );
         this.completed = true;
         if (this.hasError) {
-            throw new RuntimeException(this.error);
+            throw new RuntimeException(
+                    Optional.ofNullable(this.error)
+                            .map(it -> it.concat(StringUtils.LF))
+                            .orElse(StringUtils.EMPTY)
+                            .concat(
+                                    Optional.ofNullable(this.errorCommit)
+                                            .orElse(StringUtils.EMPTY)
+                            )
+            );
         }
     }
 
@@ -119,16 +127,22 @@ public class SharedEntityTransaction implements EntityTransaction {
         currentTasks.clear();
     }
 
-    private void processTask(TransactionalTask task, String errorText) {
-        if (Objects.nonNull(task.getError())) {
+    private String processTask(
+            TransactionalTask task,
+            String errorTask,
+            String errorText,
+            String errorPrefix)
+    {
+        if (Objects.nonNull(errorTask)) {
             this.hasError = true;
-            this.error = Optional.ofNullable(this.error)
-                    .map(it -> it.concat(StringUtils.LF))
-                    .orElse(errorText)
+            return Optional.ofNullable(errorText)
+                    .orElse(errorPrefix)
+                    .concat(TASK_PREFIX)
                     .concat(task.getName())
-                    .concat(SQL_ERROR_PREFIX)
-                    .concat(task.getError());
+                    .concat(":" + SQL_ERROR_PREFIX)
+                    .concat(errorTask.replace(StringUtils.LF, SQL_ERROR_PREFIX));
         }
+        return errorText;
     }
 
     private class Chunk {

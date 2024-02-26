@@ -2,17 +2,21 @@ package com.antalex.db.service.impl;
 
 import com.antalex.db.entity.abstraction.ShardInstance;
 import com.antalex.db.model.Cluster;
+import com.antalex.db.model.Shard;
 import com.antalex.db.model.StorageAttributes;
+import com.antalex.db.model.enums.QueryType;
 import com.antalex.db.model.enums.ShardType;
 import com.antalex.db.service.ShardDataBaseManager;
 import com.antalex.db.service.ShardEntityManager;
 import com.antalex.db.service.ShardEntityRepository;
 import com.antalex.db.service.SharedTransactionManager;
+import com.antalex.db.service.api.TransactionalQuery;
 import com.antalex.db.utils.ShardUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Primary;
 import org.springframework.core.GenericTypeResolver;
 import org.springframework.stereotype.Component;
+import org.springframework.util.Assert;
 
 import javax.persistence.EntityTransaction;
 import java.util.*;
@@ -205,6 +209,22 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
     }
 
     @Override
+    public <T extends ShardInstance> void persist(T entity) {
+        if (entity == null) {
+            return;
+        }
+        getEntityRepository(entity.getClass()).persist(entity);
+    }
+
+    @Override
+    public <T extends ShardInstance> void persistAll(Iterable<T> entities) {
+        if (entities == null) {
+            return;
+        }
+        entities.forEach(this::persist);
+    }
+
+    @Override
     public <T extends ShardInstance> void generateAllId(Iterable<T> entities) {
         if (entities == null) {
             return;
@@ -236,5 +256,11 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
     @Override
     public void addParallel() {
         ((SharedEntityTransaction) getTransaction()).addParallel();
+    }
+
+    @Override
+    public <T extends ShardInstance> TransactionalQuery getQuery(T entity, String query, QueryType queryType) {
+        Shard shard = entity.getStorageAttributes().getShard();
+        return dataBaseManager.getTransactionalTask(shard).addQuery(ShardUtils.transformSQL(query, shard), queryType);
     }
 }

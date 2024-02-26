@@ -8,14 +8,11 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.ExecutorService;
 
 @Slf4j
 public class TransactionalSQLTask extends AbstractTransactionalTask {
     private Connection connection;
-    private Map<String, TransactionalQuery> queries = new HashMap<>();
 
     TransactionalSQLTask(Connection connection, ExecutorService executorService) {
         this.connection = connection;
@@ -24,12 +21,21 @@ public class TransactionalSQLTask extends AbstractTransactionalTask {
 
     @Override
     public void commit() throws SQLException {
-        completion(false);
+        this.connection.commit();
     }
 
     @Override
     public void rollback() throws SQLException {
-        completion(true);
+        this.connection.rollback();
+    }
+
+    @Override
+    public Boolean needCommit() {
+        try {
+            return !this.connection.isClosed() && !this.connection.getAutoCommit();
+        } catch (SQLException err) {
+            throw new RuntimeException(err);
+        }
     }
 
     @Override
@@ -43,7 +49,7 @@ public class TransactionalSQLTask extends AbstractTransactionalTask {
                     this.connection.close();
                 }
             } catch (Exception err) {
-                this.error = err.getLocalizedMessage();
+                this.errorCompletion = err.getLocalizedMessage();
             }
             this.status = TaskStatus.FINISHED;
         }
@@ -69,30 +75,5 @@ public class TransactionalSQLTask extends AbstractTransactionalTask {
 
     public Connection getConnection() {
         return connection;
-    }
-
-    private void completion(boolean revoke) throws SQLException {
-        if (this.status == TaskStatus.DONE) {
-            if (!this.connection.isClosed() && !this.connection.getAutoCommit()) {
-                Runnable target = () -> {
-                    try {
-                        log.debug(String.format("%s for \"%s\"...", revoke ? "ROLLBACK" : "COMMIT", this.name));
-                        if (revoke) {
-                            this.connection.rollback();
-                        } else {
-                            this.connection.commit();
-                        }
-                    } catch (SQLException err) {
-                        this.error = err.getLocalizedMessage();
-                    }
-                };
-                if (this.parallelCommit) {
-                    this.future = this.executorService.submit(target);
-                } else {
-                    target.run();
-                }
-            }
-            this.status = TaskStatus.COMPLETION;
-        }
     }
 }
