@@ -8,6 +8,7 @@ import com.antalex.db.service.api.TransactionalTask;
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.List;
 
 public interface ShardDataBaseManager {
     Connection getConnection() throws SQLException;
@@ -16,6 +17,7 @@ public interface ShardDataBaseManager {
     Cluster getCluster(String clusterName);
     Cluster getDefaultCluster();
     Shard getShard(Cluster cluster, Short id);
+    List<Shard> getShardsFromValue(Cluster cluster, Long shardValue);
     Long generateId(StorageAttributes storageAttributes);
     Connection getConnection(Short clusterId, Short shardId) throws SQLException;
     StorageAttributes getStorageAttributes(Long id, Long shardValue);

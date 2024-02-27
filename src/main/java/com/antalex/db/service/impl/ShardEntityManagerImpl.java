@@ -118,7 +118,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
     }
 
     @Override
-    public <T extends ShardInstance> void setStorage(T entity, StorageAttributes storage, boolean isSave) {
+    public <T extends ShardInstance> void setStorage(T entity, StorageAttributes storage, boolean force) {
         if (entity == null) {
             return;
         }
@@ -150,7 +150,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
                                                 })
                                 )
                                 .orElseGet(() -> {
-                                    if (isSave) {
+                                    if (force) {
                                         setDependentStorage(entity);
                                     }
                                     return entity.getStorageAttributes();
@@ -189,7 +189,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
     }
 
     @Override
-    public <T extends ShardInstance> void generateId(T entity, boolean isSave) {
+    public <T extends ShardInstance> void generateId(T entity, boolean force) {
         if (entity == null) {
             return;
         }
@@ -197,7 +197,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
             entity.setId(dataBaseManager.generateId(entity.getStorageAttributes()));
             generateDependentId(entity);
         } else {
-            if (isSave) {
+            if (force) {
                 generateDependentId(entity);
             }
         }
@@ -259,8 +259,17 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
     }
 
     @Override
-    public <T extends ShardInstance> TransactionalQuery getQuery(T entity, String query, QueryType queryType) {
+    public <T extends ShardInstance> TransactionalQuery createQuery(T entity, String query, QueryType queryType) {
         Shard shard = entity.getStorageAttributes().getShard();
+        return createQuery(shard, query, queryType);
+    }
+
+    @Override
+    public <T extends ShardInstance> Iterable<TransactionalQuery> createQueries(T entity, String query, QueryType queryType) {
+        return null;
+    }
+
+    private TransactionalQuery createQuery(Shard shard, String query, QueryType queryType) {
         return dataBaseManager.getTransactionalTask(shard).addQuery(ShardUtils.transformSQL(query, shard), queryType);
     }
 }

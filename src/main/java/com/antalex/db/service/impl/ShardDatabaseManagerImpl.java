@@ -27,6 +27,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -174,11 +175,26 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                     getNextShard(storageAttributes.getCluster())
             );
             storageAttributes.setShardValue(ShardUtils.getShardValue(storageAttributes.getShard().getId()));
+
+
+
+
+
+
         }
         return (
                 sequenceNextVal(MAIN_SEQUENCE, storageAttributes.getCluster()) *
                         ShardUtils.MAX_CLUSTERS + storageAttributes.getCluster().getId() - 1
         ) * ShardUtils.MAX_SHARDS + storageAttributes.getShard().getId() - 1;
+    }
+
+    @Override
+    public List<Shard> getShardsFromValue(Cluster cluster, Long shardValue) {
+        return cluster
+                .getShards()
+                .stream()
+                .filter(shard -> Long.compare(ShardUtils.getShardValue(shard.getId()) & shardValue, 0L) > 0)
+                .collect(Collectors.toList());
     }
 
     @Override

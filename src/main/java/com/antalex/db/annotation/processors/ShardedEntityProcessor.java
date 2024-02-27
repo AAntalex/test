@@ -4,6 +4,7 @@ import com.antalex.db.annotation.ParentShard;
 import com.antalex.db.annotation.ShardEntity;
 import com.antalex.db.model.Cluster;
 import com.antalex.db.model.StorageAttributes;
+import com.antalex.db.model.enums.QueryType;
 import com.antalex.db.model.enums.ShardType;
 import com.antalex.db.service.ShardDataBaseManager;
 import com.antalex.db.service.ShardEntityManager;
@@ -213,16 +214,27 @@ public class ShardedEntityProcessor extends AbstractProcessor {
         }
     }
 
-    private static String getInsertSQL(ClassDto classDto) {
+    private static String getInsertSQLCode(ClassDto classDto) {
         String columns = "SHARD_VALUE";
         String values = "?";
-        for (int i = 0; i < classDto.getFields().size(); i++) {
-            if (classDto.getFields().get(i).getColumnName() != null && !classDto.getFields().get(i).getIsLinked()) {
-                columns = columns.concat(",").concat(classDto.getFields().get(i).getColumnName());
+        for (FieldDto field : classDto.getFields()) {
+            if (field.getColumnName() != null && !field.getIsLinked()) {
+                columns = columns.concat(",").concat(field.getColumnName());
                 values = values.concat(",?");
             }
         }
         return "INSERT INTO $$$." + classDto.getTableName() + " (" + columns + ",ID) VALUES (" + values + ",?)";
+    }
+
+    private static String getUpdateSQLCode(ClassDto classDto) {
+        return classDto.getFields()
+                .stream()
+                .filter(it -> it.getColumnName() != null && !it.getIsLinked())
+                .map(field -> "," + field.getColumnName() + "=?")
+                .reduce(
+                        "UPDATE $$$." + classDto.getTableName() + " SET SHARD_VALUE=?",
+                        String::concat
+                ) + " WHERE ID=?";
     }
 
     private void createRepositoryClass(ClassDto classDto) throws IOException {
@@ -238,6 +250,7 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                     "import " + classDto.getClassPackage() + "." +
                             classDto.getTargetClassName() + CLASS_INTERCEPT_POSTFIX + ";"
             );
+            out.println("import " + QueryType.class.getCanonicalName() + ";");
             out.println("import " + ShardEntityRepository.class.getCanonicalName() + ";");
             out.println("import " + ShardEntityManager.class.getCanonicalName() + ";");
             out.println("import " + Component.class.getCanonicalName() + ";");
@@ -259,7 +272,10 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                     "    private static final ShardType SHARD_TYPE = ShardType." + classDto.getShardType().name() + ";"
             );
             out.println(
-                    "    private static final String INS_QUERY = \"" + getInsertSQL(classDto) + "\";"
+                    "    private static final String INS_QUERY = \"" + getInsertSQLCode(classDto) + "\";"
+            );
+            out.println(
+                    "    private static final String UPD_QUERY = \"" + getUpdateSQLCode(classDto) + "\";"
             );
 
             out.println();
@@ -280,6 +296,8 @@ public class ShardedEntityProcessor extends AbstractProcessor {
             out.println();
             out.println(getSetDependentStorageCode(classDto));
             out.println();
+            out.println(getPersistCode(classDto));
+            out.println();
             out.println(getGenerateDependentIdCode(classDto));
             out.println("}");
         }
@@ -295,6 +313,9 @@ public class ShardedEntityProcessor extends AbstractProcessor {
             out.println("package " + classDto.getClassPackage() + ";");
             out.println();
             out.println("public class " + className + " extends " + classDto.getTargetClassName() + " {");
+            out.println("   private boolean changed;");
+            out.println("");
+            out.println("   public boolean isChanged() {\n       return this.changed;\n }");
             out.println();
             out.println("}");
         }
@@ -303,7 +324,7 @@ public class ShardedEntityProcessor extends AbstractProcessor {
     private static String getConstructorCode(ClassDto classDto, String className) {
         return "    @Autowired\n" +
                 "    " + className + "(ShardDataBaseManager dataBaseManager) {\n" +
-                "       this.cluster = dataBaseManager.getCluster(String.valueOf(\"" + classDto.getCluster() +
+                "        this.cluster = dataBaseManager.getCluster(String.valueOf(\"" + classDto.getCluster() +
                 "\"));\n    }";
     }
 
@@ -311,7 +332,7 @@ public class ShardedEntityProcessor extends AbstractProcessor {
         return "    @Override\n" +
                 "    public " + classDto.getTargetClassName() + " newEntity(Class<" +
                 classDto.getTargetClassName() + "> clazz) {\n" +
-                "       return new " + classDto.getTargetClassName() + CLASS_INTERCEPT_POSTFIX + "();\n" +
+                "        return new " + classDto.getTargetClassName() + CLASS_INTERCEPT_POSTFIX + "();\n" +
                 "    }";
     }
 
@@ -319,23 +340,75 @@ public class ShardedEntityProcessor extends AbstractProcessor {
         return "    @Override\n" +
                 "    public " + classDto.getTargetClassName() +
                 " save(" + classDto.getTargetClassName() + " entity) {\n" +
-                "       entityManager.setStorage(entity, null, true);\n" +
-                "       entityManager.generateId(entity, true);\n" +
-                "       return entity;\n" +
+                "        entityManager.setStorage(entity, null, true);\n" +
+                "        entityManager.generateId(entity, true);\n" +
+                "        persist(entity, true);\n" +
+                "        return entity;\n" +
                 "   }";
+    }
+
+    private static String getPersistCode(ClassDto classDto) {
+        StringBuilder code = new StringBuilder(
+                "    @Autowired\n" +
+                        "    public void persist(" + classDto.getTargetClassName() + " entity) {\n" +
+                        "        persist(entity, false);\n" +
+                        "    }\n" +
+                        "\n" +
+                        "    private void persist(" + classDto.getTargetClassName() + " entity, boolean force) {\n" +
+                        "        if (force || !entity.getStorageAttributes().getStored() || ((" +
+                        classDto.getTargetClassName() + CLASS_INTERCEPT_POSTFIX + ") entity).isChanged()) {\n"
+        );
+        StringBuilder persistCode =
+                new StringBuilder(
+                        "            entityManager\n" +
+                                "                    .createQuery(\n" +
+                                "                            entity, \n" +
+                                "                            entity.getStorageAttributes().getStored() ? UPD_QUERY :" +
+                                " INS_QUERY, QueryType.DML\n" +
+                                "                    )\n"
+                );
+        StringBuilder childPersistCode = new StringBuilder(StringUtils.EMPTY);
+        for (FieldDto field : classDto.getFields()) {
+            if (Objects.nonNull(field.getGetter())) {
+                if (isAnnotationPresentByType(field.getElement().asType(), ShardEntity.class)) {
+                    code
+                            .append("            entityManager.persist(entity.")
+                            .append(field.getGetter())
+                            .append("());\n");
+                }
+                if (isAnnotationPresentInArgument(field.getElement().asType(), ShardEntity.class)) {
+                    childPersistCode
+                            .append("            entityManager.persistAll(entity.")
+                            .append(field.getGetter())
+                            .append("());\n");
+                }
+                if (Objects.nonNull(field.getColumnName())) {
+                    persistCode
+                            .append("                    .bind(entity.")
+                            .append(field.getGetter())
+                            .append("())\n");
+                }
+            }
+        }
+        return code
+                .append(persistCode)
+                .append("                    .addBatch();\n")
+                .append(childPersistCode)
+                .append("       }\n    }")
+                .toString();
     }
 
     private static String getClusterCode(ClassDto classDto) {
         return "    @Override\n" +
                 "    public Cluster getCluster(" + classDto.getTargetClassName() + " entity) {\n" +
-                "       return cluster;\n" +
+                "        return cluster;\n" +
                 "    }";
     }
 
     private static String getShardTypeCode(ClassDto classDto) {
         return "    @Override\n" +
                 "    public ShardType getShardType(" + classDto.getTargetClassName() + " entity) {\n" +
-                "       return SHARD_TYPE;\n" +
+                "        return SHARD_TYPE;\n" +
                 "    }";
     }
 
