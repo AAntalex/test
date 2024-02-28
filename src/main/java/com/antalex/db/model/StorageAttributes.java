@@ -9,5 +9,7 @@ public class StorageAttributes {
     private Cluster cluster;
     private Shard shard;
     private Long shardValue;
+    private Long originalShardValue;
     private Boolean stored;
+    private Boolean temporary;
 }

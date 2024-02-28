@@ -1,6 +1,7 @@
 package com.antalex.db.service.impl;
 
 import com.antalex.db.config.*;
+import com.antalex.db.entity.abstraction.ShardInstance;
 import com.antalex.db.model.*;
 import com.antalex.db.model.enums.QueryType;
 import com.antalex.db.service.ShardDataBaseManager;
@@ -164,7 +165,11 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     }
 
     @Override
-    public Long generateId(StorageAttributes storageAttributes) {
+    public void generateId(ShardInstance entity) {
+        if (entity == null) {
+            return;
+        }
+        StorageAttributes storageAttributes = entity.getStorageAttributes();
         Assert.notNull(storageAttributes, "Не определены аттрибуты хранения");
         Assert.notNull(
                 storageAttributes.getCluster(),
@@ -175,17 +180,23 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                     getNextShard(storageAttributes.getCluster())
             );
             storageAttributes.setShardValue(ShardUtils.getShardValue(storageAttributes.getShard().getId()));
-
-
-
-
-
-
         }
-        return (
-                sequenceNextVal(MAIN_SEQUENCE, storageAttributes.getCluster()) *
-                        ShardUtils.MAX_CLUSTERS + storageAttributes.getCluster().getId() - 1
-        ) * ShardUtils.MAX_SHARDS + storageAttributes.getShard().getId() - 1;
+
+        if (Optional.ofNullable(storageAttributes.getTemporary()).orElse(false)) {
+            entity.setStorageAttributes(
+                    StorageAttributes.builder()
+                            .cluster(storageAttributes.getCluster())
+                            .shard(storageAttributes.getShard())
+                            .shardValue(storageAttributes.getShardValue())
+                            .stored(false)
+                            .build()
+            );
+        }
+        entity.setId((
+                        sequenceNextVal(MAIN_SEQUENCE, storageAttributes.getCluster()) *
+                                ShardUtils.MAX_CLUSTERS + storageAttributes.getCluster().getId() - 1
+                ) * ShardUtils.MAX_SHARDS + storageAttributes.getShard().getId() - 1
+        );
     }
 
     @Override
@@ -248,13 +259,26 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                 .cluster(cluster)
                 .shard(shard)
                 .shardValue(shardValue)
+                .originalShardValue(shardValue)
                 .build();
+    }
+
+    @Override
+    public Boolean isEnabled(Shard shard) {
+        return Optional.ofNullable(shard)
+                .map(Shard::getDynamicDataBaseInfo)
+                .map(it ->
+                        this.isAvailable(it) &&
+                                Optional.ofNullable(it.getSegment()).orElse(StringUtils.EMPTY)
+                                        .equals(Optional.ofNullable(this.segment).orElse(StringUtils.EMPTY))
+                )
+                .orElse(true);
     }
 
     private Shard getNextShard(Cluster cluster) {
         Shard shard = cluster.getShards().get((int) shardSequences.get(cluster.getName()).nextValue());
         Short shardId = shard.getId();
-        while (!isEnabled(shard.getDynamicDataBaseInfo())) {
+        while (!isEnabled(shard)) {
             shard = cluster.getShards().get((int) shardSequences.get(cluster.getName()).nextValue());
             Assert.isTrue(!shardId.equals(shard.getId()), "Отсутсвуют доступные шарды!");
         }
@@ -801,16 +825,6 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         return null;
     }
 
-    private Boolean isEnabled(DynamicDataBaseInfo dynamicDataBaseInfo) {
-        return Optional.ofNullable(dynamicDataBaseInfo)
-                .map(it ->
-                        this.isAvailable(it) &&
-                                Optional.ofNullable(it.getSegment()).orElse(StringUtils.EMPTY)
-                                        .equals(Optional.ofNullable(this.segment).orElse(StringUtils.EMPTY))
-                )
-                .orElse(true);
-    }
-
     private Boolean isAvailable(DynamicDataBaseInfo dynamicDataBaseInfo) {
         return Optional.ofNullable(dynamicDataBaseInfo)
                 .map(it -> it.getAccessible() && it.getAvailable())
@@ -818,7 +832,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     }
 
     private void runLiquibase(Shard shard, String changeLog) {
-        if (!shard.getExternal() && isEnabled(shard.getDynamicDataBaseInfo())) {
+        if (!shard.getExternal() && isEnabled(shard)) {
             try {
                 log.debug(String.format("Run changelog \"%s\" on shard %s", changeLog, shard.getName()));
                 TransactionalSQLTask task = (TransactionalSQLTask) getTransactionalTask(shard);

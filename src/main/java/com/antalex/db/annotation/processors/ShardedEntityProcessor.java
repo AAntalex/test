@@ -355,8 +355,11 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                         "    }\n" +
                         "\n" +
                         "    private void persist(" + classDto.getTargetClassName() + " entity, boolean force) {\n" +
-                        "        if (force || !entity.getStorageAttributes().getStored() || ((" +
-                        classDto.getTargetClassName() + CLASS_INTERCEPT_POSTFIX + ") entity).isChanged()) {\n"
+                        "        if (\n" +
+                        "                force || \n" +
+                        "                        !entity.getStorageAttributes().getStored() || \n" +
+                        "                        ((" + classDto.getTargetClassName() + CLASS_INTERCEPT_POSTFIX
+                        + ") entity).isChanged()) \n        {\n"
         );
         StringBuilder persistCode =
                 new StringBuilder(
@@ -426,9 +429,8 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                                             "setStorage"
                                     ) + "(entity." + field.getGetter() + "(), " +
                                     (
-                                            isAnnotationPresent(field.getElement(), ParentShard.class) ?
-                                                    "entity.getStorageAttributes()" :
-                                                    "null"
+                                            isAnnotationPresent(field.getElement(), ParentShard.class) &&
+                                                    classDto.getShardType() != ShardType.REPLICABLE ? "entity" : "null"
                                     ) +
                                     ");\n" :
                             ""

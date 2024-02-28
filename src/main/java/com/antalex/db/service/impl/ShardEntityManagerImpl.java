@@ -16,7 +16,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Primary;
 import org.springframework.core.GenericTypeResolver;
 import org.springframework.stereotype.Component;
-import org.springframework.util.Assert;
 
 import javax.persistence.EntityTransaction;
 import java.util.*;
@@ -118,74 +117,112 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
     }
 
     @Override
-    public <T extends ShardInstance> void setStorage(T entity, StorageAttributes storage, boolean force) {
+    public <T extends ShardInstance> void setStorage(T entity, ShardInstance parent, boolean force) {
         if (entity == null) {
             return;
         }
         Cluster cluster = getCluster(entity);
-        Optional.ofNullable(entity.getStorageAttributes())
-                .map(entityStorage ->
-                        Optional.ofNullable(storage)
-                                .filter(it ->
-                                        it != entityStorage &&
-                                                getShardType(entity) != ShardType.REPLICABLE &&
-                                                Objects.nonNull(entityStorage.getShard()) &&
-                                                cluster.getId().equals(it.getCluster().getId())
-                                )
-                                .map(it ->
-                                        Optional.ofNullable(storage.getShardValue())
-                                                .map(shardValue -> {
-                                                    storage.setShardValue(
-                                                            ShardUtils.addShardValue(
-                                                                    shardValue,
-                                                                    entityStorage.getShardValue()
+        ShardType shardType = getShardType(entity);
+        if (
+                Optional.ofNullable(entity.getStorageAttributes())
+                        .map(entityStorage ->
+                                Optional.ofNullable(parent)
+                                        .map(ShardInstance::getStorageAttributes)
+                                        .filter(it ->
+                                                it != entityStorage &&
+                                                        shardType != ShardType.REPLICABLE &&
+                                                        Objects.nonNull(entityStorage.getShard()) &&
+                                                        cluster.getId().equals(it.getCluster().getId()) &&
+                                                        dataBaseManager.isEnabled(it.getShard())
+                                        )
+                                        .map(storage ->
+                                                Optional.ofNullable(storage.getShard())
+                                                        .map(shard -> {
+                                                            storage.setShardValue(
+                                                                    ShardUtils.addShardValue(
+                                                                            ShardUtils.getShardValue(shard.getId()),
+                                                                            entityStorage.getShardValue()
+                                                                    )
+                                                            );
+                                                            return false;
+                                                        })
+                                                        .orElseGet(() -> {
+                                                            storage.setShard(entityStorage.getShard());
+                                                            storage.setShardValue(
+                                                                    ShardUtils.getShardValue(
+                                                                            entityStorage.getShard().getId()
+                                                                    )
+                                                            );
+                                                            return true;
+                                                        })
+                                        )
+                                        .orElseGet(() -> {
+                                            if (force) {
+                                                setDependentStorage(entity);
+                                            }
+                                            return false;
+                                        })
+                        )
+                        .orElseGet(() -> {
+                            entity.setStorageAttributes(
+                                    Optional.ofNullable(parent)
+                                            .map(ShardInstance::getStorageAttributes)
+                                            .filter(it ->
+                                                    cluster.getId()
+                                                            .equals(it.getCluster().getId()) &&
+                                                            shardType != ShardType.REPLICABLE &&
+                                                            dataBaseManager.isEnabled(it.getShard())
+                                            )
+                                            .map(storage ->
+                                                    Optional.ofNullable(storage.getShard())
+                                                            .map(shard ->
+                                                                    StorageAttributes.builder()
+                                                                            .cluster(cluster)
+                                                                            .stored(false)
+                                                                            .shard(shard)
+                                                                            .shardValue(
+                                                                                    ShardUtils.getShardValue(
+                                                                                            shard.getId()
+                                                                                    )
+                                                                            )
+                                                                            .build()
                                                             )
-                                                    );
-                                                    return storage;
-                                                })
-                                                .orElseGet(() -> {
-                                                    storage.setShard(entityStorage.getShard());
-                                                    storage.setShardValue(entityStorage.getShardValue());
-                                                    return storage;
-                                                })
-                                )
-                                .orElseGet(() -> {
-                                    if (force) {
-                                        setDependentStorage(entity);
-                                    }
-                                    return entity.getStorageAttributes();
-                                })
-                )
-                .orElseGet(() -> {
-                    entity.setStorageAttributes(
-                            Optional.ofNullable(storage)
-                                    .filter(it ->
-                                            cluster.getId()
-                                                    .equals(it.getCluster().getId())
-                                    )
-                                    .orElse(
-                                            StorageAttributes.builder()
-                                                    .stored(false)
-                                                    .cluster(cluster)
-                                                    .build()
-                                    )
-                    );
-                    setDependentStorage(entity);
-                    return entity.getStorageAttributes();
-                });
+                                                            .orElse(storage)
+                                            )
+                                            .orElse(
+                                                    StorageAttributes.builder()
+                                                            .cluster(cluster)
+                                                            .temporary(true)
+                                                            .stored(false)
+                                                            .build()
+                                            )
+                            );
+                            setDependentStorage(entity);
+                            return false;
+                        }))
+        {
+            parent.setStorageAttributes(
+                    StorageAttributes.builder()
+                            .cluster(parent.getStorageAttributes().getCluster())
+                            .shard(parent.getStorageAttributes().getShard())
+                            .shardValue(parent.getStorageAttributes().getShardValue())
+                            .stored(false)
+                            .build()
+            );
+        }
     }
 
     @Override
-    public <T extends ShardInstance> void setStorage(T entity, StorageAttributes storage) {
-        setStorage(entity, storage, false);
+    public <T extends ShardInstance> void setStorage(T entity, ShardInstance parent) {
+        setStorage(entity, parent, false);
     }
 
     @Override
-    public <T extends ShardInstance> void setAllStorage(Iterable<T> entities, StorageAttributes storage) {
+    public <T extends ShardInstance> void setAllStorage(Iterable<T> entities, ShardInstance parent) {
         if (entities == null) {
             return;
         }
-        entities.forEach(entity -> setStorage(entity, storage));
+        entities.forEach(entity -> setStorage(entity, parent));
     }
 
     @Override
@@ -194,7 +231,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
             return;
         }
         if (Objects.isNull(entity.getId())) {
-            entity.setId(dataBaseManager.generateId(entity.getStorageAttributes()));
+            dataBaseManager.generateId(entity);
             generateDependentId(entity);
         } else {
             if (force) {

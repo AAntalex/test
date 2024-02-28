@@ -1,5 +1,6 @@
 package com.antalex.db.service;
 
+import com.antalex.db.entity.abstraction.ShardInstance;
 import com.antalex.db.model.Cluster;
 import com.antalex.db.model.Shard;
 import com.antalex.db.model.StorageAttributes;
@@ -18,7 +19,7 @@ public interface ShardDataBaseManager {
     Cluster getDefaultCluster();
     Shard getShard(Cluster cluster, Short id);
     List<Shard> getShardsFromValue(Cluster cluster, Long shardValue);
-    Long generateId(StorageAttributes storageAttributes);
+    void generateId(ShardInstance entity);
     Connection getConnection(Short clusterId, Short shardId) throws SQLException;
     StorageAttributes getStorageAttributes(Long id, Long shardValue);
     long sequenceNextVal(String sequenceName, Shard shard);
@@ -26,4 +27,5 @@ public interface ShardDataBaseManager {
     long sequenceNextVal(String sequenceName);
     long sequenceNextVal();
     TransactionalTask getTransactionalTask(Shard shard);
+    Boolean isEnabled(Shard shard);
 }
