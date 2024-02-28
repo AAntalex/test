@@ -18,7 +18,7 @@ public class TestEntityManagerImpl implements TestEntityManager {
     }
 
     @Override
-    public <T extends ShardInstance> void setStorage(T entity, StorageAttributes storage) {
-        entityManager.setStorage(entity, storage);
+    public <T extends ShardInstance> void setStorage(T entity, ShardInstance parent) {
+        entityManager.setStorage(entity, parent);
     }
 }

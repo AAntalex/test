@@ -7,5 +7,5 @@ import com.antalex.db.model.enums.ShardType;
 
 public interface TestEntityManager {
     <T extends ShardInstance> void generateId(T entity);
-    <T extends ShardInstance> void setStorage(T entity, StorageAttributes storage);
+    <T extends ShardInstance> void setStorage(T entity, ShardInstance parent);
 }

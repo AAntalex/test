@@ -86,7 +86,7 @@ public class TestBShardEntity$RepositoryImpl2 {
     }
 
     public void setDependentStorage(TestBShardEntity entity) {
-        entityManager.setStorage(entity.getA(), entity.getStorageAttributes());
+        entityManager.setStorage(entity.getA(), entity);
         entityManager.setAllStorage(entity.getCList(), null);
     }
 
