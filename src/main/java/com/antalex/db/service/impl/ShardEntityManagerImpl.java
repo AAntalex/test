@@ -17,6 +17,7 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.core.GenericTypeResolver;
 import org.springframework.stereotype.Component;
 
+import javax.persistence.EntityManager;
 import javax.persistence.EntityTransaction;
 import java.util.*;
 
@@ -84,11 +85,14 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
 
     @Override
     public <T extends ShardInstance> T save(T entity) {
-        if (entity == null) {
-            return null;
+        setStorage(entity, null, true);
+        generateId(entity, true);
+        boolean isAurTransaction = startTransaction();
+        persist(entity);
+        if (isAurTransaction) {
+            getTransaction().commit();
         }
-        ShardEntityRepository<T> repository = getEntityRepository(entity.getClass());
-        return repository.save(entity);
+        return entity;
     }
 
     @Override
@@ -96,7 +100,11 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
         if (entities == null) {
             return null;
         }
+        boolean isAurTransaction = startTransaction();
         entities.forEach(it -> it = save(it));
+        if (isAurTransaction) {
+            getTransaction().commit();
+        }
         return entities;
     }
 
@@ -308,5 +316,13 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
 
     private TransactionalQuery createQuery(Shard shard, String query, QueryType queryType) {
         return dataBaseManager.getTransactionalTask(shard).addQuery(ShardUtils.transformSQL(query, shard), queryType);
+    }
+
+    private boolean startTransaction() {
+        if (!getTransaction().isActive()) {
+            getTransaction().begin();
+            return true;
+        }
+        return false;
     }
 }

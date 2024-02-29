@@ -20,6 +20,7 @@ public class SharedEntityTransaction implements EntityTransaction {
     private boolean hasError;
     private String error;
     private String errorCommit;
+    private UUID uid;
 
     private List<TransactionalTask> tasks = new ArrayList<>();
     private Map<Integer, TransactionalTask> currentTasks = new HashMap<>();
@@ -27,7 +28,10 @@ public class SharedEntityTransaction implements EntityTransaction {
 
     @Override
     public void begin() {
-        this.active = true;
+        if (!this.active) {
+            this.uid = UUID.randomUUID();
+            this.active = true;
+        }
     }
 
     @Override
@@ -97,6 +101,10 @@ public class SharedEntityTransaction implements EntityTransaction {
         return this.completed;
     }
 
+    public UUID getUid() {
+        return uid;
+    }
+
     public TransactionalTask getCurrentTask(Shard shard, boolean limitParallel) {
         return Optional.ofNullable(currentTasks.get(shard.getHashCode()))
                 .orElse(
@@ -114,6 +122,7 @@ public class SharedEntityTransaction implements EntityTransaction {
     public void addTask(Shard shard, TransactionalTask task) {
         currentTasks.put(shard.getHashCode(), task);
         tasks.add(task);
+        task.setName("Task " + tasks.size());
         Optional.ofNullable(chunks.get(shard.getHashCode()))
                 .orElseGet(() -> {
                     Chunk chunk = new Chunk();

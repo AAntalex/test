@@ -257,7 +257,6 @@ public class ShardedEntityProcessor extends AbstractProcessor {
             out.println("import " + Autowired.class.getCanonicalName() + ";");
             out.println("import " + ShardType.class.getCanonicalName() + ";");
             out.println("import " + Cluster.class.getCanonicalName() + ";");
-            out.println("import " + StorageAttributes.class.getCanonicalName() + ";");
             out.println("import " + ShardDataBaseManager.class.getCanonicalName() + ";");
             out.println();
             out.println("import " + Objects.class.getCanonicalName() + ";");
@@ -287,8 +286,6 @@ public class ShardedEntityProcessor extends AbstractProcessor {
             out.println(getConstructorCode(classDto, className));
             out.println();
             out.println(getNewEntityCode(classDto));
-            out.println();
-            out.println(getSaveCode(classDto));
             out.println();
             out.println(getShardTypeCode(classDto));
             out.println();
@@ -336,20 +333,9 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                 "    }";
     }
 
-    private static String getSaveCode(ClassDto classDto) {
-        return "    @Override\n" +
-                "    public " + classDto.getTargetClassName() +
-                " save(" + classDto.getTargetClassName() + " entity) {\n" +
-                "        entityManager.setStorage(entity, null, true);\n" +
-                "        entityManager.generateId(entity, true);\n" +
-                "        persist(entity, true);\n" +
-                "        return entity;\n" +
-                "   }";
-    }
-
     private static String getPersistCode(ClassDto classDto) {
         StringBuilder code = new StringBuilder(
-                "    @Autowired\n" +
+                "    @Override\n" +
                         "    public void persist(" + classDto.getTargetClassName() + " entity) {\n" +
                         "        persist(entity, false);\n" +
                         "    }\n" +
@@ -368,7 +354,8 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                                 "                            entity, \n" +
                                 "                            entity.getStorageAttributes().getStored() ? UPD_QUERY :" +
                                 " INS_QUERY, QueryType.DML\n" +
-                                "                    )\n"
+                                "                    )\n" +
+                                "                    .bind(entity.getStorageAttributes().getShardValue())\n"
                 );
         StringBuilder childPersistCode = new StringBuilder(StringUtils.EMPTY);
         for (FieldDto field : classDto.getFields()) {
@@ -385,7 +372,8 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                             .append(field.getGetter())
                             .append("());\n");
                 }
-                if (Objects.nonNull(field.getColumnName())) {
+
+                if (Objects.nonNull(field.getColumnName()) && !field.getIsLinked()) {
                     persistCode
                             .append("                    .bind(entity.")
                             .append(field.getGetter())
@@ -395,6 +383,7 @@ public class ShardedEntityProcessor extends AbstractProcessor {
         }
         return code
                 .append(persistCode)
+                .append("                    .bind(entity.getId())\n")
                 .append("                    .addBatch();\n")
                 .append(childPersistCode)
                 .append("       }\n    }")
