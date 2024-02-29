@@ -2,6 +2,7 @@ import com.antalex.db.model.Shard;
 import com.antalex.db.service.ShardDataBaseManager;
 import com.antalex.db.service.ShardEntityManager;
 import com.antalex.db.utils.ShardUtils;
+import com.antalex.domain.persistence.entity.AdditionalParameterEntity;
 import com.antalex.domain.persistence.entity.hiber.TestAEntity;
 import com.antalex.domain.persistence.entity.hiber.TestBEntity;
 import com.antalex.domain.persistence.entity.shard.TestBShardEntity;
@@ -118,7 +119,7 @@ public class ApplicationTests {
 */
 	}
 
-//	@Test
+	@Test
 	public void saveJPA() {
 /*
 		profiler.start("testService.generate");
@@ -132,7 +133,7 @@ public class ApplicationTests {
 		System.out.println(profiler.printTimeCounter());
 */
 		profiler.start("testService.generate");
-		List<TestBEntity> testBEntities = testService.generate(100, 10, null, "JPA");
+		List<TestBEntity> testBEntities = testService.generate(1000, 100, null, "JPA");
 		profiler.stop();
 		System.out.println(profiler.printTimeCounter());
 
@@ -140,19 +141,20 @@ public class ApplicationTests {
 		testService.saveTransactionalJPA(testBEntities);
 		profiler.stop();
 		System.out.println(profiler.printTimeCounter());
-
+/*
 		profiler.start("ADD testService.saveTransactionalJPA");
 		System.out.println("AAA!!!!!!!!!!!!!!");
 		testBEntities.get(0).setNewValue("newVal!!!");
 		testService.saveTransactionalJPA(testBEntities);
 		profiler.stop();
 		System.out.println(profiler.printTimeCounter());
+*/
 	}
 
-//	@Test
+	@Test
 	public void saveStatement() {
 		profiler.start("testService.generate");
-		List<TestBEntity> testBEntities = testService.generate(100, 10, null, "Statement");
+		List<TestBEntity> testBEntities = testService.generate(1000, 100, null, "Statement");
 		profiler.stop();
 		System.out.println(profiler.printTimeCounter());
 
@@ -166,9 +168,11 @@ public class ApplicationTests {
 	public void saveShard() {
 		EntityManager em = entityManagerFactory.createEntityManager();
 		Boolean active = em.getTransaction().isActive();
+		List<TestBShardEntity> testBEntities;
 
+		/*
 		profiler.start("testShardService.generate 0");
-		List<TestBShardEntity> testBEntities = testShardService.generate(100000, 0, null);
+		testBEntities = testShardService.generate(100000, 0, null);
 		profiler.stop();
 		System.out.println(profiler.printTimeCounter());
 
@@ -184,11 +188,13 @@ public class ApplicationTests {
 		profiler.stop();
 		System.out.println(profiler.printTimeCounter());
 
-/*
+
+
 		profiler.start("testShardService.generate");
 		testBEntities = testShardService.generate(1000, 100, null);
 		profiler.stop();
 		System.out.println(profiler.printTimeCounter());
+
 
 		profiler.start("testShardService.saveLocal");
 		testShardService.saveLocal(testBEntities);
@@ -212,7 +218,7 @@ public class ApplicationTests {
 		testShardService.saveLocal(testBEntities3);
 		profiler.stop();
 		System.out.println(profiler.printTimeCounter());
-
+*/
 		profiler.start("testShardService.generate");
 		List<TestBShardEntity>  testBEntities2 = testShardService.generate(1000, 100, null);
 		profiler.stop();
@@ -223,6 +229,7 @@ public class ApplicationTests {
 		profiler.stop();
 		System.out.println(profiler.printTimeCounter());
 
+		/*
 		profiler.start("testShardService.generate");
 		List<TestBShardEntity>  testBEntities5 = testShardService.generate(1000, 100, null);
 		profiler.stop();
@@ -288,7 +295,7 @@ public class ApplicationTests {
 		System.out.println("STOP");
 	}
 
-	//	@Test
+//	@Test
 	public void ins() {
 
 		/*
@@ -312,7 +319,7 @@ public class ApplicationTests {
 
 		profiler.start("Тест");
 
-/*
+
 		List<AdditionalParameterEntity> additionalParameterEntities
 				= additionalParameterService.generate(10000, "TEST", "С_CODE2", "VALUE2");
 
@@ -327,7 +334,7 @@ public class ApplicationTests {
 		entity.setValue("VAL_TEST");
 
 		additionalParameterRepository.save(entity);
-*/
+
 //		entityManager.save(additionalParameterEntities);
 
 		profiler.stop();

@@ -3,7 +3,6 @@ package com.antalex.service.impl;
 import com.antalex.db.service.ShardEntityManager;
 import com.antalex.domain.persistence.entity.shard.TestAShardEntity;
 import com.antalex.domain.persistence.entity.shard.TestBShardEntity;
-import com.antalex.domain.persistence.entity.shard.TestBShardEntityExt;
 import com.antalex.domain.persistence.entity.shard.TestCShardEntity;
 import com.antalex.profiler.service.ProfilerService;
 import com.antalex.service.TestShardService;
@@ -27,21 +26,10 @@ public class TestShardServiceImpl implements TestShardService {
     public List<TestBShardEntity> generate(int cnt, int cntArray, TestAShardEntity testAEntity) {
         List<TestBShardEntity> bList = new ArrayList<>();;
         for (int i = 0; i < cnt; i++) {
-
-            profiler.startTimeCounter("new TestBShardEntityExt", "AAA");
             TestBShardEntity b = entityManager.newEntity(TestBShardEntity.class);
-            profiler.fixTimeCounter();
 
 //            TestBShardEntity b = testBShardEntityRepository.factory();
 
-            /*
-            TestBShardEntity b;
-            try {
-                b = TestBShardEntityExt.class.newInstance();
-            } catch (Exception err) {
-                throw new RuntimeException(err);
-            }
-*/
 
             b.setA(testAEntity);
             b.setValue("BShard" + i);

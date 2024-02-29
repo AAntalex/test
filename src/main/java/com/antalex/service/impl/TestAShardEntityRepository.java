@@ -7,7 +7,6 @@ import com.antalex.db.model.enums.ShardType;
 import com.antalex.db.service.ShardDataBaseManager;
 import com.antalex.db.utils.ShardUtils;
 import com.antalex.domain.persistence.entity.shard.TestAShardEntity;
-import com.antalex.domain.persistence.entity.shard.TestBShardEntity;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 

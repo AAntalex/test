@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import javax.persistence.EntityManager;
+import javax.persistence.EntityTransaction;
 
 @Component
 public class TestBShardEntity$RepositoryImpl2 {
@@ -51,10 +52,6 @@ public class TestBShardEntity$RepositoryImpl2 {
                     .addBatch();
             entityManager.persistAll(entity.getCList());
         }
-        if (!entityManager.getTransaction().isActive()) {
-            entityManager.getTransaction().begin();
-            entityManager.getTransaction().commit();
-        }
     }
 
 
@@ -66,12 +63,16 @@ public class TestBShardEntity$RepositoryImpl2 {
     }
 
     public TestBShardEntity save(TestBShardEntity entity) {
-       entityManager.setStorage(entity, null, true);
-       entityManager.generateId(entity, true);
+        entityManager.setStorage(entity, null, true);
+        entityManager.generateId(entity, true);
 
+        persist(entity);
 
-       persist(entity);
-
+        EntityTransaction transaction = entityManager.getTransaction();
+        if (!transaction.isActive()) {
+            transaction.begin();
+            transaction.commit();
+        }
 
 
        return entity;
