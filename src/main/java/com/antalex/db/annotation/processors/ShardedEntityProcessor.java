@@ -3,7 +3,6 @@ package com.antalex.db.annotation.processors;
 import com.antalex.db.annotation.ParentShard;
 import com.antalex.db.annotation.ShardEntity;
 import com.antalex.db.model.Cluster;
-import com.antalex.db.model.StorageAttributes;
 import com.antalex.db.model.enums.QueryType;
 import com.antalex.db.model.enums.ShardType;
 import com.antalex.db.service.ShardDataBaseManager;
@@ -165,16 +164,32 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                 .isPresent();
     }
 
-    private static <A extends Annotation> boolean isAnnotationPresentByType(TypeMirror type, Class<A> annotation) {
-        return Optional.ofNullable(type)
-                .map(it -> (DeclaredType) type)
-                .filter(it -> Objects.nonNull(it.asElement().getAnnotation(annotation)))
-                .isPresent();
+    private static <A extends Annotation> boolean isAnnotationPresentByType(FieldDto fieldDto, Class<A> annotation) {
+        return Objects.nonNull(
+                getDeclaredType(fieldDto.getElement())
+                        .asElement()
+                        .getAnnotation(annotation)
+        );
     }
 
-    private static <A extends Annotation> boolean isAnnotationPresentInArgument(TypeMirror type, Class<A> annotation) {
-        return Optional.ofNullable(type)
-                .map(it -> (DeclaredType) type)
+    private static String getTypeField(FieldDto field) {
+        DeclaredType type = getDeclaredType(field.getElement());
+        return type.getTypeArguments().size() > 0 ?
+                String.format(
+                        "%s<%s>",
+                        type.asElement().getSimpleName(),
+                        ((DeclaredType) type.getTypeArguments().get(0)).asElement().getSimpleName()
+                ) : type.asElement().getSimpleName().toString();
+    }
+
+    private static DeclaredType getDeclaredType(Element element) {
+        return (DeclaredType) Optional.ofNullable(element)
+                .map(Element::asType)
+                .orElse(null);
+    }
+
+    private static <A extends Annotation> boolean isAnnotationPresentInArgument(FieldDto fieldDto, Class<A> annotation) {
+        return Optional.ofNullable(getDeclaredType(fieldDto.getElement()))
                 .filter(it ->
                         it.getTypeArguments().size() > 0 &&
                                 Objects.nonNull(
@@ -188,7 +203,7 @@ public class ShardedEntityProcessor extends AbstractProcessor {
 
     private String findSetterByLinkedColumn(FieldDto field) {
         ClassDto fieldClass = getClassDtoByElement(
-                ((DeclaredType) ((DeclaredType) field.getElement().asType()).getTypeArguments().get(0)).asElement()
+                ((DeclaredType) getDeclaredType(field.getElement()).getTypeArguments().get(0)).asElement()
         );
         if (fieldClass == null || fieldClass.getFields() == null) {
             return null;
@@ -309,13 +324,70 @@ public class ShardedEntityProcessor extends AbstractProcessor {
         try (PrintWriter out = new PrintWriter(builderFile.openWriter())) {
             out.println("package " + classDto.getClassPackage() + ";");
             out.println();
+            out.println(getImportedTypes(classDto));
             out.println("public class " + className + " extends " + classDto.getTargetClassName() + " {");
             out.println("   private boolean changed;");
-            out.println("");
-            out.println("   public boolean isChanged() {\n       return this.changed;\n }");
             out.println();
+            out.println("   public boolean isChanged() {\n       return this.changed;\n   }");
+            out.println(getGettersCode(classDto));
+            out.println();
+            out.println(getSettersCode(classDto));
             out.println("}");
         }
+    }
+
+    private static String getImportedTypes(ClassDto classDto) {
+        List<String> importedTypes = new ArrayList<>();
+        classDto.getFields()
+                .stream()
+                .filter(field ->
+                        !isAnnotationPresent(field.getElement(), Transient.class))
+                .map(FieldDto::getElement)
+                .map(ShardedEntityProcessor::getDeclaredType)
+                .forEach(type -> {
+                    importedTypes.add(type.asElement().toString());
+                    if (type.getTypeArguments().size() > 0) {
+                        importedTypes.add(((DeclaredType) type.getTypeArguments().get(0)).asElement().toString());
+                    }
+                });
+        return importedTypes.stream()
+                .filter(it -> !it.startsWith("java.lang."))
+                .distinct()
+                .map(it -> "import " + it + ";\n")
+                .reduce(StringUtils.EMPTY, String::concat);
+    }
+
+    private static String getGettersCode(ClassDto classDto) {
+        return classDto.getFields()
+                .stream()
+                .filter(field ->
+                        !isAnnotationPresent(field.getElement(), Transient.class) &&
+                                Objects.nonNull(field.getGetter())
+                )
+                .map(field ->
+                        "\n   @Override\n" +
+                                "   public " + getTypeField(field) + " " + field.getGetter() + "() {\n" +
+                                "       return super." + field.getGetter() + "();\n" +
+                                "   }"
+                )
+                .reduce(StringUtils.EMPTY, String::concat);
+    }
+
+    private static String getSettersCode(ClassDto classDto) {
+        return classDto.getFields()
+                .stream()
+                .filter(field ->
+                        !isAnnotationPresent(field.getElement(), Transient.class) &&
+                                Objects.nonNull(field.getSetter())
+                )
+                .map(field ->
+                        "\n   @Override\n" +
+                                "   public void " + field.getSetter() + "(" + getTypeField(field) + " value) {\n" +
+                                "       this.changed = true;\n" +
+                                "       super." + field.getSetter() + "(value);\n" +
+                                "   }"
+                )
+                .reduce(StringUtils.EMPTY, String::concat);
     }
 
     private static String getConstructorCode(ClassDto classDto, String className) {
@@ -360,13 +432,13 @@ public class ShardedEntityProcessor extends AbstractProcessor {
         StringBuilder childPersistCode = new StringBuilder(StringUtils.EMPTY);
         for (FieldDto field : classDto.getFields()) {
             if (Objects.nonNull(field.getGetter())) {
-                if (isAnnotationPresentByType(field.getElement().asType(), ShardEntity.class)) {
+                if (isAnnotationPresentByType(field, ShardEntity.class)) {
                     code
                             .append("            entityManager.persist(entity.")
                             .append(field.getGetter())
                             .append("());\n");
                 }
-                if (isAnnotationPresentInArgument(field.getElement().asType(), ShardEntity.class)) {
+                if (isAnnotationPresentInArgument(field, ShardEntity.class)) {
                     childPersistCode
                             .append("            entityManager.persistAll(entity.")
                             .append(field.getGetter())
@@ -410,10 +482,10 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                 .filter(it -> Objects.nonNull(it.getGetter()))
                 .map(field ->
                     isAnnotationPresent(field.getElement(), ParentShard.class) ||
-                            isAnnotationPresentByType(field.getElement().asType(), ShardEntity.class) ||
-                            isAnnotationPresentInArgument(field.getElement().asType(), ShardEntity.class) ?
+                            isAnnotationPresentByType(field, ShardEntity.class) ||
+                            isAnnotationPresentInArgument(field, ShardEntity.class) ?
                             "        entityManager." +
-                                    (isAnnotationPresentInArgument(field.getElement().asType(), ShardEntity.class) ?
+                                    (isAnnotationPresentInArgument(field, ShardEntity.class) ?
                                             "setAllStorage" :
                                             "setStorage"
                                     ) + "(entity." + field.getGetter() + "(), " +
@@ -438,10 +510,10 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                 .filter(it -> Objects.nonNull(it.getGetter()))
                 .map(field -> {
                     String code = "";
-                    if (isAnnotationPresentByType(field.getElement().asType(), ShardEntity.class)) {
+                    if (isAnnotationPresentByType(field, ShardEntity.class)) {
                         code = "        entityManager.generateId(entity." + field.getGetter() + "());\n";
                     }
-                    if (isAnnotationPresentInArgument(field.getElement().asType(), ShardEntity.class)) {
+                    if (isAnnotationPresentInArgument(field, ShardEntity.class)) {
                         code = "        entityManager.generateAllId(entity." + field.getGetter() + "());\n";
                         if (field.getIsLinked()) {
                             String linkedSetter = findSetterByLinkedColumn(field);
