@@ -12,8 +12,10 @@ import com.antalex.db.model.dto.ClassDto;
 import com.antalex.db.model.dto.FieldDto;
 import com.google.auto.service.AutoService;
 import com.google.common.base.CaseFormat;
+import com.sun.xml.internal.bind.v2.runtime.IllegalAnnotationException;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.annotation.AnnotationConfigurationException;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.processing.*;
@@ -328,7 +330,13 @@ public class ShardedEntityProcessor extends AbstractProcessor {
             out.println("public class " + className + " extends " + classDto.getTargetClassName() + " {");
             out.println("   private boolean changed;");
             out.println();
-            out.println("   public boolean isChanged() {\n       return this.changed;\n   }");
+            out.println("   public boolean isChanged() {\n" +
+                    "       return this.changed ||\n" +
+                    "               Optional.ofNullable(this.storageAttributes)\n" +
+                    "                       .map(StorageAttributes::getOriginalShardValue)\n" +
+                    "                       .map(original -> !original.equals(this.storageAttributes.getShardValue()))\n" +
+                    "                       .orElse(false);\n" +
+                    "   }\n");
             out.println(getGettersCode(classDto));
             out.println();
             out.println(getSettersCode(classDto));
