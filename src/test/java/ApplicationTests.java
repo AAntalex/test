@@ -1,12 +1,9 @@
-import com.antalex.db.model.Shard;
 import com.antalex.db.service.ShardDataBaseManager;
 import com.antalex.db.service.ShardEntityManager;
 import com.antalex.db.utils.ShardUtils;
 import com.antalex.domain.persistence.entity.AdditionalParameterEntity;
-import com.antalex.domain.persistence.entity.hiber.TestAEntity;
 import com.antalex.domain.persistence.entity.hiber.TestBEntity;
 import com.antalex.domain.persistence.entity.shard.TestBShardEntity;
-import com.antalex.domain.persistence.entity.shard.TestBShardEntityExt;
 import com.antalex.domain.persistence.repository.AdditionalParameterRepository;
 import com.antalex.domain.persistence.repository.TestARepository;
 import com.antalex.domain.persistence.repository.TestBRepository;
@@ -15,7 +12,6 @@ import com.antalex.profiler.service.ProfilerService;
 import com.antalex.service.AdditionalParameterService;
 import com.antalex.service.TestService;
 import com.antalex.service.TestShardService;
-import com.antalex.service.impl.TestBShardEntityRepository;
 import org.hibernate.dialect.Dialect;
 import org.hibernate.engine.jdbc.dialect.internal.StandardDialectResolver;
 import org.hibernate.engine.jdbc.dialect.spi.DatabaseMetaDataDialectResolutionInfoAdapter;
@@ -28,7 +24,6 @@ import org.springframework.test.context.junit4.SpringRunner;
 
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
-import javax.persistence.EntityTransaction;
 import java.sql.Connection;
 import java.util.List;
 

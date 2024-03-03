@@ -10,7 +10,6 @@ import com.antalex.domain.persistence.entity.shard.TestBShardEntityInterceptor$;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import javax.persistence.EntityManager;
 import javax.persistence.EntityTransaction;
 
 @Component
