@@ -206,7 +206,11 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
                                             )
                             );
                             setDependentStorage(entity);
-                            return false;
+                            return Optional.ofNullable(parent)
+                                    .map(ShardInstance::getStorageAttributes)
+                                    .map(StorageAttributes::getTemporary)
+                                    .orElse(false) &&
+                                    Objects.nonNull(entity.getStorageAttributes().getShard());
                         }))
         {
             parent.setStorageAttributes(
