@@ -6,4 +6,5 @@ public interface SharedTransactionManager {
     EntityTransaction getTransaction();
     EntityTransaction getCurrentTransaction();
     void setAutonomousTransaction();
+    void setParallelRun(Boolean parallelRun);
 }

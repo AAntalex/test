@@ -21,12 +21,14 @@ public class TransactionalSQLTask extends AbstractTransactionalTask {
 
     @Override
     public void commit() throws SQLException {
+
         this.connection.commit();
     }
 
     @Override
     public void rollback() throws SQLException {
         this.connection.rollback();
+
     }
 
     @Override

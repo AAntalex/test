@@ -21,10 +21,15 @@ public class SharedEntityTransaction implements EntityTransaction {
     private String error;
     private String errorCommit;
     private UUID uid;
+    private Boolean parallelRun;
 
     private List<TransactionalTask> tasks = new ArrayList<>();
     private Map<Integer, TransactionalTask> currentTasks = new HashMap<>();
-    private Map<Integer, Chunk> chunks = new HashMap<>();
+    private Map<Integer, Bucket> buckets = new HashMap<>();
+
+    SharedEntityTransaction(Boolean parallelRun) {
+        this.parallelRun = parallelRun;
+    }
 
     @Override
     public void begin() {
@@ -38,17 +43,24 @@ public class SharedEntityTransaction implements EntityTransaction {
     public void rollback() {
         tasks.clear();
         currentTasks.clear();
-        chunks.clear();
+        buckets.clear();
         this.completed = true;
     }
 
     @Override
     public void commit() {
-        this.tasks.forEach(TransactionalTask::run);
+        this.tasks.forEach(task -> task.run(parallelRun && this.tasks.size() > 1));
         this.tasks.forEach(task -> {
             task.waitTask();
             this.error = processTask(task, task.getError(), this.error, SQL_ERROR_TEXT);
         });
+
+
+        getCurrentTask().addStepBeforeCommit();
+        getCurrentTask().addStepAfterRollback();
+
+
+
         this.tasks.forEach(task -> task.completion(this.hasError));
         this.tasks.forEach(TransactionalTask::finish);
         this.tasks.forEach(task ->
@@ -108,9 +120,9 @@ public class SharedEntityTransaction implements EntityTransaction {
     public TransactionalTask getCurrentTask(Shard shard, boolean limitParallel) {
         return Optional.ofNullable(currentTasks.get(shard.getHashCode()))
                 .orElse(
-                        Optional.ofNullable(chunks.get(shard.getHashCode()))
+                        Optional.ofNullable(buckets.get(shard.getHashCode()))
                                 .filter(it -> limitParallel)
-                                .map(Chunk::getTask)
+                                .map(Bucket::getTask)
                                 .map(task -> {
                                     currentTasks.put(shard.getHashCode(), task);
                                     return task;
@@ -122,14 +134,19 @@ public class SharedEntityTransaction implements EntityTransaction {
     public void addTask(Shard shard, TransactionalTask task) {
         currentTasks.put(shard.getHashCode(), task);
         tasks.add(task);
-        task.setName("Task " + tasks.size());
-        Optional.ofNullable(chunks.get(shard.getHashCode()))
+        Optional.ofNullable(buckets.get(shard.getHashCode()))
                 .orElseGet(() -> {
-                    Chunk chunk = new Chunk();
-                    chunks.put(shard.getHashCode(), chunk);
+                    Bucket chunk = new Bucket();
+                    buckets.put(shard.getHashCode(), chunk);
                     return chunk;
                 })
                 .addTask(task);
+
+        int chunkSize = buckets.get(shard.getHashCode()).chunkSize();
+        task.setName(
+                "TRN: " + this.uid + "(shard: " + shard.getName() +
+                        (chunkSize > 1 ? ", chunk: " + chunkSize : ")")
+        );
     }
 
     public void addParallel() {
@@ -154,9 +171,13 @@ public class SharedEntityTransaction implements EntityTransaction {
         return errorText;
     }
 
-    private class Chunk {
+    private class Bucket {
         private List<TransactionalTask> chunks = new ArrayList<>();
         private int currentIndex;
+
+        int chunkSize() {
+            return chunks.size();
+        }
 
         void addTask(TransactionalTask task) {
             chunks.add(task);

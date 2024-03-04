@@ -9,6 +9,7 @@ import java.util.Optional;
 @Component
 public class SharedTransactionManagerImpl implements SharedTransactionManager {
     private ThreadLocal<SharedEntityTransaction> transaction = new ThreadLocal<>();
+    private Boolean parallelRun;
 
     @Override
     public EntityTransaction getTransaction() {
@@ -18,7 +19,7 @@ public class SharedTransactionManagerImpl implements SharedTransactionManager {
                     this.transaction.set(
                             Optional.ofNullable(this.transaction.get())
                                     .map(SharedEntityTransaction::getParentTransaction)
-                                    .orElse(new SharedEntityTransaction())
+                                    .orElse(new SharedEntityTransaction(this.parallelRun))
                     );
                     return this.transaction.get();
                 });
@@ -31,13 +32,13 @@ public class SharedTransactionManagerImpl implements SharedTransactionManager {
 
     @Override
     public void setAutonomousTransaction() {
-        SharedEntityTransaction transaction = new SharedEntityTransaction();
+        SharedEntityTransaction transaction = new SharedEntityTransaction(this.parallelRun);
         transaction.setParentTransaction(this.transaction.get());
         this.transaction.set(transaction);
     }
 
-    public SharedEntityTransaction createTransaction() {
-        return null;
+    @Override
+    public void setParallelRun(Boolean parallelRun) {
+        this.parallelRun = parallelRun;
     }
-
 }

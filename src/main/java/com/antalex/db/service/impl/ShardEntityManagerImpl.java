@@ -17,9 +17,9 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.core.GenericTypeResolver;
 import org.springframework.stereotype.Component;
 
-import javax.persistence.EntityManager;
 import javax.persistence.EntityTransaction;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Component
 @Primary
@@ -90,7 +90,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
         boolean isAurTransaction = startTransaction();
         persist(entity);
         if (isAurTransaction) {
-            getTransaction().commit();
+            flush();
         }
         return entity;
     }
@@ -103,7 +103,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
         boolean isAurTransaction = startTransaction();
         entities.forEach(it -> it = save(it));
         if (isAurTransaction) {
-            getTransaction().commit();
+            flush();
         }
         return entities;
     }
@@ -310,12 +310,23 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
     @Override
     public <T extends ShardInstance> TransactionalQuery createQuery(T entity, String query, QueryType queryType) {
         Shard shard = entity.getStorageAttributes().getShard();
-        return createQuery(shard, query, queryType);
+        if (
+                queryType == QueryType.DML &&
+                        !entity.getStorageAttributes().getShardValue().equals(ShardUtils.getShardValue(shard.getId())))
+        {
+            throw new IllegalStateException(
+                    "Для реплицируемых или мульти-шардовых сущностей" +
+                            " слеует использовать метод createQueries вместо createQuery!"
+            );
+        }
+        return this.createQuery(shard, query, queryType);
     }
 
     @Override
     public <T extends ShardInstance> Iterable<TransactionalQuery> createQueries(T entity, String query, QueryType queryType) {
-        return null;
+        return dataBaseManager.getAllShards(entity)
+                .map(shard -> this.createQuery(shard, query, queryType))
+                .collect(Collectors.toList());
     }
 
     private TransactionalQuery createQuery(Shard shard, String query, QueryType queryType) {

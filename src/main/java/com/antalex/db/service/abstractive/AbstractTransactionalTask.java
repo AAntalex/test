@@ -25,9 +25,9 @@ public abstract class AbstractTransactionalTask implements TransactionalTask {
     private List<Step> rollbackSteps = new ArrayList<>();
 
     @Override
-    public void run() {
+    public void run(Boolean parallelRun) {
         if (this.status == TaskStatus.CREATED) {
-            this.future = this.executorService.submit(() ->
+            Runnable target = () ->
                     steps.stream()
                             .anyMatch(step -> {
                                 try {
@@ -37,9 +37,15 @@ public abstract class AbstractTransactionalTask implements TransactionalTask {
                                     this.error = step.name + ":\n" + err.getLocalizedMessage();
                                 }
                                 return Objects.nonNull(this.error);
-                            })
-            );
-            this.status = TaskStatus.RUNNING;
+                            });
+            if (parallelRun) {
+                this.future = this.executorService.submit(target);
+                this.status = TaskStatus.RUNNING;
+            } else {
+                target.run();
+                this.status = TaskStatus.DONE;
+                this.parallelCommit = false;
+            }
         }
     }
 
@@ -162,6 +168,11 @@ public abstract class AbstractTransactionalTask implements TransactionalTask {
         return this.errorCompletion;
     }
 
+    @Override
+    public void setParallelCommit(boolean parallelCommit) {
+        this.parallelCommit = parallelCommit;
+    }
+
     private class Step {
         private Runnable target;
         private String name;
@@ -170,10 +181,5 @@ public abstract class AbstractTransactionalTask implements TransactionalTask {
             this.target = target;
             this.name = name;
         }
-    }
-
-    @Override
-    public void setParallelCommit(boolean parallelCommit) {
-        this.parallelCommit = parallelCommit;
     }
 }

@@ -28,7 +28,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Slf4j
 @Service
@@ -81,6 +81,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         this.resourceLoader = resourceLoader;
         this.shardDataBaseConfig = shardDataBaseConfig;
         this.sharedTransactionManager = sharedTransactionManager;
+        this.sharedTransactionManager.setParallelRun(true);
         this.taskFactory = taskFactory;
         this.externalTaskFactory = externalTaskFactory;
         this.executorService = Executors.newCachedThreadPool();
@@ -200,12 +201,20 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     }
 
     @Override
-    public List<Shard> getShardsFromValue(Cluster cluster, Long shardValue) {
-        return cluster
+    public Stream<Shard> getAllShards(ShardInstance entity) {
+        return entity
+                .getStorageAttributes()
+                .getCluster()
                 .getShards()
                 .stream()
-                .filter(shard -> Long.compare(ShardUtils.getShardValue(shard.getId()) & shardValue, 0L) > 0)
-                .collect(Collectors.toList());
+                .filter(shard ->
+                        entity.getStorageAttributes().getShardValue().equals(0L) ||
+                                Long.compare(
+                                        ShardUtils.getShardValue(shard.getId()) &
+                                                entity.getStorageAttributes().getShardValue(),
+                                        0L
+                                ) > 0
+                );
     }
 
     @Override

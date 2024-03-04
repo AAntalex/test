@@ -12,10 +12,8 @@ import com.antalex.db.model.dto.ClassDto;
 import com.antalex.db.model.dto.FieldDto;
 import com.google.auto.service.AutoService;
 import com.google.common.base.CaseFormat;
-import com.sun.xml.internal.bind.v2.runtime.IllegalAnnotationException;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.annotation.AnnotationConfigurationException;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.processing.*;
@@ -421,6 +419,9 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                         "    }\n" +
                         "\n" +
                         "    private void persist(" + classDto.getTargetClassName() + " entity, boolean force) {\n" +
+                        "        if (SHARD_TYPE == ShardType.REPLICABLE) {\n" +
+                        "            entity.getStorageAttributes().setShardValue(0L);\n" +
+                        "        }\n" +
                         "        if (\n" +
                         "                force || \n" +
                         "                        !entity.getStorageAttributes().getStored() || \n" +

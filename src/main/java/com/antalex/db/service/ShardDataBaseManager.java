@@ -9,7 +9,7 @@ import com.antalex.db.service.api.TransactionalTask;
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.util.List;
+import java.util.stream.Stream;
 
 public interface ShardDataBaseManager {
     Connection getConnection() throws SQLException;
@@ -18,7 +18,7 @@ public interface ShardDataBaseManager {
     Cluster getCluster(String clusterName);
     Cluster getDefaultCluster();
     Shard getShard(Cluster cluster, Short id);
-    List<Shard> getShardsFromValue(Cluster cluster, Long shardValue);
+    Stream<Shard> getAllShards(ShardInstance entity);
     void generateId(ShardInstance entity);
     Connection getConnection(Short clusterId, Short shardId) throws SQLException;
     StorageAttributes getStorageAttributes(Long id, Long shardValue);

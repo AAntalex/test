@@ -8,7 +8,7 @@ public interface TransactionalTask {
     Boolean needCommit();
     void completion(boolean rollback);
     void finish();
-    void run();
+    void run(Boolean parallelRun);
     void waitTask();
     TransactionalQuery addQuery(String query, QueryType queryType);
     TransactionalQuery addQuery(String query, QueryType queryType, String name);
