@@ -23,6 +23,12 @@ databaseChangeLog:
                 nullable: false
                 primaryKeyName: PK_TEST_A_ID
           - column:
+              name: SN
+              type: int
+          - column:
+              name: ST
+              type: uuid
+          - column:
               name: SHARD_VALUE
               type: bigint
           - column:
@@ -41,6 +47,12 @@ databaseChangeLog:
                 primaryKey: true
                 nullable: false
                 primaryKeyName: PK_TEST_B_ID
+          - column:
+              name: SN
+              type: int
+          - column:
+              name: ST
+              type: uuid
           - column:
               name: SHARD_VALUE
               type: bigint
@@ -68,6 +80,12 @@ databaseChangeLog:
                 primaryKey: true
                 nullable: false
                 primaryKeyName: PK_TEST_C_ID
+          - column:
+              name: SN
+              type: int
+          - column:
+              name: ST
+              type: uuid
           - column:
               name: SHARD_VALUE
               type: bigint

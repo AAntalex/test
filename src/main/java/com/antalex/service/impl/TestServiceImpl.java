@@ -20,7 +20,7 @@ import java.util.List;
 @Service
 public class TestServiceImpl implements TestService{
     private static final String INS_B_QUERY = "INSERT INTO TEST_B (ID,SHARD_VALUE,C_VALUE,C_NEW_VALUE) VALUES (?,?,?,?)";
-    private static final String INS_C_QUERY = "INSERT INTO TEST_C (ID,SHARD_VALUE,C_VALUE,C_NEW_VALUE,C_B_REF) VALUES (SEQ_ID.NEXTVAL,?,?,?,?)";
+    private static final String INS_C_QUERY = "INSERT INTO TEST_C (ID,SHARD_VALUE,C_VALUE,C_NEW_VALUE,C_B_REF) VALUES (?,?,?,?,?)";
 
 
     private final DataSource dataSource;
@@ -83,7 +83,7 @@ public class TestServiceImpl implements TestService{
             entities.forEach(
                     entity -> {
                         try {
-                            entity.setId(databaseManager.sequenceNextVal());
+                            entity.setId(databaseManager.sequenceNextVal() * 10000L);
                             preparedBStatement.setLong(1, entity.getId());
                             preparedBStatement.setLong(2, entity.getShardValue());
                             preparedBStatement.setString(3, entity.getValue());
@@ -92,10 +92,12 @@ public class TestServiceImpl implements TestService{
 
                             entity.getCList().forEach(cEntity -> {
                                 try {
-                                    preparedCStatement.setLong(1, cEntity.getShardValue());
-                                    preparedCStatement.setString(2, cEntity.getValue());
-                                    preparedCStatement.setString(3, cEntity.getNewValue());
-                                    preparedCStatement.setLong(4, entity.getId());
+                                    cEntity.setId(databaseManager.sequenceNextVal() * 10000L);
+                                    preparedCStatement.setLong(1, cEntity.getId());
+                                    preparedCStatement.setLong(2, cEntity.getShardValue());
+                                    preparedCStatement.setString(3, cEntity.getValue());
+                                    preparedCStatement.setString(4, cEntity.getNewValue());
+                                    preparedCStatement.setLong(5, entity.getId());
                                     preparedCStatement.addBatch();
 
                                 } catch (SQLException err) {
