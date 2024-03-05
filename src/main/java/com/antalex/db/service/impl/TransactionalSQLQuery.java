@@ -13,10 +13,13 @@ public class TransactionalSQLQuery implements TransactionalQuery, Runnable {
     private ResultSet result;
     private int currentIndex;
     private boolean isButch;
+    private int count;
+    private String query;
 
-    TransactionalSQLQuery(QueryType queryType, PreparedStatement preparedStatement) {
+    TransactionalSQLQuery(String query, QueryType queryType, PreparedStatement preparedStatement) {
         this.queryType = queryType;
         this.preparedStatement = preparedStatement;
+        this.query = query;
     }
 
     @Override
@@ -26,9 +29,11 @@ public class TransactionalSQLQuery implements TransactionalQuery, Runnable {
                 if (this.isButch) {
                     preparedStatement.executeBatch();
                 } else {
+                    this.count = 1;
                     preparedStatement.executeUpdate();
                 }
             } else {
+                this.count = 1;
                 this.result = preparedStatement.executeQuery();
             }
         } catch (SQLException err) {
@@ -48,6 +53,7 @@ public class TransactionalSQLQuery implements TransactionalQuery, Runnable {
 
     @Override
     public TransactionalQuery addBatch() {
+        this.count++;
         this.currentIndex = 0;
         this.isButch = true;
         try {
@@ -60,11 +66,21 @@ public class TransactionalSQLQuery implements TransactionalQuery, Runnable {
 
     @Override
     public String getQuery() {
-        return preparedStatement.toString();
+        return this.query;
     }
 
     @Override
     public ResultSet getResult() {
         return result;
+    }
+
+    @Override
+    public QueryType getQueryType() {
+        return queryType;
+    }
+
+    @Override
+    public int getCount() {
+        return count;
     }
 }

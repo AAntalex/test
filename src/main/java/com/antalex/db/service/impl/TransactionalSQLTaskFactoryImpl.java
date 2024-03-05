@@ -1,5 +1,6 @@
 package com.antalex.db.service.impl;
 
+import com.antalex.db.model.Shard;
 import com.antalex.db.service.api.TransactionalSQLTaskFactory;
 import com.antalex.db.service.api.TransactionalTask;
 import org.springframework.stereotype.Component;
@@ -13,8 +14,8 @@ public class TransactionalSQLTaskFactoryImpl implements TransactionalSQLTaskFact
     private boolean parallelCommit;
 
     @Override
-    public TransactionalTask createTask(Connection connection) {
-        return new TransactionalSQLTask(connection, executorService);
+    public TransactionalTask createTask(Shard shard, Connection connection) {
+        return new TransactionalSQLTask(shard, connection, executorService);
     }
 
     @Override

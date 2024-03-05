@@ -1,5 +1,6 @@
 package com.antalex.db.service.abstractive;
 
+import com.antalex.db.model.Shard;
 import com.antalex.db.model.enums.QueryType;
 import com.antalex.db.model.enums.TaskStatus;
 import com.antalex.db.service.api.TransactionalQuery;
@@ -9,20 +10,29 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Slf4j
 public abstract class AbstractTransactionalTask implements TransactionalTask {
+    private static final String DELIMETER_CONTENT = "\n";
+
     protected ExecutorService executorService;
     protected String name;
-    protected String error;
     protected String errorCompletion;
     protected Future future;
     protected TaskStatus status = TaskStatus.CREATED;
     protected boolean parallelCommit;
-    protected Map<String, TransactionalQuery> queries = new HashMap<>();
+    protected Shard shard;
+
+    private String error;
+    private Map<String, TransactionalQuery> queries = new HashMap<>();
+    private TransactionalTask mainTask;
     private List<Step> steps = new ArrayList<>();
     private List<Step> commitSteps = new ArrayList<>();
     private List<Step> rollbackSteps = new ArrayList<>();
+    private List<Step> afterCommitSteps = new ArrayList<>();
+    private List<Step> afterRollbackSteps = new ArrayList<>();
 
     @Override
     public void run(Boolean parallelRun) {
@@ -88,21 +98,22 @@ public abstract class AbstractTransactionalTask implements TransactionalTask {
             }
             if (steps.size() > 0) {
                 Runnable target = () ->
-                        steps.stream()
-                                .anyMatch(step -> {
-                                    try {
-                                        log.debug(
-                                                String.format(
-                                                        "%s for \"%s\", step \"%s\"...",
-                                                        rollback ? "ROLLBACK" : "COMMIT",
-                                                        this.name,
-                                                        step.name)
-                                        );
-                                        step.target.run();
-                                    } catch (Exception err) {
-                                        this.errorCompletion = err.getLocalizedMessage();
+                        Stream.concat(steps.stream(), (rollback ? afterRollbackSteps : afterCommitSteps).stream())
+                                .forEachOrdered(step -> {
+                                    if (this.errorCompletion == null) {
+                                        try {
+                                            log.debug(
+                                                    String.format(
+                                                            "%s for \"%s\", step \"%s\"...",
+                                                            rollback ? "ROLLBACK" : "COMMIT",
+                                                            this.name,
+                                                            step.name)
+                                            );
+                                            step.target.run();
+                                        } catch (Exception err) {
+                                            this.errorCompletion = err.getLocalizedMessage();
+                                        }
                                     }
-                                    return Objects.nonNull(this.errorCompletion);
                                 });
                 if (this.parallelCommit) {
                     this.future = this.executorService.submit(target);
@@ -144,8 +155,32 @@ public abstract class AbstractTransactionalTask implements TransactionalTask {
     }
 
     @Override
-    public TransactionalQuery addQuery(String query, QueryType queryType) {
-        return addQuery(query, queryType, query);
+    public void addStepAfterCommit(Runnable target, String name) {
+        afterCommitSteps.add(new Step(target, name));
+    }
+
+    @Override
+    public void addStepAfterCommit(Runnable target) {
+        addStepAfterCommit(target, String.valueOf(afterCommitSteps.size() + 1));
+    }
+
+    @Override
+    public void addStepAfterRollback(Runnable target, String name) {
+        afterRollbackSteps.add(new Step(target, name));
+    }
+
+    @Override
+    public void addStepAfterRollback(Runnable target) {
+        addStepAfterRollback(target, String.valueOf(afterRollbackSteps.size() + 1));
+    }
+
+    @Override
+    public List<TransactionalQuery> getDmlQueries() {
+        return queries.entrySet()
+                .stream()
+                .map(Map.Entry::getValue)
+                .filter(it -> it.getQueryType() == QueryType.DML)
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -181,5 +216,31 @@ public abstract class AbstractTransactionalTask implements TransactionalTask {
             this.target = target;
             this.name = name;
         }
+    }
+
+    @Override
+    public TransactionalTask getMainTask() {
+        return this.mainTask;
+    }
+
+    @Override
+    public void setMainTask(TransactionalTask mainTask) {
+        this.mainTask = mainTask;
+    }
+
+    @Override
+    public TransactionalQuery addQuery(String query, QueryType queryType, String name) {
+        TransactionalQuery transactionalQuery = this.queries.get(query);
+        if (transactionalQuery == null) {
+            transactionalQuery = createQuery(query, queryType);
+            this.queries.put(query, transactionalQuery);
+            this.addStep((Runnable) transactionalQuery, name);
+        }
+        return transactionalQuery;
+    }
+
+    @Override
+    public TransactionalQuery addQuery(String query, QueryType queryType) {
+        return addQuery(query, queryType, query);
     }
 }

@@ -1,13 +1,21 @@
 package com.antalex.db.service.impl;
 
 import com.antalex.db.model.Shard;
+import com.antalex.db.model.enums.QueryType;
+import com.antalex.db.service.api.TransactionalQuery;
 import com.antalex.db.service.api.TransactionalTask;
+import com.antalex.db.utils.ShardUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import javax.persistence.EntityTransaction;
+import java.sql.Timestamp;
 import java.util.*;
 
 public class SharedEntityTransaction implements EntityTransaction {
+    private static final String SAVE_TRANSACTION_QUERY = "INSERT INTO $$$.APP_TRANSACTION " +
+            "(UUID,EXECUTE_TIME,FAILED,ERROR) VALUES (?,?,?,?)";
+    private static final String SAVE_DML_QUERY = "INSERT INTO $$$.APP_DML_QUERY " +
+            "(TRN_UUID,QUERY_ORDER,QUERY,ROWS) VALUES (?,?,?,?)";
     private static final String SQL_ERROR_TEXT = "Ошибки при выполнении запроса: ";
     private static final String SQL_ERROR_COMMIT_TEXT = "Ошибки при подтверждении транзакции: ";
     private static final String SQL_ERROR_ROLLBACK_TEXT = "Ошибки при откате транзакции: ";
@@ -20,7 +28,7 @@ public class SharedEntityTransaction implements EntityTransaction {
     private boolean hasError;
     private String error;
     private String errorCommit;
-    private UUID uid;
+    private UUID uuid;
     private Boolean parallelRun;
 
     private List<TransactionalTask> tasks = new ArrayList<>();
@@ -34,7 +42,7 @@ public class SharedEntityTransaction implements EntityTransaction {
     @Override
     public void begin() {
         if (!this.active) {
-            this.uid = UUID.randomUUID();
+            this.uuid = UUID.randomUUID();
             this.active = true;
         }
     }
@@ -54,13 +62,7 @@ public class SharedEntityTransaction implements EntityTransaction {
             task.waitTask();
             this.error = processTask(task, task.getError(), this.error, SQL_ERROR_TEXT);
         });
-
-
-        getCurrentTask().addStepBeforeCommit();
-        getCurrentTask().addStepAfterRollback();
-
-
-
+        prepareSaveTransaction();
         this.tasks.forEach(task -> task.completion(this.hasError));
         this.tasks.forEach(TransactionalTask::finish);
         this.tasks.forEach(task ->
@@ -113,8 +115,8 @@ public class SharedEntityTransaction implements EntityTransaction {
         return this.completed;
     }
 
-    public UUID getUid() {
-        return uid;
+    public UUID getUuid() {
+        return uuid;
     }
 
     public TransactionalTask getCurrentTask(Shard shard, boolean limitParallel) {
@@ -134,6 +136,7 @@ public class SharedEntityTransaction implements EntityTransaction {
     public void addTask(Shard shard, TransactionalTask task) {
         currentTasks.put(shard.getHashCode(), task);
         tasks.add(task);
+
         Optional.ofNullable(buckets.get(shard.getHashCode()))
                 .orElseGet(() -> {
                     Bucket chunk = new Bucket();
@@ -144,7 +147,7 @@ public class SharedEntityTransaction implements EntityTransaction {
 
         int chunkSize = buckets.get(shard.getHashCode()).chunkSize();
         task.setName(
-                "TRN: " + this.uid + "(shard: " + shard.getName() +
+                "TRN: " + this.uuid + "(shard: " + shard.getName() +
                         (chunkSize > 1 ? ", chunk: " + chunkSize : ")")
         );
     }
@@ -180,6 +183,9 @@ public class SharedEntityTransaction implements EntityTransaction {
         }
 
         void addTask(TransactionalTask task) {
+            if (!chunks.isEmpty()) {
+                task.setMainTask(chunks.get(0));
+            }
             chunks.add(task);
         }
 
@@ -192,5 +198,52 @@ public class SharedEntityTransaction implements EntityTransaction {
             }
             return chunks.get(currentIndex++);
         }
+
+        TransactionalTask mainTask() {
+            if (chunks.isEmpty()) {
+                return null;
+            }
+            return chunks.get(0);
+        }
+    }
+
+    private void prepareSaveTransaction() {
+        this.buckets.entrySet()
+                .stream()
+                .map(Map.Entry::getValue)
+                .map(Bucket::mainTask)
+                .filter(it -> !it.getDmlQueries().isEmpty())
+                .forEach(task -> {
+                    TransactionalQuery saveTransactionQuery = task.createQuery(SAVE_TRANSACTION_QUERY, QueryType.DML)
+                            .bind(this.uuid)
+                            .bind(new Timestamp(System.currentTimeMillis()))
+                            .bind(this.hasError)
+                            .bind(this.error);
+
+                    TransactionalQuery saveDMLQuery = task.createQuery(SAVE_DML_QUERY, QueryType.DML);
+                    int idx = 0;
+                    for (TransactionalQuery query : task.getDmlQueries()) {
+                        saveDMLQuery
+                                .bind(this.uuid)
+                                .bind(++idx)
+                                .bind(query.getQuery())
+                                .bind(query.getCount())
+                                .addBatch();
+                    }
+                    if (this.hasError) {
+                        task.addStepAfterRollback((Runnable) saveTransactionQuery, SAVE_TRANSACTION_QUERY);
+                        task.addStepAfterRollback((Runnable) saveDMLQuery, SAVE_DML_QUERY);
+                        task.addStepAfterRollback(() -> {
+                            try {
+                                task.commit();
+                            } catch (Exception err) {
+                                throw new RuntimeException(err);
+                            }
+                        });
+                    } else {
+                        task.addStepBeforeCommit((Runnable) saveTransactionQuery, SAVE_TRANSACTION_QUERY);
+                        task.addStepBeforeCommit((Runnable) saveDMLQuery, SAVE_DML_QUERY);
+                    }
+                });
     }
 }

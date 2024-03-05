@@ -5,6 +5,7 @@ import org.springframework.stereotype.Component;
 
 import javax.persistence.EntityTransaction;
 import java.util.Optional;
+import java.util.UUID;
 
 @Component
 public class SharedTransactionManagerImpl implements SharedTransactionManager {
@@ -40,5 +41,12 @@ public class SharedTransactionManagerImpl implements SharedTransactionManager {
     @Override
     public void setParallelRun(Boolean parallelRun) {
         this.parallelRun = parallelRun;
+    }
+
+    @Override
+    public UUID getTransactionUUID() {
+        return Optional.ofNullable(this.transaction.get())
+                .map(SharedEntityTransaction::getUuid)
+                .orElse(null);
     }
 }

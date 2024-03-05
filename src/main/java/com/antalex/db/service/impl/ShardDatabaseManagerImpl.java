@@ -108,8 +108,8 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                 .orElseGet(() -> {
                     try {
                         TransactionalTask task = shard.getExternal() ?
-                                externalTaskFactory.createTask() :
-                                taskFactory.createTask(getConnection(shard));
+                                externalTaskFactory.createTask(shard) :
+                                taskFactory.createTask(shard, getConnection(shard));
                         transaction.addTask(shard, task);
                         return task;
                     } catch (Exception err) {
@@ -202,19 +202,25 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
 
     @Override
     public Stream<Shard> getAllShards(ShardInstance entity) {
-        return entity
-                .getStorageAttributes()
-                .getCluster()
-                .getShards()
-                .stream()
-                .filter(shard ->
-                        entity.getStorageAttributes().getShardValue().equals(0L) ||
-                                Long.compare(
-                                        ShardUtils.getShardValue(shard.getId()) &
-                                                entity.getStorageAttributes().getShardValue(),
-                                        0L
-                                ) > 0
-                );
+        return getShardsFromValue(
+                entity,
+                entity.getStorageAttributes().getStored() ?
+                        entity.getStorageAttributes().getOriginalShardValue() :
+                        entity.getStorageAttributes().getShardValue(),
+                false
+        );
+    }
+
+    @Override
+    public Stream<Shard> getNewShards(ShardInstance entity) {
+        return getShardsFromValue(
+                entity,
+                entity.getStorageAttributes().getStored() ?
+                        entity.getStorageAttributes().getOriginalShardValue() ^
+                                entity.getStorageAttributes().getShardValue() :
+                        0L,
+                true
+        );
     }
 
     @Override
@@ -282,6 +288,18 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                                         .equals(Optional.ofNullable(this.segment).orElse(StringUtils.EMPTY))
                 )
                 .orElse(true);
+    }
+
+    private Stream<Shard> getShardsFromValue(ShardInstance entity, Long shardValue, boolean onlyNew) {
+        return entity
+                .getStorageAttributes()
+                .getCluster()
+                .getShards()
+                .stream()
+                .filter(shard ->
+                        !onlyNew && shardValue.equals(0L) ||
+                                Long.compare(ShardUtils.getShardValue(shard.getId()) & shardValue, 0L) > 0
+                );
     }
 
     private Shard getNextShard(Cluster cluster) {
@@ -448,8 +466,8 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                     TransactionalSQLTask task = (TransactionalSQLTask) getTransactionalTask(shard);
                     task.setName(String.format("GET DataBase Info on shard '%s'", shard.getName()));
                     TransactionalSQLQuery query = (TransactionalSQLQuery) task.addQuery(
-                            ShardUtils.transformSQL(SELECT_DB_INFO, shard),
-                            QueryType.SELCT
+                            SELECT_DB_INFO,
+                            QueryType.SELECT
                     );
                     task.addStep(() -> {
                         try {
@@ -515,7 +533,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
 
         TransactionalSQLTask task = (TransactionalSQLTask) getTransactionalTask(shard);
         task.setName(String.format("SAVE DataBase Info on shard '%s'", shard.getName()));
-        task.addQuery(ShardUtils.transformSQL(INS_DB_INFO, shard), QueryType.DML)
+        task.addQuery(INS_DB_INFO, QueryType.DML)
                 .bind(shard.getDataBaseInfo().getShardId())
                 .bind(shard.getDataBaseInfo().isMainShard())
                 .bind(shard.getDataBaseInfo().getClusterId())

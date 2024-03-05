@@ -7,7 +7,7 @@ public enum QueryType {
     /**
      * Выборка
      */
-    SELCT,
+    SELECT,
     /**
      * DML (INSERT, UPDATE, DELETE)
      */

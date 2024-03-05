@@ -7,6 +7,7 @@ import com.antalex.db.model.enums.ShardType;
 import com.antalex.db.service.api.TransactionalQuery;
 
 import javax.persistence.EntityTransaction;
+import java.util.UUID;
 
 public interface ShardEntityManager {
     <T extends ShardInstance> ShardType getShardType(T entity);
@@ -26,7 +27,9 @@ public interface ShardEntityManager {
     <T extends ShardInstance> T newEntity(Class<T> clazz);
     <T extends ShardInstance> TransactionalQuery createQuery(T entity, String query, QueryType queryType);
     <T extends ShardInstance> Iterable<TransactionalQuery> createQueries(T entity, String query, QueryType queryType);
+    <T extends ShardInstance> Iterable<TransactionalQuery> createNewQueries(T entity, String query);
     EntityTransaction getTransaction();
+    UUID getTransactionUUID();
     void setAutonomousTransaction();
     void addParallel();
     void flush();

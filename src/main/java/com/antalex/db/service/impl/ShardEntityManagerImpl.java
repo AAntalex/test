@@ -293,6 +293,11 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
     }
 
     @Override
+    public UUID getTransactionUUID() {
+        return sharedTransactionManager.getTransactionUUID();
+    }
+
+    @Override
     public void setAutonomousTransaction() {
         sharedTransactionManager.setAutonomousTransaction();
     }
@@ -323,14 +328,25 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
     }
 
     @Override
-    public <T extends ShardInstance> Iterable<TransactionalQuery> createQueries(T entity, String query, QueryType queryType) {
+    public <T extends ShardInstance> Iterable<TransactionalQuery> createQueries(
+            T entity,
+            String query,
+            QueryType queryType)
+    {
         return dataBaseManager.getAllShards(entity)
                 .map(shard -> this.createQuery(shard, query, queryType))
                 .collect(Collectors.toList());
     }
 
+    @Override
+    public <T extends ShardInstance> Iterable<TransactionalQuery> createNewQueries(T entity, String query) {
+        return dataBaseManager.getNewShards(entity)
+                .map(shard -> this.createQuery(shard, query, QueryType.DML))
+                .collect(Collectors.toList());
+    }
+
     private TransactionalQuery createQuery(Shard shard, String query, QueryType queryType) {
-        return dataBaseManager.getTransactionalTask(shard).addQuery(ShardUtils.transformSQL(query, shard), queryType);
+        return dataBaseManager.getTransactionalTask(shard).addQuery(query, queryType);
     }
 
     private boolean startTransaction() {

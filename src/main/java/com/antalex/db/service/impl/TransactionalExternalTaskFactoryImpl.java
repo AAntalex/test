@@ -1,5 +1,6 @@
 package com.antalex.db.service.impl;
 
+import com.antalex.db.model.Shard;
 import com.antalex.db.service.api.TransactionalExternalTaskFactory;
 import com.antalex.db.service.api.TransactionalTask;
 import org.springframework.stereotype.Component;
@@ -11,7 +12,7 @@ public class TransactionalExternalTaskFactoryImpl implements TransactionalExtern
     private ExecutorService executorService;
 
     @Override
-    public TransactionalTask createTask() {
+    public TransactionalTask createTask(Shard shard) {
         throw new UnsupportedOperationException();
     }
 

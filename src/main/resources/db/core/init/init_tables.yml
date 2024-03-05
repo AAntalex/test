@@ -52,3 +52,42 @@ databaseChangeLog:
           - column:
               name: ACCESSIBLE
               type: boolean
+      - createTable:
+          tableName: APP_TRANSACTION
+          columns:
+          - column:
+              name: UUID
+              type: uuid
+              constraints:
+                primaryKey: true
+                nullable: false
+                primaryKeyName: PK_TRANSACTION_UUID
+          - column:
+              name: EXECUTE_TIME
+              type: timestamp
+          - column:
+              name: FAILED
+              type: boolean
+          - column:
+              name: ERROR
+              type: VARCHAR(2000)
+      - createTable:
+          tableName: APP_DML_QUERY
+          columns:
+          - column:
+              name: TRN_UUID
+              type: uuid
+              constraints:
+                foreignKey:
+                  referencedColumnNames: UUID
+                  referencedTableName: APP_TRANSACTION
+                nullable: false
+          - column:
+              name: QUERY_ORDER
+              type: int
+          - column:
+              name: QUERY
+              type: VARCHAR(2000)
+          - column:
+              name: ROWS
+              type: int

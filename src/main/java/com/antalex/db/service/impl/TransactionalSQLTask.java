@@ -1,9 +1,11 @@
 package com.antalex.db.service.impl;
 
+import com.antalex.db.model.Shard;
 import com.antalex.db.model.enums.QueryType;
 import com.antalex.db.model.enums.TaskStatus;
 import com.antalex.db.service.abstractive.AbstractTransactionalTask;
 import com.antalex.db.service.api.TransactionalQuery;
+import com.antalex.db.utils.ShardUtils;
 import lombok.extern.slf4j.Slf4j;
 
 import java.sql.Connection;
@@ -14,9 +16,10 @@ import java.util.concurrent.ExecutorService;
 public class TransactionalSQLTask extends AbstractTransactionalTask {
     private Connection connection;
 
-    TransactionalSQLTask(Connection connection, ExecutorService executorService) {
+    TransactionalSQLTask(Shard shard, Connection connection, ExecutorService executorService) {
         this.connection = connection;
         this.executorService = executorService;
+        this.shard = shard;
     }
 
     @Override
@@ -58,21 +61,16 @@ public class TransactionalSQLTask extends AbstractTransactionalTask {
     }
 
     @Override
-    public TransactionalQuery addQuery(String query, QueryType queryType, String name) {
-        TransactionalQuery transactionalQuery = this.queries.get(query);
-        if (transactionalQuery == null) {
-            try {
-                if (queryType == QueryType.DML) {
-                    connection.setAutoCommit(false);
-                }
-                transactionalQuery = new TransactionalSQLQuery(queryType, connection.prepareStatement(query));
-            } catch (SQLException err) {
-                throw new RuntimeException(err);
+    public TransactionalQuery createQuery(String query, QueryType queryType) {
+        try {
+            if (queryType == QueryType.DML && connection.getAutoCommit()) {
+                connection.setAutoCommit(false);
             }
-            this.queries.put(query, transactionalQuery);
-            this.addStep((Runnable) transactionalQuery, name);
+            String sql = ShardUtils.transformSQL(query, shard);
+            return new TransactionalSQLQuery(sql, queryType, connection.prepareStatement(sql));
+        } catch (SQLException err) {
+            throw new RuntimeException(err);
         }
-        return transactionalQuery;
     }
 
     public Connection getConnection() {
