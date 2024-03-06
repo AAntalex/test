@@ -472,11 +472,19 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                     persistCode
                             .append("                                    .bind(entity.")
                             .append(field.getGetter())
-                            .append("())\n");
+                            .append(
+                                    isAnnotationPresentByType(field, ShardEntity.class) ?
+                                            "().getId())\n" :
+                                            "())\n"
+                            );
 
                     newQueryCode.append("                                        .bind(entity.")
                             .append(field.getGetter())
-                            .append("())\n");
+                            .append(
+                                    isAnnotationPresentByType(field, ShardEntity.class) ?
+                                            "().getId())\n" :
+                                            "())\n"
+                            );
                 }
             }
         }
