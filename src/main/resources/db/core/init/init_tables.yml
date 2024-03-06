@@ -66,6 +66,9 @@ databaseChangeLog:
               name: EXECUTE_TIME
               type: timestamp
           - column:
+              name: DURATION
+              type: bigint
+          - column:
               name: FAILED
               type: boolean
           - column:

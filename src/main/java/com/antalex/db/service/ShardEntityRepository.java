@@ -5,8 +5,8 @@ import com.antalex.db.model.Cluster;
 import com.antalex.db.model.enums.ShardType;
 
 public interface ShardEntityRepository<T extends ShardInstance> {
-    ShardType getShardType(T entity);
-    Cluster getCluster(T entity);
+    ShardType getShardType();
+    Cluster getCluster();
     void generateDependentId(T entity);
     void setDependentStorage(T entity);
     T newEntity(Class<T> clazz);

@@ -4,7 +4,6 @@ import com.antalex.db.model.Shard;
 import com.antalex.db.model.enums.QueryType;
 import com.antalex.db.service.api.TransactionalQuery;
 import com.antalex.db.service.api.TransactionalTask;
-import com.antalex.db.utils.ShardUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import javax.persistence.EntityTransaction;
@@ -13,7 +12,7 @@ import java.util.*;
 
 public class SharedEntityTransaction implements EntityTransaction {
     private static final String SAVE_TRANSACTION_QUERY = "INSERT INTO $$$.APP_TRANSACTION " +
-            "(UUID,EXECUTE_TIME,FAILED,ERROR) VALUES (?,?,?,?)";
+            "(UUID,EXECUTE_TIME,FAILED,ERROR,DURATION) VALUES (?,?,?,?,?)";
     private static final String SAVE_DML_QUERY = "INSERT INTO $$$.APP_DML_QUERY " +
             "(TRN_UUID,QUERY_ORDER,QUERY,ROWS) VALUES (?,?,?,?)";
     private static final String SQL_ERROR_TEXT = "Ошибки при выполнении запроса: ";
@@ -30,6 +29,7 @@ public class SharedEntityTransaction implements EntityTransaction {
     private String errorCommit;
     private UUID uuid;
     private Boolean parallelRun;
+    private Long duration;
 
     private List<TransactionalTask> tasks = new ArrayList<>();
     private Map<Integer, TransactionalTask> currentTasks = new HashMap<>();
@@ -57,11 +57,13 @@ public class SharedEntityTransaction implements EntityTransaction {
 
     @Override
     public void commit() {
+        this.duration = System.currentTimeMillis();
         this.tasks.forEach(task -> task.run(parallelRun && this.tasks.size() > 1));
         this.tasks.forEach(task -> {
             task.waitTask();
             this.error = processTask(task, task.getError(), this.error, SQL_ERROR_TEXT);
         });
+        this.duration = System.currentTimeMillis() - this.duration;
         prepareSaveTransaction();
         this.tasks.forEach(task -> task.completion(this.hasError));
         this.tasks.forEach(TransactionalTask::finish);
@@ -218,7 +220,8 @@ public class SharedEntityTransaction implements EntityTransaction {
                             .bind(this.uuid)
                             .bind(new Timestamp(System.currentTimeMillis()))
                             .bind(this.hasError)
-                            .bind(this.error);
+                            .bind(this.error)
+                            .bind(this.duration);
 
                     TransactionalQuery saveDMLQuery = task.createQuery(SAVE_DML_QUERY, QueryType.DML);
                     int idx = 0;

@@ -10,7 +10,6 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Slf4j
@@ -27,6 +26,7 @@ public abstract class AbstractTransactionalTask implements TransactionalTask {
 
     private String error;
     private Map<String, TransactionalQuery> queries = new HashMap<>();
+    private List<TransactionalQuery> dmlQueries = new ArrayList<>();
     private TransactionalTask mainTask;
     private List<Step> steps = new ArrayList<>();
     private List<Step> commitSteps = new ArrayList<>();
@@ -39,14 +39,17 @@ public abstract class AbstractTransactionalTask implements TransactionalTask {
         if (this.status == TaskStatus.CREATED) {
             Runnable target = () ->
                     steps.stream()
-                            .anyMatch(step -> {
-                                try {
-                                    log.debug(String.format("Running \"%s\", step \"%s\"...", this.name, step.name));
-                                    step.target.run();
-                                } catch (Exception err) {
-                                    this.error = step.name + ":\n" + err.getLocalizedMessage();
+                            .forEachOrdered(step -> {
+                                if (this.error == null) {
+                                    try {
+                                        log.debug(
+                                                String.format("Running \"%s\", step \"%s\"...", this.name, step.name)
+                                        );
+                                        step.target.run();
+                                    } catch (Exception err) {
+                                        this.error = step.name + ":\n" + err.getLocalizedMessage();
+                                    }
                                 }
-                                return Objects.nonNull(this.error);
                             });
             if (parallelRun) {
                 this.future = this.executorService.submit(target);
@@ -176,11 +179,7 @@ public abstract class AbstractTransactionalTask implements TransactionalTask {
 
     @Override
     public List<TransactionalQuery> getDmlQueries() {
-        return queries.entrySet()
-                .stream()
-                .map(Map.Entry::getValue)
-                .filter(it -> it.getQueryType() == QueryType.DML)
-                .collect(Collectors.toList());
+        return dmlQueries;
     }
 
     @Override
@@ -234,6 +233,9 @@ public abstract class AbstractTransactionalTask implements TransactionalTask {
         if (transactionalQuery == null) {
             transactionalQuery = createQuery(query, queryType);
             this.queries.put(query, transactionalQuery);
+            if (queryType == QueryType.DML) {
+                dmlQueries.add(transactionalQuery);
+            }
             this.addStep((Runnable) transactionalQuery, name);
         }
         return transactionalQuery;

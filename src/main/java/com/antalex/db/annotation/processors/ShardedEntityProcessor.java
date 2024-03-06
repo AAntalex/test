@@ -423,9 +423,6 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                         "    }\n" +
                         "\n" +
                         "    private void persist(" + classDto.getTargetClassName() + " entity, boolean force) {\n" +
-                        "        if (SHARD_TYPE == ShardType.REPLICABLE) {\n" +
-                        "            entity.getStorageAttributes().setShardValue(0L);\n" +
-                        "        }\n" +
                         "        if (\n" +
                         "                force || \n" +
                         "                        !entity.getStorageAttributes().getStored() || \n" +
@@ -504,14 +501,14 @@ public class ShardedEntityProcessor extends AbstractProcessor {
 
     private static String getClusterCode(ClassDto classDto) {
         return "    @Override\n" +
-                "    public Cluster getCluster(" + classDto.getTargetClassName() + " entity) {\n" +
+                "    public Cluster getCluster() {\n" +
                 "        return cluster;\n" +
                 "    }";
     }
 
     private static String getShardTypeCode(ClassDto classDto) {
         return "    @Override\n" +
-                "    public ShardType getShardType(" + classDto.getTargetClassName() + " entity) {\n" +
+                "    public ShardType getShardType() {\n" +
                 "        return SHARD_TYPE;\n" +
                 "    }";
     }

@@ -72,7 +72,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
         if (entity == null) {
             return null;
         }
-        return getEntityRepository(entity.getClass()).getShardType(entity);
+        return getEntityRepository(entity.getClass()).getShardType();
     }
 
     @Override
@@ -80,7 +80,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
         if (entity == null) {
             return null;
         }
-        return getEntityRepository(entity.getClass()).getCluster(entity);
+        return getEntityRepository(entity.getClass()).getCluster();
     }
 
     @Override
@@ -262,7 +262,9 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
         if (entity == null) {
             return;
         }
-        getEntityRepository(entity.getClass()).persist(entity);
+        ShardEntityRepository<T> repository = getEntityRepository(entity.getClass());
+        checkShardValue(entity, repository.getShardType());
+        repository.persist(entity);
     }
 
     @Override
@@ -355,5 +357,18 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
             return true;
         }
         return false;
+    }
+
+    private void checkShardValue(ShardInstance entity, ShardType shardType) {
+        Long shardValue = entity.getStorageAttributes().getShardValue();
+        if (shardType == ShardType.REPLICABLE && !shardValue.equals(0L))
+        {
+            entity.getStorageAttributes().setShardValue(0L);
+        }
+        if (shardType == ShardType.SHARDABLE
+                && !shardValue.equals(ShardUtils.getShardValue(entity.getStorageAttributes().getShard().getId())))
+        {
+            throw new IllegalStateException("У шардируемой сущности не может быть определенно более 1 шарды.");
+        }
     }
 }
