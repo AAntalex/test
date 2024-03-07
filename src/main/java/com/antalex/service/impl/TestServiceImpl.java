@@ -5,6 +5,7 @@ import com.antalex.db.service.ShardDataBaseManager;
 import com.antalex.domain.persistence.entity.hiber.TestAEntity;
 import com.antalex.domain.persistence.entity.hiber.TestBEntity;
 import com.antalex.domain.persistence.entity.hiber.TestCEntity;
+import com.antalex.domain.persistence.entity.shard.TestAShardEntity;
 import com.antalex.domain.persistence.repository.TestBRepository;
 import com.antalex.service.TestService;
 import org.springframework.stereotype.Service;
@@ -38,10 +39,24 @@ public class TestServiceImpl implements TestService{
 
     @Override
     public List<TestBEntity> generate(int cnt, int cntArray, TestAEntity testAEntity, String prefix) {
-        List<TestBEntity> bList = new ArrayList<>();;
+        List<TestBEntity> bList = new ArrayList<>();
+
+        List<TestAEntity> aList = new ArrayList<>();
+        for (int i = 0; i < 10; i++) {
+            TestAEntity a = new TestAEntity();
+            a.setId(databaseManager.sequenceNextVal() * 10000L);
+            a.setValue("AShard" + i);
+            a.setNewValue("newAShard" + i);
+            aList.add(a);
+        }
+
         for (int i = 0; i < cnt; i++) {
             TestBEntity b = new TestBEntity();
-            b.setA(testAEntity);
+
+            if ("Statement".equals(prefix)) {
+                b.setA(aList.get(i % 10));
+            }
+
             b.setShardValue(1L);
             b.setValue(prefix + "B" + i);
             b.setNewValue(prefix + "newB" + i);

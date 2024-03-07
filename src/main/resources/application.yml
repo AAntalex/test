@@ -12,7 +12,6 @@ hibernate:
   format_sql: false
   id.new_generator_mappings: false
 
-
 logging:
   level:
     com.antalex.db: debug
@@ -72,9 +71,15 @@ shardDbConfig:
           hikari:
             minimumIdle: 30
             maximumPoolSize: 200
+          TransactionConfig:
             activeConnectionParallelLimit: 100
     - name: RAW
       id: 1
+      hikari:
+        minimumIdle: 10
+        maximumPoolSize: 20
+      TransactionConfig:
+        activeConnectionParallelLimit: 10
       shards:
         - database:
             driver: oracle.jdbc.driver.OracleDriver
