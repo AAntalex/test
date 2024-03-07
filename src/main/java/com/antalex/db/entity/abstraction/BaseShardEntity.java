@@ -1,14 +1,16 @@
 package com.antalex.db.entity.abstraction;
 
 import com.antalex.db.annotation.ShardEntity;
-import com.antalex.db.model.StorageAttributes;
+import com.antalex.db.model.StorageContext;
+import com.antalex.db.service.impl.SharedEntityTransaction;
 import com.antalex.db.utils.ShardUtils;
 
 import java.util.Optional;
 
 public abstract class BaseShardEntity implements ShardInstance {
     protected Long id;
-    protected StorageAttributes storageAttributes;
+    private StorageContext storageContext;
+    private Boolean changed;
 
     public BaseShardEntity () {
         if (this.getClass().isAnnotationPresent(ShardEntity.class)) {
@@ -47,4 +49,22 @@ public abstract class BaseShardEntity implements ShardInstance {
     public void setStorageAttributes(StorageAttributes storageAttributes) {
         this.storageAttributes = storageAttributes;
     }
+
+    @Override
+    public boolean isChanged() {
+        return this.changed ||
+                Optional.ofNullable(this.storageAttributes)
+                        .map(StorageAttributes::getOriginalShardValue)
+                        .map(original -> !original.equals(this.storageAttributes.getShardValue()))
+                        .orElse(false);
+    }
+
+
+    public Boolean getStored() {
+
+    }
+
+    public void setChanged
+
+
 }

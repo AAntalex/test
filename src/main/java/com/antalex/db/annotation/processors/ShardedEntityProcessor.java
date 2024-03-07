@@ -3,7 +3,6 @@ package com.antalex.db.annotation.processors;
 import com.antalex.db.annotation.ParentShard;
 import com.antalex.db.annotation.ShardEntity;
 import com.antalex.db.model.Cluster;
-import com.antalex.db.model.StorageAttributes;
 import com.antalex.db.model.enums.QueryType;
 import com.antalex.db.model.enums.ShardType;
 import com.antalex.db.service.ShardDataBaseManager;

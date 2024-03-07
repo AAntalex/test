@@ -1,11 +1,12 @@
 package com.antalex.db.entity.abstraction;
 
-import com.antalex.db.model.StorageAttributes;
+import com.antalex.db.model.StorageContext;
 
 public interface ShardInstance {
     Long getId();
     Long getOrderId();
-    StorageAttributes getStorageAttributes();
+    StorageContext getSStorageContext();
     void setId(Long id);
-    void setStorageAttributes(StorageAttributes storageAttributes);
+    void setStorageContext(StorageContext storageContext);
+    boolean isChanged();
 }

@@ -3,7 +3,6 @@ package com.antalex.db.service;
 import com.antalex.db.entity.abstraction.ShardInstance;
 import com.antalex.db.model.Cluster;
 import com.antalex.db.model.Shard;
-import com.antalex.db.model.StorageAttributes;
 import com.antalex.db.service.api.TransactionalTask;
 
 import javax.sql.DataSource;

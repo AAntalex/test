@@ -117,6 +117,10 @@ public class SharedEntityTransaction implements EntityTransaction {
         return this.completed;
     }
 
+    public boolean hasError() {
+        return this.hasError;
+    }
+
     public UUID getUuid() {
         return uuid;
     }
@@ -176,39 +180,6 @@ public class SharedEntityTransaction implements EntityTransaction {
         return errorText;
     }
 
-    private class Bucket {
-        private List<TransactionalTask> chunks = new ArrayList<>();
-        private int currentIndex;
-
-        int chunkSize() {
-            return chunks.size();
-        }
-
-        void addTask(TransactionalTask task) {
-            if (!chunks.isEmpty()) {
-                task.setMainTask(chunks.get(0));
-            }
-            chunks.add(task);
-        }
-
-        TransactionalTask getTask() {
-            if (chunks.isEmpty()) {
-                return null;
-            }
-            if (currentIndex >= chunks.size()) {
-                currentIndex = 0;
-            }
-            return chunks.get(currentIndex++);
-        }
-
-        TransactionalTask mainTask() {
-            if (chunks.isEmpty()) {
-                return null;
-            }
-            return chunks.get(0);
-        }
-    }
-
     private void prepareSaveTransaction() {
         this.buckets.entrySet()
                 .stream()
@@ -248,5 +219,38 @@ public class SharedEntityTransaction implements EntityTransaction {
                         task.addStepBeforeCommit((Runnable) saveDMLQuery, SAVE_DML_QUERY);
                     }
                 });
+    }
+
+    private class Bucket {
+        private List<TransactionalTask> chunks = new ArrayList<>();
+        private int currentIndex;
+
+        int chunkSize() {
+            return chunks.size();
+        }
+
+        void addTask(TransactionalTask task) {
+            if (!chunks.isEmpty()) {
+                task.setMainTask(chunks.get(0));
+            }
+            chunks.add(task);
+        }
+
+        TransactionalTask getTask() {
+            if (chunks.isEmpty()) {
+                return null;
+            }
+            if (currentIndex >= chunks.size()) {
+                currentIndex = 0;
+            }
+            return chunks.get(currentIndex++);
+        }
+
+        TransactionalTask mainTask() {
+            if (chunks.isEmpty()) {
+                return null;
+            }
+            return chunks.get(0);
+        }
     }
 }
