@@ -5,6 +5,7 @@ import com.antalex.db.model.StorageContext;
 import com.antalex.db.service.impl.SharedEntityTransaction;
 import com.antalex.db.utils.ShardUtils;
 
+import javax.persistence.EntityTransaction;
 import java.util.Optional;
 
 public abstract class BaseShardEntity implements ShardInstance {
@@ -41,30 +42,47 @@ public abstract class BaseShardEntity implements ShardInstance {
     }
 
     @Override
-    public StorageAttributes getStorageAttributes() {
-        return this.storageAttributes;
+    public StorageContext getStorageContext() {
+        return storageContext;
     }
 
     @Override
-    public void setStorageAttributes(StorageAttributes storageAttributes) {
-        this.storageAttributes = storageAttributes;
+    public void setStorageContext(StorageContext storageContext) {
+        this.storageContext = storageContext;
     }
 
     @Override
     public boolean isChanged() {
-        return this.changed ||
-                Optional.ofNullable(this.storageAttributes)
-                        .map(StorageAttributes::getOriginalShardValue)
-                        .map(original -> !original.equals(this.storageAttributes.getShardValue()))
-                        .orElse(false);
+        return Optional.ofNullable(this.storageContext)
+                .map(StorageContext::isChanged)
+                .orElse(false);
     }
 
 
-    public Boolean getStored() {
-
+    @Override
+    public Boolean isStored() {
+        return Optional.ofNullable(this.storageContext)
+                .map(StorageContext::isStored)
+                .orElse(false);
     }
 
-    public void setChanged
+    @Override
+    public void setChanged() {
+        if (this.storageContext != null) {
+            this.storageContext.setChanged();
+        }
+    }
 
+    @Override
+    public boolean hasNewShards() {
+        return Optional.ofNullable(this.storageContext)
+                .map(StorageContext::hasNewShards)
+                .orElse(false);
+    }
 
+    @Override
+    public boolean setTransactionalContext(EntityTransaction transaction) {
+        return this.storageContext != null &&
+                this.storageContext.setTransactionalContext((SharedEntityTransaction) transaction);
+    }
 }

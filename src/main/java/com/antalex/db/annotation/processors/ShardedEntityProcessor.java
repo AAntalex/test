@@ -3,6 +3,7 @@ package com.antalex.db.annotation.processors;
 import com.antalex.db.annotation.ParentShard;
 import com.antalex.db.annotation.ShardEntity;
 import com.antalex.db.model.Cluster;
+import com.antalex.db.model.StorageContext;
 import com.antalex.db.model.enums.QueryType;
 import com.antalex.db.model.enums.ShardType;
 import com.antalex.db.service.ShardDataBaseManager;
@@ -325,20 +326,10 @@ public class ShardedEntityProcessor extends AbstractProcessor {
             out.println("package " + classDto.getClassPackage() + ";");
             out.println();
             out.println("import " + Optional.class.getCanonicalName() + ";");
-            out.println("import " + StorageAttributes.class.getCanonicalName() + ";");
+            out.println("import " + StorageContext.class.getCanonicalName() + ";");
             out.println(getImportedTypes(classDto));
             out.println("public class " + className + " extends " + classDto.getTargetClassName() + " {");
-            out.println("   private boolean changed;");
-            out.println();
-            out.println("   public boolean isChanged() {\n" +
-                    "       return this.changed ||\n" +
-                    "               Optional.ofNullable(this.storageAttributes)\n" +
-                    "                       .map(StorageAttributes::getOriginalShardValue)\n" +
-                    "                       .map(original -> !original.equals(this.storageAttributes.getShardValue()))\n" +
-                    "                       .orElse(false);\n" +
-                    "   }\n");
             out.println(getGettersCode(classDto));
-            out.println();
             out.println(getSettersCode(classDto));
             out.println("}");
         }
@@ -392,7 +383,7 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                 .map(field ->
                         "\n   @Override\n" +
                                 "   public void " + field.getSetter() + "(" + getTypeField(field) + " value) {\n" +
-                                "       this.changed = true;\n" +
+                                "       this.setChanged();\n" +
                                 "       super." + field.getSetter() + "(value);\n" +
                                 "   }"
                 )
@@ -421,34 +412,25 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                         "        persist(entity, false);\n" +
                         "    }\n" +
                         "\n" +
-                        "    private void persist(" + classDto.getTargetClassName() + " entity, boolean force) {\n" +
-                        "        if (\n" +
-                        "                force || \n" +
-                        "                        !entity.getStorageAttributes().getStored() || \n" +
-                        "                        ((" + classDto.getTargetClassName() + CLASS_INTERCEPT_POSTFIX
-                        + ") entity).isChanged()) \n        {\n"
+                        "    private void persist(" + classDto.getTargetClassName() + " entity, boolean force) {\n"
         );
         StringBuilder persistCode =
                 new StringBuilder(
-                        "            entityManager\n" +
-                                "                    .createQueries(\n" +
-                                "                            entity, \n" +
-                                "                            entity.getStorageAttributes().getStored() ? UPD_QUERY :" +
-                                " INS_QUERY, QueryType.DML\n" +
-                                "                    )\n" +
-                                "                    .forEach(query ->\n" +
-                                "                            query\n" +
-                                "                                    .bind(entityManager.getTransactionUUID())\n" +
-                                "                                    .bind(entity.getStorageAttributes().getShardValue())\n"
+                        "        entityManager\n" +
+                                "                .createQueries(entity, entity.isStored() ? UPD_QUERY : INS_QUERY, QueryType.DML)\n" +
+                                "                .forEach(query ->\n" +
+                                "                        query\n" +
+                                "                                .bind(entityManager.getTransactionUUID())\n" +
+                                "                                .bind(entity.getStorageContext().getShardValue())\n"
                 );
         StringBuilder newQueryCode = new StringBuilder(
-                "            if (entity.getStorageAttributes().getStored()) {\n" +
+                "        if (entity.hasNewShards()) {\n" +
                         "                entityManager\n" +
                         "                        .createNewQueries(entity, INS_QUERY)\n" +
                         "                        .forEach(query ->\n" +
                         "                                query\n" +
                         "                                        .bind(entityManager.getTransactionUUID())\n" +
-                        "                                        .bind(entity.getStorageAttributes().getShardValue())\n"
+                        "                                        .bind(entity.getStorageContext().getShardValue())\n"
         );
 
         StringBuilder childPersistCode = new StringBuilder(StringUtils.EMPTY);
@@ -456,20 +438,20 @@ public class ShardedEntityProcessor extends AbstractProcessor {
             if (Objects.nonNull(field.getGetter())) {
                 if (isAnnotationPresentByType(field, ShardEntity.class)) {
                     code
-                            .append("            entityManager.persist(entity.")
+                            .append("        entityManager.persist(entity.")
                             .append(field.getGetter())
                             .append("());\n");
                 }
                 if (isAnnotationPresentInArgument(field, ShardEntity.class)) {
                     childPersistCode
-                            .append("            entityManager.persistAll(entity.")
+                            .append("        entityManager.persistAll(entity.")
                             .append(field.getGetter())
                             .append("());\n");
                 }
 
                 if (Objects.nonNull(field.getColumnName()) && !field.getIsLinked()) {
                     persistCode
-                            .append("                                    .bind(entity.")
+                            .append("                                .bind(entity.")
                             .append(field.getGetter())
                             .append(
                                     isAnnotationPresentByType(field, ShardEntity.class) ?
@@ -490,19 +472,19 @@ public class ShardedEntityProcessor extends AbstractProcessor {
         return code
                 .append(persistCode)
                 .append(
-                        "                                    .bind(entity.getId())\n" +
-                                "                                    .addBatch()\n" +
-                                "                    );\n"
+                        "                                .bind(entity.getId())\n" +
+                                "                                .addBatch()\n" +
+                                "                );\n"
                 )
                 .append(newQueryCode)
                 .append(
                         "                                        .bind(entity.getId())\n" +
                                 "                                        .addBatch()\n" +
                                 "                        );\n" +
-                                "            }\n"
+                                "        }\n"
                 )
                 .append(childPersistCode)
-                .append("       }\n    }")
+                .append("    }")
                 .toString();
     }
 

@@ -3,6 +3,7 @@ package com.antalex.db.service.impl;
 import com.antalex.db.entity.abstraction.ShardInstance;
 import com.antalex.db.model.Cluster;
 import com.antalex.db.model.Shard;
+import com.antalex.db.model.StorageContext;
 import com.antalex.db.model.enums.QueryType;
 import com.antalex.db.model.enums.ShardType;
 import com.antalex.db.service.ShardDataBaseManager;
@@ -131,10 +132,10 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
         Cluster cluster = getCluster(entity);
         ShardType shardType = getShardType(entity);
         if (
-                Optional.ofNullable(entity.getStorageAttributes())
+                Optional.ofNullable(entity.getStorageContext())
                         .map(entityStorage ->
                                 Optional.ofNullable(parent)
-                                        .map(ShardInstance::getStorageAttributes)
+                                        .map(ShardInstance::getStorageContext)
                                         .filter(it ->
                                                 it != entityStorage &&
                                                         shardType != ShardType.REPLICABLE &&
@@ -171,9 +172,9 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
                                         })
                         )
                         .orElseGet(() -> {
-                            entity.setStorageAttributes(
+                            entity.setStorageContext(
                                     Optional.ofNullable(parent)
-                                            .map(ShardInstance::getStorageAttributes)
+                                            .map(ShardInstance::getStorageContext)
                                             .filter(it ->
                                                     cluster.getId()
                                                             .equals(it.getCluster().getId()) &&
@@ -183,7 +184,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
                                             .map(storage ->
                                                     Optional.ofNullable(storage.getShard())
                                                             .map(shard ->
-                                                                    StorageAttributes.builder()
+                                                                    StorageContext.builder()
                                                                             .cluster(cluster)
                                                                             .stored(false)
                                                                             .shard(shard)
@@ -197,7 +198,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
                                                             .orElse(storage)
                                             )
                                             .orElse(
-                                                    StorageAttributes.builder()
+                                                    StorageContext.builder()
                                                             .cluster(cluster)
                                                             .temporary(true)
                                                             .stored(false)
@@ -206,17 +207,17 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
                             );
                             setDependentStorage(entity);
                             return Optional.ofNullable(parent)
-                                    .map(ShardInstance::getStorageAttributes)
-                                    .map(StorageAttributes::getTemporary)
+                                    .map(ShardInstance::getStorageContext)
+                                    .map(StorageContext::isTemporary)
                                     .orElse(false) &&
-                                    Objects.nonNull(entity.getStorageAttributes().getShard());
+                                    Objects.nonNull(entity.getStorageContext().getShard());
                         }))
         {
-            parent.setStorageAttributes(
-                    StorageAttributes.builder()
-                            .cluster(parent.getStorageAttributes().getCluster())
-                            .shard(parent.getStorageAttributes().getShard())
-                            .shardValue(parent.getStorageAttributes().getShardValue())
+            parent.setStorageContext(
+                    StorageContext.builder()
+                            .cluster(parent.getStorageContext().getCluster())
+                            .shard(parent.getStorageContext().getShard())
+                            .shardValue(parent.getStorageContext().getShardValue())
                             .stored(false)
                             .build()
             );
@@ -261,9 +262,15 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
         if (entity == null) {
             return;
         }
-        ShardEntityRepository<T> repository = getEntityRepository(entity.getClass());
-        checkShardValue(entity, repository.getShardType());
-        repository.persist(entity);
+        if (entity.setTransactionalContext(getTransaction())) {
+            ShardEntityRepository<T> repository = getEntityRepository(entity.getClass());
+            checkShardValue(entity, repository.getShardType());
+            if (!entity.isStored() || entity.isChanged() || entity.hasNewShards())
+            {
+                repository.persist(entity);
+                entity.getStorageContext().persist();
+            }
+        }
     }
 
     @Override
@@ -315,10 +322,10 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
 
     @Override
     public <T extends ShardInstance> TransactionalQuery createQuery(T entity, String query, QueryType queryType) {
-        Shard shard = entity.getStorageAttributes().getShard();
+        Shard shard = entity.getStorageContext().getShard();
         if (
                 queryType == QueryType.DML &&
-                        !entity.getStorageAttributes().getShardValue().equals(ShardUtils.getShardValue(shard.getId())))
+                        !entity.getStorageContext().getShardValue().equals(ShardUtils.getShardValue(shard.getId())))
         {
             throw new IllegalStateException(
                     "Для реплицируемых или мульти-шардовых сущностей" +
@@ -359,13 +366,13 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
     }
 
     private void checkShardValue(ShardInstance entity, ShardType shardType) {
-        Long shardValue = entity.getStorageAttributes().getShardValue();
+        Long shardValue = entity.getStorageContext().getShardValue();
         if (shardType == ShardType.REPLICABLE && !shardValue.equals(0L))
         {
-            entity.getStorageAttributes().setShardValue(0L);
+            entity.getStorageContext().setShardValue(0L);
         }
         if (shardType == ShardType.SHARDABLE
-                && !shardValue.equals(ShardUtils.getShardValue(entity.getStorageAttributes().getShard().getId())))
+                && !shardValue.equals(ShardUtils.getShardValue(entity.getStorageContext().getShard().getId())))
         {
             throw new IllegalStateException("У шардируемой сущности не может быть определенно более 1 шарды.");
         }

@@ -170,33 +170,33 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         if (entity == null) {
             return;
         }
-        StorageAttributes storageAttributes = entity.getStorageAttributes();
-        Assert.notNull(storageAttributes, "Не определены аттрибуты хранения");
+        StorageContext storageContext = entity.getStorageContext();
+        Assert.notNull(storageContext, "Не определены аттрибуты хранения");
         Assert.notNull(
-                storageAttributes.getCluster(),
+                storageContext.getCluster(),
                 "Не верно определены аттрибуты хранения. Не определен кластер"
         );
-        if (Objects.isNull(storageAttributes.getShard())) {
-            storageAttributes.setShard(
-                    getNextShard(storageAttributes.getCluster())
+        if (Objects.isNull(storageContext.getShard())) {
+            storageContext.setShard(
+                    getNextShard(storageContext.getCluster())
             );
-            storageAttributes.setShardValue(ShardUtils.getShardValue(storageAttributes.getShard().getId()));
+            storageContext.setShardValue(ShardUtils.getShardValue(storageContext.getShard().getId()));
         }
 
-        if (Optional.ofNullable(storageAttributes.getTemporary()).orElse(false)) {
-            entity.setStorageAttributes(
-                    StorageAttributes.builder()
-                            .cluster(storageAttributes.getCluster())
-                            .shard(storageAttributes.getShard())
-                            .shardValue(storageAttributes.getShardValue())
+        if (storageContext.isTemporary()) {
+            entity.setStorageContext(
+                    StorageContext.builder()
+                            .cluster(storageContext.getCluster())
+                            .shard(storageContext.getShard())
+                            .shardValue(storageContext.getShardValue())
                             .stored(false)
                             .build()
             );
         }
         entity.setId((
-                        sequenceNextVal(MAIN_SEQUENCE, storageAttributes.getCluster()) *
-                                ShardUtils.MAX_CLUSTERS + storageAttributes.getCluster().getId() - 1
-                ) * ShardUtils.MAX_SHARDS + storageAttributes.getShard().getId() - 1
+                        sequenceNextVal(MAIN_SEQUENCE, storageContext.getCluster()) *
+                                ShardUtils.MAX_CLUSTERS + storageContext.getCluster().getId() - 1
+                ) * ShardUtils.MAX_SHARDS + storageContext.getShard().getId() - 1
         );
     }
 
@@ -204,23 +204,25 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     public Stream<Shard> getAllShards(ShardInstance entity) {
         return getShardsFromValue(
                 entity,
-                entity.getStorageAttributes().getStored() ?
-                        entity.getStorageAttributes().getOriginalShardValue() :
-                        entity.getStorageAttributes().getShardValue(),
+                entity.isStored() ?
+                        entity.getStorageContext().getOriginalShardValue() :
+                        entity.getStorageContext().getShardValue(),
                 false
         );
     }
 
     @Override
     public Stream<Shard> getNewShards(ShardInstance entity) {
-        return getShardsFromValue(
-                entity,
-                entity.getStorageAttributes().getStored() ?
-                        entity.getStorageAttributes().getOriginalShardValue() ^
-                                entity.getStorageAttributes().getShardValue() :
-                        0L,
-                true
-        );
+        if (entity.isStored()) {
+            return getShardsFromValue(
+                    entity,
+                    entity.getStorageContext().getOriginalShardValue() ^
+                                    entity.getStorageContext().getShardValue(),
+                    true
+            );
+        } else {
+            return Stream.empty();
+        }
     }
 
     @Override
@@ -265,11 +267,11 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     }
 
     @Override
-    public StorageAttributes getStorageAttributes(Long id, Long shardValue) {
+    public StorageContext getStorageContext(Long id, Long shardValue) {
         Assert.notNull(id, "Не указан идентификатор сущности");
         Cluster cluster = getCluster((short) (id / ShardUtils.MAX_SHARDS % ShardUtils.MAX_CLUSTERS + 1));
         Shard shard = getShard(cluster, (short) (id % ShardUtils.MAX_SHARDS + 1));
-        return StorageAttributes.builder()
+        return StorageContext.builder()
                 .stored(true)
                 .cluster(cluster)
                 .shard(shard)
@@ -292,7 +294,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
 
     private Stream<Shard> getShardsFromValue(ShardInstance entity, Long shardValue, boolean onlyNew) {
         return entity
-                .getStorageAttributes()
+                .getStorageContext()
                 .getCluster()
                 .getShards()
                 .stream()
