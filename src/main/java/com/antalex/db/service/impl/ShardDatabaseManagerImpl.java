@@ -862,24 +862,20 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
 
     private void runLiquibase(Shard shard, String changeLog) {
         if (!shard.getExternal() && isEnabled(shard)) {
-            try {
-                log.debug(String.format("Run changelog \"%s\" on shard %s", changeLog, shard.getName()));
-                TransactionalSQLTask task = (TransactionalSQLTask) getTransactionalTask(shard);
-                task.setName("Changelog on shard " + shard.getName());
-                task.addStep(() -> {
-                    try {
-                        liquibaseManager.run(
-                                task.getConnection(),
-                                changeLog.startsWith(CLASSPATH) ? changeLog.substring(CLASSPATH.length()) : changeLog,
-                                shard.getOwner()
-                        );
-                    } catch (LiquibaseException err) {
-                        throw new RuntimeException(err);
-                    }
-                }, changeLog);
-            } catch (Exception err) {
-                throw new RuntimeException(err);
-            }
+            log.debug(String.format("Run changelog \"%s\" on shard %s", changeLog, shard.getName()));
+            TransactionalSQLTask task = (TransactionalSQLTask) getTransactionalTask(shard);
+            task.setName("Changelog on shard " + shard.getName());
+            task.addStep(() -> {
+                try {
+                    liquibaseManager.run(
+                            task.getConnection(),
+                            changeLog.startsWith(CLASSPATH) ? changeLog.substring(CLASSPATH.length()) : changeLog,
+                            shard.getOwner()
+                    );
+                } catch (LiquibaseException err) {
+                    throw new RuntimeException(err);
+                }
+            }, changeLog);
         }
     }
 
