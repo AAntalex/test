@@ -2,7 +2,7 @@ package com.antalex.service.impl;
 
 import com.antalex.db.entity.abstraction.ShardInstance;
 import com.antalex.db.model.Cluster;
-import com.antalex.db.model.StorageAttributes;
+import com.antalex.db.model.StorageContext;
 import com.antalex.db.model.enums.ShardType;
 import com.antalex.db.service.ShardDataBaseManager;
 import com.antalex.db.utils.ShardUtils;
@@ -95,10 +95,10 @@ public class TestBShardEntityRepository {
         Cluster cluster = getCluster(entity);
         ShardType shardType = getShardType(entity);
         if (
-                Optional.ofNullable(entity.getStorageAttributes())
+                Optional.ofNullable(entity.getStorageContext())
                         .map(entityStorage ->
                                 Optional.ofNullable(parent)
-                                        .map(ShardInstance::getStorageAttributes)
+                                        .map(ShardInstance::getStorageContext)
                                         .filter(it ->
                                                 it != entityStorage &&
                                                         shardType != ShardType.REPLICABLE &&
@@ -135,9 +135,9 @@ public class TestBShardEntityRepository {
                                         })
                         )
                         .orElseGet(() -> {
-                            entity.setStorageAttributes(
+                            entity.setStorageContext(
                                     Optional.ofNullable(parent)
-                                            .map(ShardInstance::getStorageAttributes)
+                                            .map(ShardInstance::getStorageContext)
                                             .filter(it ->
                                                     cluster.getId()
                                                             .equals(it.getCluster().getId()) &&
@@ -147,7 +147,7 @@ public class TestBShardEntityRepository {
                                             .map(storage ->
                                                     Optional.ofNullable(storage.getShard())
                                                             .map(shard ->
-                                                                    StorageAttributes.builder()
+                                                                    StorageContext.builder()
                                                                             .cluster(cluster)
                                                                             .stored(false)
                                                                             .shard(shard)
@@ -161,7 +161,7 @@ public class TestBShardEntityRepository {
                                                             .orElse(storage)
                                             )
                                             .orElse(
-                                                    StorageAttributes.builder()
+                                                    StorageContext.builder()
                                                             .cluster(cluster)
                                                             .temporary(true)
                                                             .stored(false)
@@ -172,11 +172,11 @@ public class TestBShardEntityRepository {
                             return false;
                         }))
         {
-            parent.setStorageAttributes(
-                    StorageAttributes.builder()
-                            .cluster(parent.getStorageAttributes().getCluster())
-                            .shard(parent.getStorageAttributes().getShard())
-                            .shardValue(parent.getStorageAttributes().getShardValue())
+            parent.setStorageContext(
+                    StorageContext.builder()
+                            .cluster(parent.getStorageContext().getCluster())
+                            .shard(parent.getStorageContext().getShard())
+                            .shardValue(parent.getStorageContext().getShardValue())
                             .stored(false)
                             .build()
             );

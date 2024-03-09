@@ -36,16 +36,16 @@ public class TestBShardEntity$RepositoryImpl2 {
     }
 
     private void persist(TestBShardEntity entity, boolean force) {
-        if (force || !entity.getStorageAttributes().getStored() || ((TestBShardEntityInterceptor$) entity).isChanged()) {
+        if (force || !entity.getStorageContext().isStored() || ((TestBShardEntityInterceptor$) entity).isChanged()) {
             entityManager.persist(entity.getA());
             entityManager
                     .createQuery(
                             entity,
-                            entity.getStorageAttributes().getStored() ? UPD_QUERY : INS_QUERY, QueryType.DML
+                            entity.getStorageContext().isStored() ? UPD_QUERY : INS_QUERY, QueryType.DML
                     )
-                    .bind(entity.getStorageAttributes().getShardValue())
+                    .bind(entity.getStorageContext().getShardValue())
                     .bind(entity.getValue())
-                    .bind(entity.getA())
+                    .bind(entity.getA().getId())
                     .bind(entity.getNewValue())
                     .bind(entity.getId())
                     .addBatch();
