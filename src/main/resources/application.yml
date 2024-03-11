@@ -53,3 +53,36 @@ shardDbConfig:
             user: ${PMTS_DB_PUBLIC_2_USER:pmts_public_2_admin}
             pass: ${PMTS_DB_PUBLIC_2_PASSWORD:123}
             owner: pmts_public_2
+        - database:
+            driver: oracle.jdbc.driver.OracleDriver
+            url: jdbc:oracle:thin:@d5cftm-apc005ln.corp.dev.vtb:1521/ELVIS
+            user: IBS
+            pass: IBS
+          id: 1
+        - id: 33
+          url: https://test
+        - database:
+            driver: oracle.jdbc.driver.OracleDriver
+            url: jdbc:oracle:thin:@localhost:1521/eks
+            user: TEST
+            pass: TEST
+            owner: IBS
+          id: 2
+          hikari:
+            minimumIdle: 30
+            maximumPoolSize: 200
+          TransactionConfig:
+            activeConnectionParallelLimit: 100
+    - name: RAW
+      id: 1
+      hikari:
+        minimumIdle: 10
+        maximumPoolSize: 20
+      TransactionConfig:
+        activeConnectionParallelLimit: 10
+      shards:
+        - database:
+            driver: oracle.jdbc.driver.OracleDriver
+            url: jdbc:oracle:thin:@d5ubss-or5001lk.corp.dev.vtb:1521/TARIFA
+            user: IBS
+            pass: IBS
