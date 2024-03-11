@@ -114,16 +114,8 @@ public class StorageContext {
         return cluster;
     }
 
-    public void setCluster(Cluster cluster) {
-        this.cluster = cluster;
-    }
-
     public boolean isTemporary() {
         return temporary;
-    }
-
-    public void setTemporary(boolean temporary) {
-        this.temporary = temporary;
     }
 
     @Data

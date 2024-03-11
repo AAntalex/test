@@ -1,5 +1,6 @@
 package com.antalex.db.service.abstractive;
 
+import com.antalex.db.exception.ShardDataBaseException;
 import com.antalex.db.model.Shard;
 import com.antalex.db.model.enums.QueryType;
 import com.antalex.db.model.enums.TaskStatus;
@@ -69,7 +70,7 @@ public abstract class AbstractTransactionalTask implements TransactionalTask {
                 log.debug(String.format("Waiting \"%s\"...", this.name));
                 this.future.get();
             } catch (Exception err) {
-                throw new RuntimeException(err);
+                throw new ShardDataBaseException(err);
             } finally {
                 this.status = TaskStatus.DONE;
             }
@@ -233,10 +234,12 @@ public abstract class AbstractTransactionalTask implements TransactionalTask {
         if (transactionalQuery == null) {
             transactionalQuery = createQuery(query, queryType);
             this.queries.put(query, transactionalQuery);
-            if (queryType == QueryType.DML) {
+            if (queryType == QueryType.DML || queryType == QueryType.LOCK) {
                 dmlQueries.add(transactionalQuery);
             }
-            this.addStep((Runnable) transactionalQuery, name);
+            if (queryType != QueryType.LOCK) {
+                this.addStep((Runnable) transactionalQuery, name);
+            }
         }
         return transactionalQuery;
     }

@@ -1,5 +1,6 @@
 package com.antalex.db.service.impl;
 
+import com.antalex.db.exception.ShardDataBaseException;
 import com.antalex.db.model.enums.QueryType;
 import com.antalex.db.service.api.TransactionalQuery;
 
@@ -23,7 +24,7 @@ public class TransactionalSQLQuery implements TransactionalQuery, Runnable {
     }
 
     @Override
-    public void run() {
+    public void execute() {
         try {
             if (queryType == QueryType.DML) {
                 if (this.isButch) {
@@ -37,7 +38,7 @@ public class TransactionalSQLQuery implements TransactionalQuery, Runnable {
                 this.result = preparedStatement.executeQuery();
             }
         } catch (SQLException err) {
-            throw new RuntimeException(err);
+            throw new ShardDataBaseException(err);
         }
     }
 
@@ -46,7 +47,7 @@ public class TransactionalSQLQuery implements TransactionalQuery, Runnable {
         try {
             preparedStatement.setObject(++currentIndex, o);
         } catch (SQLException err) {
-            throw new RuntimeException(err);
+            throw new ShardDataBaseException(err);
         }
         return this;
     }
@@ -59,7 +60,7 @@ public class TransactionalSQLQuery implements TransactionalQuery, Runnable {
         try {
             this.preparedStatement.addBatch();
         } catch (SQLException err) {
-            throw new RuntimeException(err);
+            throw new ShardDataBaseException(err);
         }
         return this;
     }
@@ -82,5 +83,10 @@ public class TransactionalSQLQuery implements TransactionalQuery, Runnable {
     @Override
     public int getCount() {
         return count;
+    }
+
+    @Override
+    public void run() {
+        execute();
     }
 }

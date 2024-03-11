@@ -1,6 +1,7 @@
 package com.antalex.db.entity.abstraction;
 
 import com.antalex.db.annotation.ShardEntity;
+import com.antalex.db.exception.ShardDataBaseException;
 import com.antalex.db.model.StorageContext;
 import com.antalex.db.service.impl.SharedEntityTransaction;
 import com.antalex.db.utils.ShardUtils;
@@ -15,7 +16,7 @@ public abstract class BaseShardEntity implements ShardInstance {
 
     public BaseShardEntity () {
         if (this.getClass().isAnnotationPresent(ShardEntity.class)) {
-            throw new RuntimeException(
+            throw new ShardDataBaseException(
                     String.format(
                             "Запрещено использовать конструктор класса %s напрямую. " +
                                     "Следует использовать ShardEntityManager.newEntity(Class<?>)",

@@ -1,5 +1,6 @@
 package com.antalex.db.service.impl;
 
+import com.antalex.db.exception.ShardDataBaseException;
 import com.antalex.db.model.Shard;
 import com.antalex.db.model.enums.QueryType;
 import com.antalex.db.service.api.TransactionalQuery;
@@ -78,7 +79,7 @@ public class SharedEntityTransaction implements EntityTransaction {
         );
         this.completed = true;
         if (this.hasError) {
-            throw new RuntimeException(
+            throw new ShardDataBaseException(
                     Optional.ofNullable(this.error)
                             .map(it -> it.concat(StringUtils.LF))
                             .orElse(StringUtils.EMPTY)
@@ -211,7 +212,7 @@ public class SharedEntityTransaction implements EntityTransaction {
                             try {
                                 task.commit();
                             } catch (Exception err) {
-                                throw new RuntimeException(err);
+                                throw new ShardDataBaseException(err);
                             }
                         });
                     } else {

@@ -9,4 +9,5 @@ public interface TransactionalQuery {
     Object getResult();
     QueryType getQueryType();
     int getCount();
+    void execute();
 }

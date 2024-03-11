@@ -2,6 +2,7 @@ package com.antalex.db.service.impl;
 
 import com.antalex.db.config.*;
 import com.antalex.db.entity.abstraction.ShardInstance;
+import com.antalex.db.exception.ShardDataBaseException;
 import com.antalex.db.model.*;
 import com.antalex.db.model.enums.QueryType;
 import com.antalex.db.service.ShardDataBaseManager;
@@ -113,7 +114,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                         transaction.addTask(shard, task);
                         return task;
                     } catch (Exception err) {
-                        throw new RuntimeException(err);
+                        throw new ShardDataBaseException(err);
                     }
                 });
     }
@@ -393,7 +394,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                 return i;
             }
         }
-        throw new IllegalStateException(
+        throw new ShardDataBaseException(
                 String.format("Отсутсвует свободный идентификатор для шарды в кластере %s", cluster.getName())
         );
     }
@@ -404,7 +405,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                 return i;
             }
         }
-        throw new IllegalStateException("Отсутсвует свободный идентификатор для кластера");
+        throw new ShardDataBaseException("Отсутсвует свободный идентификатор для кластера");
     }
 
     private void checkDataBaseInfo(Cluster cluster, Shard shard) {
@@ -454,7 +455,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                 if (err instanceof SQLTransientConnectionException) {
                     dynamicDataBaseInfo.setAvailable(false);
                 }
-                throw new RuntimeException(err);
+                throw new ShardDataBaseException(err);
             }
         }
     }
@@ -492,7 +493,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                                 dynamicDBInfo.setAccessible(resultSet.getBoolean(7));
                             }
                         } catch (SQLException err) {
-                            throw new RuntimeException(err);
+                            throw new ShardDataBaseException(err);
                         }
                     });
                 });
@@ -797,7 +798,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
 
     private void addCluster(String name, Cluster cluster) {
         if (clusters.containsKey(name)) {
-            throw new IllegalArgumentException(
+            throw new ShardDataBaseException(
                     String.format("The cluster with name %s already exists", name)
             );
         } else {
@@ -810,10 +811,10 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
             return;
         }
         if (cluster.getId() > ShardUtils.MAX_CLUSTERS) {
-            throw new IllegalArgumentException("ID of cluster cannot be more than " + ShardUtils.MAX_CLUSTERS);
+            throw new ShardDataBaseException("ID of cluster cannot be more than " + ShardUtils.MAX_CLUSTERS);
         }
         if (clusterIds.containsKey(id)) {
-            throw new IllegalArgumentException(
+            throw new ShardDataBaseException(
                     String.format("The cluster with ID %d already exists", id)
             );
         } else {
@@ -829,13 +830,13 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
             return;
         }
         if (shard.getId() < 1) {
-            throw new IllegalArgumentException("ID of Shard cannot be less than 1");
+            throw new ShardDataBaseException("ID of Shard cannot be less than 1");
         }
         if (shard.getId() > ShardUtils.MAX_SHARDS) {
-            throw new IllegalArgumentException("ID of Shard cannot be more than " + ShardUtils.MAX_SHARDS);
+            throw new ShardDataBaseException("ID of Shard cannot be more than " + ShardUtils.MAX_SHARDS);
         }
         if (cluster.getShardMap().containsKey(shard.getId())) {
-            throw new IllegalArgumentException(
+            throw new ShardDataBaseException(
                     String.format("The shard with ID %d already exists in cluster %s", shard.getId(), cluster.getName())
             );
         } else {
@@ -847,7 +848,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         if (Objects.nonNull(shard)) {
             getDynamicDataBaseInfo(shard);
             if (!this.isAvailable(shard.getDynamicDataBaseInfo())) {
-                throw new SQLException(String.format("The shard \"%s\" is unavailable", shard.getName()));
+                throw new ShardDataBaseException(String.format("The shard \"%s\" is unavailable", shard.getName()));
             }
             return shard.getDataSource().getConnection();
         }
@@ -873,7 +874,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                             shard.getOwner()
                     );
                 } catch (LiquibaseException err) {
-                    throw new RuntimeException(err);
+                    throw new ShardDataBaseException(err);
                 }
             }, changeLog);
         }

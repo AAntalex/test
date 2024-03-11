@@ -253,6 +253,10 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                 ) + " WHERE ID=?";
     }
 
+    private static String getLockSQLCode(ClassDto classDto) {
+        return "SELECT ID FROM $$$." + classDto.getTableName() + " WHERE ID=? FOR UPDATE NOWAIT";
+    }
+
     private void createRepositoryClass(ClassDto classDto) throws IOException {
         if (classDto == null) {
             return;
@@ -292,6 +296,9 @@ public class ShardedEntityProcessor extends AbstractProcessor {
             out.println(
                     "    private static final String UPD_QUERY = \"" + getUpdateSQLCode(classDto) + "\";"
             );
+            out.println(
+                    "    private static final String LOCK_QUERY = \"" + getLockSQLCode(classDto) + "\";"
+            );
 
             out.println();
             out.println("    @Autowired");
@@ -312,6 +319,8 @@ public class ShardedEntityProcessor extends AbstractProcessor {
             out.println(getPersistCode(classDto));
             out.println();
             out.println(getGenerateDependentIdCode(classDto));
+            out.println();
+            out.println(getLockCode(classDto));
             out.println("}");
         }
     }
@@ -556,5 +565,15 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                                 "    public void generateDependentId(" + classDto.getTargetClassName() + " entity) {\n",
                         String::concat
                 ) + "    }";
+    }
+
+    private static String getLockCode(ClassDto classDto) {
+        return "    @Override\n" +
+                "    public void lock(" + classDto.getTargetClassName() + " entity) {\n" +
+                "        entityManager\n" +
+                "                .createQuery(entity, LOCK_QUERY, QueryType.LOCK)\n" +
+                "                .bind(entity.getId())\n" +
+                "                .execute();\n" +
+                "    }\n";
     }
 }

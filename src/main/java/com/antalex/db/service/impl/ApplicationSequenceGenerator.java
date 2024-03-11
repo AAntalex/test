@@ -1,5 +1,6 @@
 package com.antalex.db.service.impl;
 
+import com.antalex.db.exception.ShardDataBaseException;
 import com.antalex.db.model.Shard;
 import com.antalex.db.service.abstractive.AbstractSequenceGenerator;
 import com.antalex.db.utils.ShardUtils;
@@ -47,7 +48,7 @@ public class ApplicationSequenceGenerator extends AbstractSequenceGenerator {
                 this.connection.close();
             }
         } catch (Exception err) {
-            throw new RuntimeException(err);
+            throw new ShardDataBaseException(err);
         }
     }
 
@@ -81,7 +82,7 @@ public class ApplicationSequenceGenerator extends AbstractSequenceGenerator {
                     } else {
                         if (this.value.compareTo(this.maxValue) >= 0) {
                             connection.rollback();
-                            throw new RuntimeException(
+                            throw new ShardDataBaseException(
                                     String.format(
                                             "Достигли придельнго значения счетчика \"%s\" - %d",
                                             this.name,
@@ -96,12 +97,12 @@ public class ApplicationSequenceGenerator extends AbstractSequenceGenerator {
                 preparedStatement.setString(2, this.name);
                 if (preparedStatement.executeUpdate() == 0) {
                     connection.rollback();
-                    throw new RuntimeException(String.format("Ошбка инициализации счетчика \"%s\"", this.name));
+                    throw new ShardDataBaseException(String.format("Ошбка инициализации счетчика \"%s\"", this.name));
                 }
             }
             connection.commit();
         } catch (Exception err) {
-            throw new RuntimeException(err);
+            throw new ShardDataBaseException(err);
         } finally {
             closeConnection();
         }

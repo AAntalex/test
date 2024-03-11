@@ -12,4 +12,8 @@ public enum QueryType {
      * DML (INSERT, UPDATE, DELETE)
      */
     DML,
+    /**
+     * Блокировка
+     */
+    LOCK,
 }

@@ -1,6 +1,7 @@
 package com.antalex.db.service.impl;
 
 import com.antalex.db.entity.abstraction.ShardInstance;
+import com.antalex.db.exception.ShardDataBaseException;
 import com.antalex.db.model.Cluster;
 import com.antalex.db.model.Shard;
 import com.antalex.db.model.StorageContext;
@@ -54,7 +55,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
                 .ofNullable(REPOSITORIES.get(clazz.getSuperclass()))
                 .orElse(REPOSITORIES.get(clazz));
         if (repository == null) {
-            throw new IllegalStateException(
+            throw new ShardDataBaseException(
                     String.format(
                             "Can't find shard entity repository for class %s or superclass %s",
                             clazz.getName(),
@@ -114,6 +115,19 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
             return;
         }
         getEntityRepository(entity.getClass()).setDependentStorage(entity);
+    }
+
+    @Override
+    public <T extends ShardInstance> boolean lock(T entity) {
+        if (entity == null) {
+            return false;
+        }
+        try {
+            getEntityRepository(entity.getClass()).lock(entity);
+            return true;
+        } catch (ShardDataBaseException err) {
+            return false;
+        }
     }
 
     @Override
@@ -327,7 +341,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
                 queryType == QueryType.DML &&
                         !entity.getStorageContext().getShardValue().equals(ShardUtils.getShardValue(shard.getId())))
         {
-            throw new IllegalStateException(
+            throw new ShardDataBaseException(
                     "Для реплицируемых или мульти-шардовых сущностей" +
                             " слеует использовать метод createQueries вместо createQuery!"
             );
@@ -374,7 +388,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
         if (shardType == ShardType.SHARDABLE
                 && !shardValue.equals(ShardUtils.getShardValue(entity.getStorageContext().getShard().getId())))
         {
-            throw new IllegalStateException("У шардируемой сущности не может быть определенно более 1 шарды.");
+            throw new ShardDataBaseException("У шардируемой сущности не может быть определенно более 1 шарды.");
         }
     }
 }

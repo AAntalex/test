@@ -28,6 +28,7 @@ public interface ShardEntityManager {
     <T extends ShardInstance> TransactionalQuery createQuery(T entity, String query, QueryType queryType);
     <T extends ShardInstance> Iterable<TransactionalQuery> createQueries(T entity, String query, QueryType queryType);
     <T extends ShardInstance> Iterable<TransactionalQuery> createNewQueries(T entity, String query);
+    <T extends ShardInstance> boolean lock(T entity);
     EntityTransaction getTransaction();
     UUID getTransactionUUID();
     void setAutonomousTransaction();

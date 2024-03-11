@@ -11,4 +11,5 @@ public interface ShardEntityRepository<T extends ShardInstance> {
     void setDependentStorage(T entity);
     T newEntity(Class<T> clazz);
     void persist(T entity);
+    void lock(T entity);
 }

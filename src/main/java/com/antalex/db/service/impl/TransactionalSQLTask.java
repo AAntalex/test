@@ -1,5 +1,6 @@
 package com.antalex.db.service.impl;
 
+import com.antalex.db.exception.ShardDataBaseException;
 import com.antalex.db.model.Shard;
 import com.antalex.db.model.enums.QueryType;
 import com.antalex.db.model.enums.TaskStatus;
@@ -39,7 +40,7 @@ public class TransactionalSQLTask extends AbstractTransactionalTask {
         try {
             return !this.connection.isClosed() && !this.connection.getAutoCommit();
         } catch (SQLException err) {
-            throw new RuntimeException(err);
+            throw new ShardDataBaseException(err);
         }
     }
 
@@ -63,13 +64,13 @@ public class TransactionalSQLTask extends AbstractTransactionalTask {
     @Override
     public TransactionalQuery createQuery(String query, QueryType queryType) {
         try {
-            if (queryType == QueryType.DML && connection.getAutoCommit()) {
+            if ((queryType == QueryType.DML || queryType == QueryType.LOCK) && connection.getAutoCommit()) {
                 connection.setAutoCommit(false);
             }
             String sql = ShardUtils.transformSQL(query, shard);
             return new TransactionalSQLQuery(sql, queryType, connection.prepareStatement(sql));
         } catch (SQLException err) {
-            throw new RuntimeException(err);
+            throw new ShardDataBaseException(err);
         }
     }
 
