@@ -343,7 +343,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
         {
             throw new ShardDataBaseException(
                     "Для реплицируемых или мульти-шардовых сущностей" +
-                            " слеует использовать метод createQueries вместо createQuery!"
+                            " слеует использовать метод createQueries вместо createQuery."
             );
         }
         return this.createQuery(shard, query, queryType);
