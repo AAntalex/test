@@ -131,6 +131,12 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
     }
 
     @Override
+    public <T extends ShardInstance> T find(Class<T> clazz, Long id) {
+        ShardEntityRepository<T> repository = getEntityRepository(clazz);
+        return repository.find(dataBaseManager.getStorageContext(id));
+    }
+
+    @Override
     public <T extends ShardInstance> void generateDependentId(T entity) {
         if (entity == null) {
             return;
@@ -160,18 +166,18 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
                                         .map(storage ->
                                                 Optional.ofNullable(storage.getShard())
                                                         .map(shard -> {
-                                                            storage.setShardValue(
-                                                                    ShardUtils.addShardValue(
-                                                                            ShardUtils.getShardValue(shard.getId()),
-                                                                            entityStorage.getShardValue()
+                                                            storage.setShardMap(
+                                                                    ShardUtils.addShardMap(
+                                                                            ShardUtils.getShardMap(shard.getId()),
+                                                                            entityStorage.getShardMap()
                                                                     )
                                                             );
                                                             return false;
                                                         })
                                                         .orElseGet(() -> {
                                                             storage.setShard(entityStorage.getShard());
-                                                            storage.setShardValue(
-                                                                    ShardUtils.getShardValue(
+                                                            storage.setShardMap(
+                                                                    ShardUtils.getShardMap(
                                                                             entityStorage.getShard().getId()
                                                                     )
                                                             );
@@ -202,8 +208,8 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
                                                                             .cluster(cluster)
                                                                             .stored(false)
                                                                             .shard(shard)
-                                                                            .shardValue(
-                                                                                    ShardUtils.getShardValue(
+                                                                            .shardMap(
+                                                                                    ShardUtils.getShardMap(
                                                                                             shard.getId()
                                                                                     )
                                                                             )
@@ -231,7 +237,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
                     StorageContext.builder()
                             .cluster(parent.getStorageContext().getCluster())
                             .shard(parent.getStorageContext().getShard())
-                            .shardValue(parent.getStorageContext().getShardValue())
+                            .shardMap(parent.getStorageContext().getShardMap())
                             .stored(false)
                             .build()
             );
@@ -339,7 +345,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
         Shard shard = entity.getStorageContext().getShard();
         if (
                 queryType == QueryType.DML &&
-                        !entity.getStorageContext().getShardValue().equals(ShardUtils.getShardValue(shard.getId())))
+                        !entity.getStorageContext().getShardMap().equals(ShardUtils.getShardMap(shard.getId())))
         {
             throw new ShardDataBaseException(
                     "Для реплицируемых или мульти-шардовых сущностей" +
@@ -361,10 +367,15 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
     }
 
     @Override
-    public <T extends ShardInstance> Iterable<TransactionalQuery> createNewQueries(T entity, String query) {
+    public <T extends ShardInstance> Iterable<TransactionalQuery> createNewShardsQueries(T entity, String query) {
         return dataBaseManager.getNewShards(entity)
                 .map(shard -> this.createQuery(shard, query, QueryType.DML))
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public <T extends ShardInstance> TransactionalQuery createQueryUnique(T entity, String query) {
+        return this.createQuery(entity.getStorageContext().getCluster().getMainShard(), query, QueryType.DML);
     }
 
     private TransactionalQuery createQuery(Shard shard, String query, QueryType queryType) {
@@ -380,13 +391,13 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
     }
 
     private void checkShardValue(ShardInstance entity, ShardType shardType) {
-        Long shardValue = entity.getStorageContext().getShardValue();
-        if (shardType == ShardType.REPLICABLE && !shardValue.equals(0L))
+        Long shardMap = entity.getStorageContext().getShardMap();
+        if (shardType == ShardType.REPLICABLE && !shardMap.equals(0L))
         {
-            entity.getStorageContext().setShardValue(0L);
+            entity.getStorageContext().setShardMap(0L);
         }
         if (shardType == ShardType.SHARDABLE
-                && !shardValue.equals(ShardUtils.getShardValue(entity.getStorageContext().getShard().getId())))
+                && !shardMap.equals(ShardUtils.getShardMap(entity.getStorageContext().getShard().getId())))
         {
             throw new ShardDataBaseException("У шардируемой сущности не может быть определенно более 1 шарды.");
         }

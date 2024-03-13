@@ -1,6 +1,7 @@
 package com.antalex.db.model;
 
 import com.antalex.db.service.impl.SharedEntityTransaction;
+import com.antalex.db.utils.ShardUtils;
 import lombok.Builder;
 import lombok.Data;
 
@@ -10,8 +11,8 @@ import java.util.Optional;
 public class StorageContext {
     private Cluster cluster;
     private Shard shard;
-    private Long shardValue;
-    private Long originalShardValue;
+    private Long shardMap;
+    private Long originalShardMap;
     private Boolean stored;
     private Boolean changed;
     private boolean temporary;
@@ -25,7 +26,7 @@ public class StorageContext {
             this.transactionalContext = new TransactionalContext();
             this.transactionalContext.setStored(this.stored);
             this.transactionalContext.setChanged(this.changed);
-            this.transactionalContext.setOriginalShardValue(this.originalShardValue);
+            this.transactionalContext.setOriginalShardValue(this.originalShardMap);
             this.transactionalContext.setTransaction(transaction);
             this.transactionalContext.setPersist(false);
             return true;
@@ -39,11 +40,11 @@ public class StorageContext {
                     if (it.hasError()) {
                         this.transactionalContext.setChanged(this.changed);
                         this.transactionalContext.setStored(this.stored);
-                        this.transactionalContext.setOriginalShardValue(this.originalShardValue);
+                        this.transactionalContext.setOriginalShardValue(this.originalShardMap);
                     } else {
                         this.changed = this.transactionalContext.getChanged();
                         this.stored = this.transactionalContext.getStored();
-                        this.originalShardValue = this.transactionalContext.getOriginalShardValue();
+                        this.originalShardMap = this.transactionalContext.getOriginalShardValue();
                     }
                 });
         this.transactionalContext.setPersist(false);
@@ -55,7 +56,7 @@ public class StorageContext {
         if (this.transactionalContext != null) {
             this.transactionalContext.setChanged(false);
             this.transactionalContext.setStored(true);
-            this.transactionalContext.setOriginalShardValue(this.shardValue);
+            this.transactionalContext.setOriginalShardValue(this.shardMap);
             this.transactionalContext.setPersist(true);
         }
     }
@@ -81,17 +82,22 @@ public class StorageContext {
                 .orElse(this.stored);
     }
 
-    public Long getOriginalShardValue() {
+    public Long getOriginalShardMap() {
         return Optional.ofNullable(this.transactionalContext)
                 .filter(it -> !it.transaction.hasError())
                 .map(TransactionalContext::getOriginalShardValue)
-                .orElse(this.originalShardValue);
+                .orElse(this.originalShardMap);
     }
 
     public boolean hasNewShards() {
-        return Optional.ofNullable(getOriginalShardValue())
-                .map(it -> !it.equals(this.shardValue))
+        return Optional.ofNullable(getOriginalShardMap())
+                .map(it -> !it.equals(this.shardMap))
                 .orElse(false);
+    }
+
+    public boolean hasMainShard() {
+        return this.shardMap.equals(0L) ||
+                Long.compare(ShardUtils.getShardMap(this.cluster.getMainShard().getId()) & this.shardMap, 0L) > 0;
     }
 
     public Shard getShard() {
@@ -102,12 +108,12 @@ public class StorageContext {
         this.shard = shard;
     }
 
-    public Long getShardValue() {
-        return shardValue;
+    public Long getShardMap() {
+        return shardMap;
     }
 
-    public void setShardValue(Long shardValue) {
-        this.shardValue = shardValue;
+    public void setShardMap(Long shardMap) {
+        this.shardMap = shardMap;
     }
 
     public Cluster getCluster() {

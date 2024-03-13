@@ -14,4 +14,5 @@ public class FieldDto {
     private String getter;
     private String setter;
     private Boolean isLinked;
+    private boolean isUnique;
 }

@@ -82,6 +82,13 @@ public abstract class BaseShardEntity implements ShardInstance {
     }
 
     @Override
+    public boolean hasMainShard() {
+        return Optional.ofNullable(this.storageContext)
+                .map(StorageContext::hasMainShard)
+                .orElse(false);
+    }
+
+    @Override
     public boolean setTransactionalContext(EntityTransaction transaction) {
         return this.storageContext != null &&
                 this.storageContext.setTransactionalContext((SharedEntityTransaction) transaction);

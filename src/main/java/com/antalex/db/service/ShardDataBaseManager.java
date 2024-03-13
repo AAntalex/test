@@ -22,7 +22,7 @@ public interface ShardDataBaseManager {
     Stream<Shard> getNewShards(ShardInstance entity);
     void generateId(ShardInstance entity);
     Connection getConnection(Short clusterId, Short shardId) throws SQLException;
-    StorageContext getStorageContext(Long id, Long shardValue);
+    StorageContext getStorageContext(Long id);
     long sequenceNextVal(String sequenceName, Shard shard);
     long sequenceNextVal(String sequenceName, Cluster cluster);
     long sequenceNextVal(String sequenceName);

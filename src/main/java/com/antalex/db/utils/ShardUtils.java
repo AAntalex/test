@@ -12,11 +12,19 @@ public class ShardUtils {
         return sql.replace(DEFAULT_OWNER_PREFIX, shard.getOwner());
     }
 
-    public static Long getShardValue(Short id) {
+    public static Long getShardMap(Short id) {
         return 1L << (id - 1);
     }
 
-    public static Long addShardValue(Long shardValue, Long addShardValue) {
-        return shardValue | addShardValue;
+    public static Long addShardMap(Long shardMap, Long addShardMap) {
+        return shardMap | addShardMap;
+    }
+
+    public static Short getShardIdFromEntityId(Long id) {
+        return (short) (id % ShardUtils.MAX_SHARDS + 1);
+    }
+
+    public static Short getClusterIdFromEntityId(Long id) {
+        return (short) (id / ShardUtils.MAX_SHARDS % ShardUtils.MAX_CLUSTERS + 1);
     }
 }

@@ -4,6 +4,7 @@ import com.antalex.db.annotation.ParentShard;
 import com.antalex.db.annotation.ShardEntity;
 import com.antalex.db.model.Cluster;
 import com.antalex.db.model.StorageContext;
+import com.antalex.db.model.dto.IndexDto;
 import com.antalex.db.model.enums.QueryType;
 import com.antalex.db.model.enums.ShardType;
 import com.antalex.db.service.ShardDataBaseManager;
@@ -57,6 +58,21 @@ public class ShardedEntityProcessor extends AbstractProcessor {
         return true;
     }
 
+    private List<IndexDto> getIndexes(Index[] indexes) {
+        List<IndexDto> result = new ArrayList<>();
+        for(Index index : indexes) {
+            result.add(
+                    IndexDto
+                            .builder()
+                            .name(index.name())
+                            .unique(index.unique())
+                            .columnList(index.columnList())
+                            .build()
+            );
+        }
+        return result;
+    }
+
     private ClassDto getClassDtoByElement(Element classElement) {
         ShardEntity shardEntity = classElement.getAnnotation(ShardEntity.class);
         if (shardEntity == null) {
@@ -77,41 +93,80 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                     .filter(it -> it.startsWith("set"))
                     .collect(Collectors.toMap(String::toLowerCase, it -> it));
 
-            annotatedClasses.put(
-                    classElement,
-                    ClassDto
-                            .builder()
-                            .targetClassName(elementName)
-                            .tableName(
-                                    Optional.ofNullable(classElement.getAnnotation(Table.class))
-                                            .map(Table::name)
-                                            .orElse(getTableName(classElement))
-                            )
-                            .classPackage(getPackage(classElement.asType().toString()))
-                            .cluster(shardEntity.cluster())
-                            .shardType(shardEntity.type())
-                            .fields(
-                                    ElementFilter.fieldsIn(classElement.getEnclosedElements())
-                                            .stream()
-                                            .map(
-                                                    fieldElement ->
-                                                            FieldDto
-                                                                    .builder()
-                                                                    .fieldName(fieldElement.getSimpleName().toString())
-                                                                    .columnName(getColumnName(fieldElement))
-                                                                    .isLinked(isLinkedField(fieldElement))
-                                                                    .getter(this.findGetter(getters, fieldElement))
-                                                                    .setter(this.findSetter(setters, fieldElement))
-                                                                    .element(fieldElement)
-                                                                    .build()
-                                            )
-                                            .collect(Collectors.toList())
-                            )
-                            .build()
-            );
+            ClassDto classDto = ClassDto
+                    .builder()
+                    .targetClassName(elementName)
+                    .tableName(
+                            Optional.ofNullable(classElement.getAnnotation(Table.class))
+                                    .map(Table::name)
+                                    .orElse(getTableName(classElement))
+                    )
+                    .classPackage(getPackage(classElement.asType().toString()))
+                    .cluster(shardEntity.cluster())
+                    .shardType(shardEntity.type())
+                    .fields(
+                            ElementFilter.fieldsIn(classElement.getEnclosedElements())
+                                    .stream()
+                                    .map(
+                                            fieldElement ->
+                                                    FieldDto
+                                                            .builder()
+                                                            .fieldName(fieldElement.getSimpleName().toString())
+                                                            .columnName(getColumnName(fieldElement))
+                                                            .isLinked(isLinkedField(fieldElement))
+                                                            .getter(this.findGetter(getters, fieldElement))
+                                                            .setter(this.findSetter(setters, fieldElement))
+                                                            .element(fieldElement)
+                                                            .build()
+                                    )
+                                    .collect(Collectors.toList())
+                    )
+                    .indexes(
+                            Optional.ofNullable(classElement.getAnnotation(Table.class))
+                                    .map(Table::indexes)
+                                    .map(this::getIndexes)
+                                    .orElse(Collections.emptyList())
+                    )
+                    .build();
+
+            normalizeClassDto(classDto);
+            annotatedClasses.put(classElement, classDto);
         }
         return annotatedClasses.get(classElement);
     }
+
+    private void normalizeClassDto(ClassDto classDto) {
+        classDto.setFieldMap(classDto.getFields()
+                .stream()
+                .collect(Collectors.toMap(FieldDto::getFieldName, it -> it)));
+
+        classDto
+                .getIndexes()
+                .stream()
+                .filter(IndexDto::getUnique)
+                .map(IndexDto::getColumnList)
+                .map(columnList -> columnList.replace(StringUtils.SPACE, StringUtils.EMPTY))
+                .forEach(fields -> {
+                    for (String fieldName : fields.split(",")) {
+                        FieldDto fieldDto = classDto.getFieldMap().get(fieldName);
+                        if (Objects.nonNull(fieldDto) &&
+                                !"id".equals(fieldName) &&
+                                Objects.nonNull(fieldDto.getGetter()) &&
+                                Objects.nonNull(fieldDto.getColumnName()) &&
+                                !fieldDto.getIsLinked())
+                        {
+                            fieldDto.setUnique(true);
+                        }
+                    }
+                });
+        classDto.setUniqueFields(
+                classDto.getFields()
+                        .stream()
+                        .filter(FieldDto::isUnique)
+                        .collect(Collectors.toList())
+        );
+    }
+
 
     private boolean isLinkedField(Element element) {
         return isAnnotationPresent(element, OneToMany.class)
@@ -230,10 +285,10 @@ public class ShardedEntityProcessor extends AbstractProcessor {
         }
     }
 
-    private static String getInsertSQLCode(ClassDto classDto) {
+    private static String getInsertSQLCode(ClassDto classDto, boolean unique) {
         String columns = "SN,ST,SHARD_VALUE";
         String values = "0,?,?";
-        for (FieldDto field : classDto.getFields()) {
+        for (FieldDto field : unique ? classDto.getUniqueFields() : classDto.getFields()) {
             if (field.getColumnName() != null && !field.getIsLinked()) {
                 columns = columns.concat(",").concat(field.getColumnName());
                 values = values.concat(",?");
@@ -242,8 +297,8 @@ public class ShardedEntityProcessor extends AbstractProcessor {
         return "INSERT INTO $$$." + classDto.getTableName() + " (" + columns + ",ID) VALUES (" + values + ",?)";
     }
 
-    private static String getUpdateSQLCode(ClassDto classDto) {
-        return classDto.getFields()
+    private static String getUpdateSQLCode(ClassDto classDto, boolean unique) {
+        return (unique ? classDto.getUniqueFields() : classDto.getFields())
                 .stream()
                 .filter(it -> it.getColumnName() != null && !it.getIsLinked())
                 .map(field -> "," + field.getColumnName() + "=?")
@@ -291,11 +346,21 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                     "    private static final ShardType SHARD_TYPE = ShardType." + classDto.getShardType().name() + ";"
             );
             out.println(
-                    "    private static final String INS_QUERY = \"" + getInsertSQLCode(classDto) + "\";"
+                    "    private static final String INS_QUERY = \"" + getInsertSQLCode(classDto, false) + "\";"
             );
             out.println(
-                    "    private static final String UPD_QUERY = \"" + getUpdateSQLCode(classDto) + "\";"
+                    "    private static final String UPD_QUERY = \"" + getUpdateSQLCode(classDto, false) + "\";"
             );
+            if (!classDto.getUniqueFields().isEmpty()) {
+                out.println(
+                        "    private static final String INS_UNIQUE_FIELDS_QUERY = \"" +
+                                getInsertSQLCode(classDto, true) + "\";"
+                );
+                out.println(
+                        "    private static final String UPD_UNIQUE_FIELDS_QUERY = \"" +
+                                getUpdateSQLCode(classDto, true) + "\";"
+                );
+            }
             out.println(
                     "    private static final String LOCK_QUERY = \"" + getLockSQLCode(classDto) + "\";"
             );
@@ -321,6 +386,8 @@ public class ShardedEntityProcessor extends AbstractProcessor {
             out.println(getGenerateDependentIdCode(classDto));
             out.println();
             out.println(getLockCode(classDto));
+            out.println();
+            out.println(getAdditionalPersistCode(classDto));
             out.println("}");
         }
     }
@@ -417,30 +484,18 @@ public class ShardedEntityProcessor extends AbstractProcessor {
     private static String getPersistCode(ClassDto classDto) {
         StringBuilder code = new StringBuilder(
                 "    @Override\n" +
-                        "    public void persist(" + classDto.getTargetClassName() + " entity) {\n" +
-                        "        persist(entity, false);\n" +
-                        "    }\n" +
-                        "\n" +
-                        "    private void persist(" + classDto.getTargetClassName() + " entity, boolean force) {\n"
+                        "    public void persist(" + classDto.getTargetClassName() + " entity) {\n"
         );
         StringBuilder persistCode =
                 new StringBuilder(
                         "        entityManager\n" +
-                                "                .createQueries(entity, entity.isStored() ? UPD_QUERY : INS_QUERY, QueryType.DML)\n" +
+                                "                .createQueries(entity, entity.isStored() ? UPD_QUERY : INS_QUERY," +
+                                " QueryType.DML)\n" +
                                 "                .forEach(query ->\n" +
                                 "                        query\n" +
                                 "                                .bind(entityManager.getTransactionUUID())\n" +
-                                "                                .bind(entity.getStorageContext().getShardValue())\n"
+                                "                                .bind(entity.getStorageContext().getShardMap())\n"
                 );
-        StringBuilder newQueryCode = new StringBuilder(
-                "        if (entity.hasNewShards()) {\n" +
-                        "                entityManager\n" +
-                        "                        .createNewQueries(entity, INS_QUERY)\n" +
-                        "                        .forEach(query ->\n" +
-                        "                                query\n" +
-                        "                                        .bind(entityManager.getTransactionUUID())\n" +
-                        "                                        .bind(entity.getStorageContext().getShardValue())\n"
-        );
 
         StringBuilder childPersistCode = new StringBuilder(StringUtils.EMPTY);
         for (FieldDto field : classDto.getFields()) {
@@ -467,14 +522,6 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                                             "().getId())\n" :
                                             "())\n"
                             );
-
-                    newQueryCode.append("                                        .bind(entity.")
-                            .append(field.getGetter())
-                            .append(
-                                    isAnnotationPresentByType(field, ShardEntity.class) ?
-                                            "().getId())\n" :
-                                            "())\n"
-                            );
                 }
             }
         }
@@ -483,18 +530,80 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                 .append(
                         "                                .bind(entity.getId())\n" +
                                 "                                .addBatch()\n" +
-                                "                );\n"
-                )
-                .append(newQueryCode)
-                .append(
-                        "                                        .bind(entity.getId())\n" +
-                                "                                        .addBatch()\n" +
-                                "                        );\n" +
-                                "        }\n"
+                                "                );\n" +
+                                "        additionalPersist(entity);\n"
                 )
                 .append(childPersistCode)
                 .append("    }")
                 .toString();
+    }
+
+    private static String getAdditionalPersistCode(ClassDto classDto) {
+        return classDto.getFields()
+                .stream()
+                .filter(field ->
+                        Objects.nonNull(field.getGetter()) &&
+                                Objects.nonNull(field.getColumnName()) &&
+                                !field.getIsLinked()
+                )
+                .map(field ->
+                        "                                    .bind(entity." +
+                                field.getGetter() +
+                                (
+                                        isAnnotationPresentByType(field, ShardEntity.class) ?
+                                                "().getId())\n" :
+                                                "())\n"
+                                )
+                )
+                .reduce(
+                        "    private void additionalPersist(" + classDto.getTargetClassName() + " entity) {\n" +
+                                "        if (entity.hasNewShards()) {\n" +
+                                "            entityManager\n" +
+                                "                    .createNewShardsQueries(entity, INS_QUERY)\n" +
+                                "                    .forEach(query ->\n" +
+                                "                            query\n" +
+                                "                                    .bind(entityManager.getTransactionUUID())\n" +
+                                "                                    .bind(entity.getStorageContext()." +
+                                "getShardMap())\n",
+                        String::concat
+                )
+                .concat(
+                        "                                    .bind(entity.getId())\n" +
+                                "                                    .addBatch()\n" +
+                                "                    );\n" +
+                                "        }\n"
+                )
+                .concat(classDto.getUniqueFields().isEmpty() ?
+                        StringUtils.EMPTY :
+                        classDto.getUniqueFields()
+                                .stream()
+                                .map(field ->
+                                        "                    .bind(entity." +
+                                                field.getGetter() +
+                                                (
+                                                        isAnnotationPresentByType(field, ShardEntity.class) ?
+                                                                "().getId())\n" :
+                                                                "())\n"
+                                                )
+                                )
+                                .reduce(
+                                        "        if (!entity.hasMainShard()) {\n" +
+                                                "            entityManager\n" +
+                                                "                    .createQueryUnique(entity, entity.isStored()" +
+                                                " ? UPD_UNIQUE_FIELDS_QUERY : INS_UNIQUE_FIELDS_QUERY)\n" +
+                                                "                    .bind(entityManager." +
+                                                "getTransactionUUID())\n" +
+                                                "                    .bind(entity.getStorageContext()." +
+                                                "getShardMap())\n",
+                                        String::concat
+                                )
+                                .concat(
+                                        "                    .bind(entity.getId())\n" +
+                                                "                    .addBatch();\n" +
+                                                "        }\n"
+                                )
+                )
+                .concat("    }");
     }
 
     private static String getClusterCode(ClassDto classDto) {

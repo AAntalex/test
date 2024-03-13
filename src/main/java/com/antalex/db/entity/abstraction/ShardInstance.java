@@ -14,5 +14,6 @@ public interface ShardInstance {
     Boolean isStored();
     void setChanged();
     boolean hasNewShards();
+    boolean hasMainShard();
     boolean setTransactionalContext(EntityTransaction transaction);
 }
