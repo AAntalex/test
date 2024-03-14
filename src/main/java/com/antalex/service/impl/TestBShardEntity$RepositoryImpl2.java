@@ -43,7 +43,7 @@ public class TestBShardEntity$RepositoryImpl2 {
                             entity,
                             entity.getStorageContext().isStored() ? UPD_QUERY : INS_QUERY, QueryType.DML
                     )
-                    .bind(entity.getStorageContext().getShardValue())
+                    .bind(entity.getStorageContext().getShardMap())
                     .bind(entity.getValue())
                     .bind(entity.getA().getId())
                     .bind(entity.getNewValue())

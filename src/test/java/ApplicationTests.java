@@ -300,7 +300,7 @@ public class ApplicationTests {
 		TestBEntity b = new TestBEntity();
 		b.setA(a);
 		testARepository.save(a);
-		b.setShardValue(1L);
+		b.setShardMap(1L);
 		b.setValue("B2");
 		b.setNewValue("B2");
 		testBRepository.save(b);

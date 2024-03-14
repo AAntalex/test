@@ -5,7 +5,7 @@ import java.util.Objects;
 public abstract class ShardedEntity implements Sharded {
     protected String id;
     protected Short cluster;
-    protected Long shardValue;
+    protected Long shardMap;
 
     @Override
     public String getId() {

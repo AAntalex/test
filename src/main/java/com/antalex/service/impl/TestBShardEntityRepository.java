@@ -109,18 +109,18 @@ public class TestBShardEntityRepository {
                                         .map(storage ->
                                                 Optional.ofNullable(storage.getShard())
                                                         .map(shard -> {
-                                                            storage.setShardValue(
-                                                                    ShardUtils.addShardValue(
-                                                                            ShardUtils.getShardValue(shard.getId()),
-                                                                            entityStorage.getShardValue()
+                                                            storage.setShardMap(
+                                                                    ShardUtils.addShardMap(
+                                                                            ShardUtils.getShardMap(shard.getId()),
+                                                                            entityStorage.getShardMap()
                                                                     )
                                                             );
                                                             return false;
                                                         })
                                                         .orElseGet(() -> {
                                                             storage.setShard(entityStorage.getShard());
-                                                            storage.setShardValue(
-                                                                    ShardUtils.getShardValue(
+                                                            storage.setShardMap(
+                                                                    ShardUtils.getShardMap(
                                                                             entityStorage.getShard().getId()
                                                                     )
                                                             );
@@ -151,8 +151,8 @@ public class TestBShardEntityRepository {
                                                                             .cluster(cluster)
                                                                             .stored(false)
                                                                             .shard(shard)
-                                                                            .shardValue(
-                                                                                    ShardUtils.getShardValue(
+                                                                            .shardMap(
+                                                                                    ShardUtils.getShardMap(
                                                                                             shard.getId()
                                                                                     )
                                                                             )
@@ -176,7 +176,7 @@ public class TestBShardEntityRepository {
                     StorageContext.builder()
                             .cluster(parent.getStorageContext().getCluster())
                             .shard(parent.getStorageContext().getShard())
-                            .shardValue(parent.getStorageContext().getShardValue())
+                            .shardMap(parent.getStorageContext().getShardMap())
                             .stored(false)
                             .build()
             );

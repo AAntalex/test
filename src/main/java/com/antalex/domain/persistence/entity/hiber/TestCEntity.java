@@ -16,7 +16,7 @@ public class TestCEntity extends BaseShardEntity {
     @SequenceGenerator(name = "seq_id", sequenceName = "SEQ_ID", schema = "pmts_public_1")
     private Long id;
     @Column(name = "SHARD_VALUE")
-    private Long shardValue;
+    private Long shardMap;
     @Column(name = "C_VALUE")
     private String value;
     @Column(name = "C_B_REF")

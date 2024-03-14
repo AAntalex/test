@@ -5,7 +5,6 @@ import com.antalex.db.service.ShardDataBaseManager;
 import com.antalex.domain.persistence.entity.hiber.TestAEntity;
 import com.antalex.domain.persistence.entity.hiber.TestBEntity;
 import com.antalex.domain.persistence.entity.hiber.TestCEntity;
-import com.antalex.domain.persistence.entity.shard.TestAShardEntity;
 import com.antalex.domain.persistence.repository.TestBRepository;
 import com.antalex.service.TestService;
 import org.springframework.stereotype.Service;
@@ -66,7 +65,7 @@ public class TestServiceImpl implements TestService{
                 TestCEntity c = new TestCEntity();
                 c.setValue(prefix + "C" + (i * cntArray + j));
                 c.setNewValue(prefix + "newC" + (i * cntArray + j));
-                c.setShardValue(1L);
+                c.setShardMap(1L);
                 cEntities.add(c);
             }
             b.getCList().addAll(cEntities);
@@ -109,7 +108,7 @@ public class TestServiceImpl implements TestService{
                                 try {
                                     cEntity.setId(databaseManager.sequenceNextVal() * 10000L);
                                     preparedCStatement.setLong(1, cEntity.getId());
-                                    preparedCStatement.setLong(2, cEntity.getShardValue());
+                                    preparedCStatement.setLong(2, cEntity.getShardMap());
                                     preparedCStatement.setString(3, cEntity.getValue());
                                     preparedCStatement.setString(4, cEntity.getNewValue());
                                     preparedCStatement.setLong(5, entity.getId());

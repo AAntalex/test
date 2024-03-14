@@ -10,7 +10,11 @@ import javax.persistence.*;
 import java.util.ArrayList;
 import java.util.List;
 
-@Table(name = "TEST_B")
+@Table(
+        name = "TEST_B",
+        indexes = {
+                @Index(name = "IDX_TEST_B_VALUE", columnList = "value", unique = true)
+        })
 @Data
 @ShardEntity
 public class TestBShardEntity extends BaseShardEntity {
