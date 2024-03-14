@@ -131,12 +131,6 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
     }
 
     @Override
-    public <T extends ShardInstance> T find(Class<T> clazz, Long id) {
-        ShardEntityRepository<T> repository = getEntityRepository(clazz);
-        return repository.find(dataBaseManager.getStorageContext(id));
-    }
-
-    @Override
     public <T extends ShardInstance> void generateDependentId(T entity) {
         if (entity == null) {
             return;
@@ -312,7 +306,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
     @Override
     public <T extends ShardInstance> T newEntity(Class<T> clazz) {
         ShardEntityRepository<T> repository = getEntityRepository(clazz);
-        return repository.newEntity(clazz);
+        return repository.newEntity();
     }
 
     @Override
@@ -377,6 +371,13 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
     public <T extends ShardInstance> TransactionalQuery createQueryUnique(T entity, String query) {
         return this.createQuery(entity.getStorageContext().getCluster().getMainShard(), query, QueryType.DML);
     }
+
+    @Override
+    public <T extends ShardInstance> T find(Class<T> clazz, Long id) {
+        ShardEntityRepository<T> repository = getEntityRepository(clazz);
+        return repository.find(dataBaseManager.getStorageContext(id));
+    }
+
 
     private TransactionalQuery createQuery(Shard shard, String query, QueryType queryType) {
         return dataBaseManager.getTransactionalTask(shard).addQuery(query, queryType);

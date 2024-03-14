@@ -10,7 +10,7 @@ public interface ShardEntityRepository<T extends ShardInstance> {
     Cluster getCluster();
     void generateDependentId(T entity);
     void setDependentStorage(T entity);
-    T newEntity(Class<T> clazz);
+    T newEntity();
     void persist(T entity);
     void lock(T entity);
     T find(StorageContext storageContext);

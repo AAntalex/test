@@ -16,6 +16,7 @@ public interface TransactionalTask {
     TransactionalQuery createQuery(String query, QueryType queryType);
     TransactionalQuery addQuery(String query, QueryType queryType);
     TransactionalQuery addQuery(String query, QueryType queryType, String name);
+    void addDMLQuery(String sql, TransactionalQuery query);
     void addStep(Runnable target);
     void addStep(Runnable target, String name);
     void addStepBeforeRollback(Runnable target);
@@ -31,7 +32,6 @@ public interface TransactionalTask {
     void setParallelCommit(boolean parallelCommit);
     String getError();
     String getErrorCompletion();
-    TransactionalTask getMainTask();
     void setMainTask(TransactionalTask task);
     List<TransactionalQuery> getDmlQueries();
 }

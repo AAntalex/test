@@ -6,6 +6,7 @@ import com.antalex.db.model.enums.QueryType;
 import com.antalex.db.model.enums.TaskStatus;
 import com.antalex.db.service.api.TransactionalQuery;
 import com.antalex.db.service.api.TransactionalTask;
+import com.antalex.db.service.impl.TransactionalSQLQuery;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.*;
@@ -15,8 +16,6 @@ import java.util.stream.Stream;
 
 @Slf4j
 public abstract class AbstractTransactionalTask implements TransactionalTask {
-    private static final String DELIMETER_CONTENT = "\n";
-
     protected ExecutorService executorService;
     protected String name;
     protected String errorCompletion;
@@ -28,6 +27,7 @@ public abstract class AbstractTransactionalTask implements TransactionalTask {
     private String error;
     private Map<String, TransactionalQuery> queries = new HashMap<>();
     private List<TransactionalQuery> dmlQueries = new ArrayList<>();
+    private Map<String, TransactionalQuery> dmlQueryMap = new HashMap<>();
     private TransactionalTask mainTask;
     private List<Step> steps = new ArrayList<>();
     private List<Step> commitSteps = new ArrayList<>();
@@ -39,8 +39,7 @@ public abstract class AbstractTransactionalTask implements TransactionalTask {
     public void run(Boolean parallelRun) {
         if (this.status == TaskStatus.CREATED) {
             Runnable target = () ->
-                    steps.stream()
-                            .forEachOrdered(step -> {
+                    steps.forEach(step -> {
                                 if (this.error == null) {
                                     try {
                                         log.debug(
@@ -219,11 +218,6 @@ public abstract class AbstractTransactionalTask implements TransactionalTask {
     }
 
     @Override
-    public TransactionalTask getMainTask() {
-        return this.mainTask;
-    }
-
-    @Override
     public void setMainTask(TransactionalTask mainTask) {
         this.mainTask = mainTask;
     }
@@ -235,9 +229,12 @@ public abstract class AbstractTransactionalTask implements TransactionalTask {
             transactionalQuery = createQuery(query, queryType);
             this.queries.put(query, transactionalQuery);
             if (queryType == QueryType.DML || queryType == QueryType.LOCK) {
-                dmlQueries.add(transactionalQuery);
+                Optional
+                        .ofNullable(this.mainTask)
+                        .orElse(this)
+                        .addDMLQuery(query, transactionalQuery);
             }
-            if (queryType != QueryType.LOCK) {
+            if (queryType == QueryType.DML) {
                 this.addStep((Runnable) transactionalQuery, name);
             }
         }
@@ -247,5 +244,18 @@ public abstract class AbstractTransactionalTask implements TransactionalTask {
     @Override
     public TransactionalQuery addQuery(String query, QueryType queryType) {
         return addQuery(query, queryType, query);
+    }
+
+    @Override
+    public void addDMLQuery(String sql, TransactionalQuery query) {
+        query.setMainQuery(dmlQueryMap.get(sql));
+        if (Objects.isNull(query.getMainQuery())) {
+            dmlQueryMap.put(sql, query);
+            dmlQueries.add(query);
+        }
+    }
+
+    private TransactionalTask getMainTask() {
+        return Optional.ofNullable(this.mainTask).orElse(this);
     }
 }
