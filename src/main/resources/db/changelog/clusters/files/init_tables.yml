@@ -29,7 +29,7 @@ databaseChangeLog:
               name: ST
               type: uuid
           - column:
-              name: SHARD_VALUE
+              name: SHARD_
               type: bigint
           - column:
               name: C_VALUE
@@ -54,7 +54,7 @@ databaseChangeLog:
               name: ST
               type: uuid
           - column:
-              name: SHARD_VALUE
+              name: SHARD_MAP
               type: bigint
           - column:
               name: C_VALUE
@@ -87,7 +87,7 @@ databaseChangeLog:
               name: ST
               type: uuid
           - column:
-              name: SHARD_VALUE
+              name: SHARD_MAP
               type: bigint
           - column:
               name: C_VALUE

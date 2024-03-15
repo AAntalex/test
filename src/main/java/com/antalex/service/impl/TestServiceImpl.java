@@ -56,7 +56,7 @@ public class TestServiceImpl implements TestService{
                 b.setA(aList.get(i % 10));
             }
 
-            b.setShardValue(1L);
+            b.setShardMap(1L);
             b.setValue(prefix + "B" + i);
             b.setNewValue(prefix + "newB" + i);
 
@@ -99,7 +99,7 @@ public class TestServiceImpl implements TestService{
                         try {
                             entity.setId(databaseManager.sequenceNextVal() * 10000L);
                             preparedBStatement.setLong(1, entity.getId());
-                            preparedBStatement.setLong(2, entity.getShardValue());
+                            preparedBStatement.setLong(2, entity.getShardMap());
                             preparedBStatement.setString(3, entity.getValue());
                             preparedBStatement.setString(4, entity.getNewValue());
                             preparedBStatement.addBatch();
