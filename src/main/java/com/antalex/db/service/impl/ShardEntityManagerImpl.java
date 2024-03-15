@@ -5,6 +5,7 @@ import com.antalex.db.exception.ShardDataBaseException;
 import com.antalex.db.model.Cluster;
 import com.antalex.db.model.Shard;
 import com.antalex.db.model.StorageContext;
+import com.antalex.db.model.enums.QueryStrategy;
 import com.antalex.db.model.enums.QueryType;
 import com.antalex.db.model.enums.ShardType;
 import com.antalex.db.service.ShardDataBaseManager;
@@ -14,6 +15,7 @@ import com.antalex.db.service.SharedTransactionManager;
 import com.antalex.db.service.api.TransactionalQuery;
 import com.antalex.db.utils.ShardUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.SearchStrategy;
 import org.springframework.context.annotation.Primary;
 import org.springframework.core.GenericTypeResolver;
 import org.springframework.stereotype.Component;
@@ -310,6 +312,12 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
     }
 
     @Override
+    public <T extends ShardInstance> T newEntity(Class<T> clazz, Long id) {
+        ShardEntityRepository<T> repository = getEntityRepository(clazz);
+        return repository.newEntity(id, dataBaseManager.getStorageContext(id));
+    }
+
+    @Override
     public EntityTransaction getTransaction() {
         return sharedTransactionManager.getTransaction();
     }
@@ -335,52 +343,79 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
     }
 
     @Override
-    public <T extends ShardInstance> TransactionalQuery createQuery(T entity, String query, QueryType queryType) {
-        Shard shard = entity.getStorageContext().getShard();
-        if (
-                queryType == QueryType.DML &&
-                        !entity.getStorageContext().getShardMap().equals(ShardUtils.getShardMap(shard.getId())))
-        {
-            throw new ShardDataBaseException(
-                    "Для реплицируемых или мульти-шардовых сущностей" +
-                            " слеует использовать метод createQueries вместо createQuery."
-            );
+    public <T extends ShardInstance> TransactionalQuery createQuery(
+            T entity,
+            String query,
+            QueryType queryType,
+            QueryStrategy queryStrategy)
+    {
+        switch (queryStrategy) {
+            case OWN_SHARD:
+                return this.createQuery(entity.getStorageContext().getShard(), query, queryType);
+            case MAIN_SHARD:
+                return this.createQuery(entity.getStorageContext().getCluster().getMainShard(), query, queryType);
+            case ALL_SHARDS:
+            case NEW_SHARDS:
+                return getMainQuery(
+                        createQueries(entity, query, queryType, queryStrategy)
+                );
         }
-        return this.createQuery(shard, query, queryType);
+        return null;
     }
 
     @Override
     public <T extends ShardInstance> Iterable<TransactionalQuery> createQueries(
             T entity,
             String query,
-            QueryType queryType)
+            QueryType queryType,
+            QueryStrategy queryStrategy)
     {
-        return dataBaseManager.getAllShards(entity)
-                .map(shard -> this.createQuery(shard, query, queryType))
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    public <T extends ShardInstance> Iterable<TransactionalQuery> createNewShardsQueries(T entity, String query) {
-        return dataBaseManager.getNewShards(entity)
-                .map(shard -> this.createQuery(shard, query, QueryType.DML))
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    public <T extends ShardInstance> TransactionalQuery createQueryUnique(T entity, String query) {
-        return this.createQuery(entity.getStorageContext().getCluster().getMainShard(), query, QueryType.DML);
+        switch (queryStrategy) {
+            case OWN_SHARD:
+            case MAIN_SHARD:
+                return Collections.singletonList(createQuery(entity, query, queryType, queryStrategy));
+            case ALL_SHARDS:
+                return dataBaseManager.getAllShards(entity)
+                        .map(shard -> this.createQuery(shard, query, queryType))
+                        .collect(Collectors.toList());
+            case NEW_SHARDS:
+                return dataBaseManager.getNewShards(entity)
+                        .map(shard -> this.createQuery(shard, query, queryType))
+                        .collect(Collectors.toList());
+        }
+        return Collections.emptyList();
     }
 
     @Override
     public <T extends ShardInstance> T find(Class<T> clazz, Long id) {
         ShardEntityRepository<T> repository = getEntityRepository(clazz);
-        return repository.find(dataBaseManager.getStorageContext(id));
+        return repository.find(id, dataBaseManager.getStorageContext(id));
     }
 
+    @Override
+    public <T extends ShardInstance> T find(T entity) {
+        ShardEntityRepository<T> repository = getEntityRepository(entity.getClass());
+        return repository.find(entity);
+    }
+
+    private TransactionalQuery getMainQuery(Iterable<TransactionalQuery> queries) {
+        TransactionalQuery mainQuery = null;
+        for (TransactionalQuery query : queries) {
+            if (Objects.isNull(mainQuery)) {
+                mainQuery = query;
+            } else {
+                mainQuery.addRelatedQuery(query);
+            }
+        }
+        return mainQuery;
+    }
 
     private TransactionalQuery createQuery(Shard shard, String query, QueryType queryType) {
-        return dataBaseManager.getTransactionalTask(shard).addQuery(query, queryType);
+        TransactionalQuery transactionalQuery = dataBaseManager.getTransactionalTask(shard).addQuery(query, queryType);
+        if (queryType == QueryType.SELECT) {
+            transactionalQuery.setParallelRun(((SharedEntityTransaction) getTransaction()).getParallelRun());
+        }
+        return transactionalQuery;
     }
 
     private boolean startTransaction() {

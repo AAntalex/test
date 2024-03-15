@@ -9,9 +9,12 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
 
 public class TransactionalSQLQuery implements TransactionalQuery, Runnable {
     private PreparedStatement preparedStatement;
+    private ExecutorService executorService;
+    private Boolean parallelRun;
     private TransactionalSQLQuery mainQuery;
     private QueryType queryType;
     private ResultSet result;
@@ -34,20 +37,8 @@ public class TransactionalSQLQuery implements TransactionalQuery, Runnable {
 
     @Override
     public void execute() {
-        try {
-            if (queryType == QueryType.DML) {
-                if (this.isButch) {
-                    preparedStatement.executeBatch();
-                } else {
-                    this.increment();
-                    preparedStatement.executeUpdate();
-                }
-            } else {
-                this.increment();
-                this.result = preparedStatement.executeQuery();
-            }
-        } catch (SQLException err) {
-            throw new ShardDataBaseException(err);
+        if (queryType != QueryType.DML) {
+            run();
         }
     }
 
@@ -101,7 +92,21 @@ public class TransactionalSQLQuery implements TransactionalQuery, Runnable {
 
     @Override
     public void run() {
-        execute();
+        try {
+            if (queryType == QueryType.DML) {
+                if (this.isButch) {
+                    preparedStatement.executeBatch();
+                } else {
+                    this.increment();
+                    preparedStatement.executeUpdate();
+                }
+            } else {
+                this.increment();
+                this.result = preparedStatement.executeQuery();
+            }
+        } catch (SQLException err) {
+            throw new ShardDataBaseException(err);
+        }
     }
 
     @Override
@@ -112,6 +117,16 @@ public class TransactionalSQLQuery implements TransactionalQuery, Runnable {
     @Override
     public TransactionalQuery getMainQuery() {
         return mainQuery;
+    }
+
+    @Override
+    public void setExecutorService(ExecutorService executorService) {
+        this.executorService = executorService;
+    }
+
+    @Override
+    public void setParallelRun(Boolean parallelRun) {
+        this.parallelRun = parallelRun;
     }
 
     private void increment() {

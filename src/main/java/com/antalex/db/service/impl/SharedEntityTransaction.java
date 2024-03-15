@@ -114,6 +114,10 @@ public class SharedEntityTransaction implements EntityTransaction {
         this.parentTransaction = parentTransaction;
     }
 
+    public Boolean getParallelRun() {
+        return parallelRun;
+    }
+
     public boolean isCompleted() {
         return this.completed;
     }

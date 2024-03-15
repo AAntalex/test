@@ -1,9 +1,9 @@
 package com.antalex.db.service.api;
 
-import com.antalex.db.model.Shard;
 import com.antalex.db.model.enums.QueryType;
 
 import java.util.List;
+import java.util.concurrent.ExecutorService;
 
 public interface TransactionalTask {
     void commit() throws Exception;
@@ -34,4 +34,5 @@ public interface TransactionalTask {
     String getErrorCompletion();
     void setMainTask(TransactionalTask task);
     List<TransactionalQuery> getDmlQueries();
+    ExecutorService getExecutorService();
 }

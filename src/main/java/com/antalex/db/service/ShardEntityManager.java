@@ -2,6 +2,7 @@ package com.antalex.db.service;
 
 import com.antalex.db.entity.abstraction.ShardInstance;
 import com.antalex.db.model.Cluster;
+import com.antalex.db.model.enums.QueryStrategy;
 import com.antalex.db.model.enums.QueryType;
 import com.antalex.db.model.enums.ShardType;
 import com.antalex.db.service.api.TransactionalQuery;
@@ -25,15 +26,36 @@ public interface ShardEntityManager {
     <T extends ShardInstance> void setStorage(T entity, ShardInstance parent);
     <T extends ShardInstance> void setAllStorage(Iterable<T> entities, ShardInstance parent);
     <T extends ShardInstance> T newEntity(Class<T> clazz);
-    <T extends ShardInstance> TransactionalQuery createQuery(T entity, String query, QueryType queryType);
-    <T extends ShardInstance> Iterable<TransactionalQuery> createQueries(T entity, String query, QueryType queryType);
-    <T extends ShardInstance> Iterable<TransactionalQuery> createNewShardsQueries(T entity, String query);
-    <T extends ShardInstance> TransactionalQuery createQueryUnique(T entity, String query);
+    <T extends ShardInstance> T newEntity(Class<T> clazz, Long id);
+    <T extends ShardInstance> TransactionalQuery createQuery(
+            T entity,
+            String query,
+            QueryType queryType,
+            QueryStrategy queryStrategy);
+    <T extends ShardInstance> Iterable<TransactionalQuery> createQueries(
+            T entity,
+            String query,
+            QueryType queryType,
+            QueryStrategy queryStrategy
+    );
     <T extends ShardInstance> boolean lock(T entity);
     <T extends ShardInstance> T find(Class<T> clazz, Long id);
+    <T extends ShardInstance> T find(T entity);
     EntityTransaction getTransaction();
     UUID getTransactionUUID();
     void setAutonomousTransaction();
     void addParallel();
     void flush();
+
+    default <T extends ShardInstance> TransactionalQuery createQuery(T entity, String query, QueryType queryType) {
+        return createQuery(entity, query, queryType, QueryStrategy.ALL_SHARDS);
+    }
+
+    default <T extends ShardInstance> Iterable<TransactionalQuery> createQueries(
+            T entity,
+            String query,
+            QueryType queryType)
+    {
+        return createQueries(entity, query, queryType, QueryStrategy.ALL_SHARDS);
+    }
 }

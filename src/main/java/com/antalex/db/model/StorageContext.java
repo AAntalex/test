@@ -15,6 +15,7 @@ public class StorageContext {
     private Long originalShardMap;
     private Boolean stored;
     private Boolean changed;
+    private boolean isLazy;
     private boolean temporary;
     private TransactionalContext transactionalContext;
 

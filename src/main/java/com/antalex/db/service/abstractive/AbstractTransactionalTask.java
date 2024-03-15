@@ -227,14 +227,15 @@ public abstract class AbstractTransactionalTask implements TransactionalTask {
         if (transactionalQuery == null) {
             transactionalQuery = createQuery(query, queryType);
             this.queries.put(query, transactionalQuery);
-            if (queryType == QueryType.DML || queryType == QueryType.LOCK) {
+            if (queryType == QueryType.DML) {
                 Optional
                         .ofNullable(this.mainTask)
                         .orElse(this)
                         .addDMLQuery(query, transactionalQuery);
-            }
-            if (queryType == QueryType.DML) {
                 this.addStep((Runnable) transactionalQuery, name);
+            }
+            if (queryType == QueryType.SELECT) {
+                transactionalQuery.setExecutorService(executorService);
             }
         }
         return transactionalQuery;
@@ -252,6 +253,11 @@ public abstract class AbstractTransactionalTask implements TransactionalTask {
             dmlQueryMap.put(sql, query);
             dmlQueries.add(query);
         }
+    }
+
+    @Override
+    public ExecutorService getExecutorService() {
+        return executorService;
     }
 
     private TransactionalTask getMainTask() {

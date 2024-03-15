@@ -5,6 +5,7 @@ import com.antalex.db.annotation.ShardEntity;
 import com.antalex.db.model.Cluster;
 import com.antalex.db.model.StorageContext;
 import com.antalex.db.model.dto.IndexDto;
+import com.antalex.db.model.enums.QueryStrategy;
 import com.antalex.db.model.enums.QueryType;
 import com.antalex.db.model.enums.ShardType;
 import com.antalex.db.service.ShardDataBaseManager;
@@ -286,7 +287,7 @@ public class ShardedEntityProcessor extends AbstractProcessor {
     }
 
     private static String getInsertSQLCode(ClassDto classDto, boolean unique) {
-        String columns = "SN,ST,SHARD_VALUE";
+        String columns = "SN,ST,SHARD_MAP";
         String values = "0,?,?";
         for (FieldDto field : unique ? classDto.getUniqueFields() : classDto.getFields()) {
             if (field.getColumnName() != null && !field.getIsLinked()) {
@@ -303,7 +304,7 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                 .filter(it -> it.getColumnName() != null && !it.getIsLinked())
                 .map(field -> "," + field.getColumnName() + "=?")
                 .reduce(
-                        "UPDATE $$$." + classDto.getTableName() + " SET SN=SN+1,ST=?,SHARD_VALUE=?",
+                        "UPDATE $$$." + classDto.getTableName() + " SET SN=SN+1,ST=?,SHARD_MAP=?",
                         String::concat
                 ) + " WHERE ID=?";
     }
@@ -326,6 +327,7 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                             classDto.getTargetClassName() + CLASS_INTERCEPT_POSTFIX + ";"
             );
             out.println("import " + QueryType.class.getCanonicalName() + ";");
+            out.println("import " + QueryStrategy.class.getCanonicalName() + ";");
             out.println("import " + ShardEntityRepository.class.getCanonicalName() + ";");
             out.println("import " + ShardEntityManager.class.getCanonicalName() + ";");
             out.println("import " + Component.class.getCanonicalName() + ";");
@@ -475,8 +477,7 @@ public class ShardedEntityProcessor extends AbstractProcessor {
 
     private static String getNewEntityCode(ClassDto classDto) {
         return "    @Override\n" +
-                "    public " + classDto.getTargetClassName() + " newEntity(Class<" +
-                classDto.getTargetClassName() + "> clazz) {\n" +
+                "    public " + classDto.getTargetClassName() + " newEntity() {\n" +
                 "        return new " + classDto.getTargetClassName() + CLASS_INTERCEPT_POSTFIX + "();\n" +
                 "    }";
     }
@@ -559,7 +560,8 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                         "    private void additionalPersist(" + classDto.getTargetClassName() + " entity) {\n" +
                                 "        if (entity.hasNewShards()) {\n" +
                                 "            entityManager\n" +
-                                "                    .createNewShardsQueries(entity, INS_QUERY)\n" +
+                                "                    .createQueries(entity, INS_QUERY, QueryType.DML," +
+                                " QueryStrategy.NEW_SHARDS)\n" +
                                 "                    .forEach(query ->\n" +
                                 "                            query\n" +
                                 "                                    .bind(entityManager.getTransactionUUID())\n" +
@@ -589,8 +591,9 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                                 .reduce(
                                         "        if (!entity.hasMainShard()) {\n" +
                                                 "            entityManager\n" +
-                                                "                    .createQueryUnique(entity, entity.isStored()" +
-                                                " ? UPD_UNIQUE_FIELDS_QUERY : INS_UNIQUE_FIELDS_QUERY)\n" +
+                                                "                    .createQuery(entity, entity.isStored()" +
+                                                " ? UPD_UNIQUE_FIELDS_QUERY : INS_UNIQUE_FIELDS_QUERY, QueryType.DML" +
+                                                ", QueryStrategy.MAIN_SHARD)\n" +
                                                 "                    .bind(entityManager." +
                                                 "getTransactionUUID())\n" +
                                                 "                    .bind(entity.getStorageContext()." +
@@ -680,7 +683,7 @@ public class ShardedEntityProcessor extends AbstractProcessor {
         return "    @Override\n" +
                 "    public void lock(" + classDto.getTargetClassName() + " entity) {\n" +
                 "        entityManager\n" +
-                "                .createQuery(entity, LOCK_QUERY, QueryType.LOCK)\n" +
+                "                .createQuery(entity, LOCK_QUERY, QueryType.LOCK, QueryStrategy.OWN_SHARD)\n" +
                 "                .bind(entity.getId())\n" +
                 "                .execute();\n" +
                 "    }\n";
