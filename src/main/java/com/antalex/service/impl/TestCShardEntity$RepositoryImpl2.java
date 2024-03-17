@@ -24,7 +24,7 @@ public class TestCShardEntity$RepositoryImpl2 implements ShardEntityRepository<T
     private static final String UPD_QUERY = "UPDATE $$$.TEST_C SET SN=SN+1,ST=?,SHARD_VALUE=?,C_VALUE=?,C_NEW_VALUE=?,C_B_REF=? WHERE ID=?";
     private static final String LOCK_QUERY = "SELECT ID FROM $$$.TEST_C WHERE ID=? FOR UPDATE NOWAIT";
 
-    private static final String SELECT_QUERY = "SELECT SHARD_VALUE,C_VALUE,C_NEW_VALUE,C_B_REF,ID FROM $$$.TEST_C WHERE ID=?";
+    private static final String SELECT_QUERY = "SELECT SHARD_VALUE,C_VALUE,C_NEW_VALUE,C_B_REF FROM $$$.TEST_C WHERE ID=?";
 
     @Autowired
     private ShardEntityManager entityManager;
@@ -91,21 +91,24 @@ public class TestCShardEntity$RepositoryImpl2 implements ShardEntityRepository<T
                 .execute();
     }
 
+    @Override
+    public TestCShardEntity find(Long id, StorageContext storageContext) {
+        return find(newEntity(id, storageContext));
+    }
 
     @Override
     public TestCShardEntity find(TestCShardEntity entity) {
-        TransactionalQuery query = entityManager
-                .createQuery(entity, SELECT_QUERY, QueryType.SELECT, QueryStrategy.OWN_SHARD)
-                .bind(entity.getId());
-
-        query.execute();
-        ResultSet resultSet = (ResultSet) query.getResult();
         try {
+            ResultSet resultSet = (ResultSet) entityManager
+                    .createQuery(entity, SELECT_QUERY, QueryType.SELECT, QueryStrategy.OWN_SHARD)
+                    .bind(entity.getId())
+                    .getResult();
             if (resultSet.next()) {
                 entity.getStorageContext().setShardMap(resultSet.getLong(1));
                 entity.setValue((String) resultSet.getObject(2));
                 entity.setNewValue((String) resultSet.getObject(3));
                 entity.setB((Long) resultSet.getObject(4));
+                entity.getStorageContext().setLazy(false);
             } else {
                 return null;
             }
@@ -113,11 +116,6 @@ public class TestCShardEntity$RepositoryImpl2 implements ShardEntityRepository<T
             throw new RuntimeException(err);
         }
         return entity;
-    }
-
-    @Override
-    public TestCShardEntity find(Long id, StorageContext storageContext) {
-        return find(newEntity(id, storageContext));
     }
 
     private void additionalPersist(TestCShardEntity entity) {
