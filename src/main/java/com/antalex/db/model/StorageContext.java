@@ -125,6 +125,14 @@ public class StorageContext {
         return temporary;
     }
 
+    public void setLazy(boolean lazy) {
+        isLazy = lazy;
+    }
+
+    public boolean isLazy() {
+        return isLazy;
+    }
+
     @Data
     private class TransactionalContext {
         private SharedEntityTransaction transaction;

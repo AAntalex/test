@@ -9,6 +9,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 
 public class TransactionalSQLQuery implements TransactionalQuery, Runnable {
@@ -77,6 +78,9 @@ public class TransactionalSQLQuery implements TransactionalQuery, Runnable {
 
     @Override
     public ResultSet getResult() {
+        if (Objects.isNull(result)) {
+            execute();
+        }
         return result;
     }
 

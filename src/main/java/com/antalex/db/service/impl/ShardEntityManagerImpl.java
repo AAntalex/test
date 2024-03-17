@@ -394,6 +394,9 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
 
     @Override
     public <T extends ShardInstance> T find(T entity) {
+        if (entity == null) {
+            return null;
+        }
         ShardEntityRepository<T> repository = getEntityRepository(entity.getClass());
         return repository.find(entity);
     }

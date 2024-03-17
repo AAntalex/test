@@ -309,6 +309,24 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                 ) + " WHERE ID=?";
     }
 
+    private static String getSelectSQLCode(ClassDto classDto) {
+        int idx = 0;
+        String alias = "x" + idx;
+        return "SELECT " + getSelectList(classDto, alias) + " FROM $$$." +
+                classDto.getTableName() + " " + alias + " WHERE " + alias + ".ID=?";
+    }
+
+    private static String getSelectList(ClassDto classDto, String alias) {
+        return classDto.getFields()
+                .stream()
+                .filter(it -> it.getColumnName() != null && !it.getIsLinked())
+                .map(field -> "," + alias + "." + field.getColumnName())
+                .reduce(
+                        alias + ".ID," + alias + ".SHARD_MAP",
+                        String::concat
+                );
+    }
+
     private static String getLockSQLCode(ClassDto classDto) {
         return "SELECT ID FROM $$$." + classDto.getTableName() + " WHERE ID=? FOR UPDATE NOWAIT";
     }
@@ -365,6 +383,9 @@ public class ShardedEntityProcessor extends AbstractProcessor {
             }
             out.println(
                     "    private static final String LOCK_QUERY = \"" + getLockSQLCode(classDto) + "\";"
+            );
+            out.println(
+                    "    private static final String SELECT_QUERY = \"" + getSelectSQLCode(classDto) + "\";"
             );
 
             out.println();
@@ -479,7 +500,45 @@ public class ShardedEntityProcessor extends AbstractProcessor {
         return "    @Override\n" +
                 "    public " + classDto.getTargetClassName() + " newEntity() {\n" +
                 "        return new " + classDto.getTargetClassName() + CLASS_INTERCEPT_POSTFIX + "();\n" +
+                "    }\n" +
+                "\n" +
+                "    @Override\n" +
+                "    public " + classDto.getTargetClassName() + " newEntity(Long id, StorageContext" +
+                " storageContext) {\n" +
+                "        " + classDto.getTargetClassName() + " entity = new " + classDto.getTargetClassName() +
+                CLASS_INTERCEPT_POSTFIX + "();\n" +
+                "        entity.setId(id);\n" +
+                "        entity.setStorageContext(storageContext);\n" +
+                "        return entity;\n" +
                 "    }";
+    }
+
+    private static String getFindCode(ClassDto classDto) {
+        return "    @Override\n" +
+                "    public TestCShardEntity find(Long id, StorageContext storageContext) {\n" +
+                "        return find(newEntity(id, storageContext));\n" +
+                "    }\n" +
+                "\n" +
+                "    @Override\n" +
+                "    public TestCShardEntity find(TestCShardEntity entity) {\n" +
+                "        try {\n" +
+                "            ResultSet resultSet = (ResultSet) entityManager\n" +
+                "                    .createQuery(entity, SELECT_QUERY, QueryType.SELECT, QueryStrategy.OWN_SHARD)\n" +
+                "                    .bind(entity.getId())\n" +
+                "                    .getResult();\n" +
+                "            if (resultSet.next()) {\n" +
+                "                entity.getStorageContext().setShardMap(resultSet.getLong(1));\n" +
+                "                entity.setValue((String) resultSet.getObject(2));\n" +
+                "                entity.setNewValue((String) resultSet.getObject(3));\n" +
+                "                entity.setB((Long) resultSet.getObject(4));\n" +
+                "            } else {\n" +
+                "                return null;\n" +
+                "            }\n" +
+                "        } catch (SQLException err) {\n" +
+                "            throw new RuntimeException(err);\n" +
+                "        }\n" +
+                "        return entity;\n" +
+                "    }\n";
     }
 
     private static String getPersistCode(ClassDto classDto) {
