@@ -16,7 +16,7 @@ import java.util.Optional;
 @Component
 public class TestCShardEntityRepository {
     private static final ShardType SHARD_TYPE = ShardType.SHARDABLE;
-    private static final String INS_QUERY = "INSERT INTO $$$.TEST_C (ID,SHARD_VALUE,C_VALUE,C_NEW_VALUE,C_B_REF) VALUES (?,?,?,?,?)";
+    private static final String INS_QUERY = "INSERT INTO $$$.TEST_C (ID,SHARD_MAP,C_VALUE,C_NEW_VALUE,C_B_REF) VALUES (?,?,?,?,?)";
 
     private final ShardDataBaseManager dataBaseManager;
     private final Cluster cluster;

@@ -29,7 +29,7 @@ databaseChangeLog:
               name: ST
               type: uuid
           - column:
-              name: SHARD_
+              name: SHARD_MAP
               type: bigint
           - column:
               name: C_VALUE
@@ -103,4 +103,3 @@ databaseChangeLog:
                   referencedColumnNames: ID
                   referencedTableName: TEST_B
                 nullable: true
-

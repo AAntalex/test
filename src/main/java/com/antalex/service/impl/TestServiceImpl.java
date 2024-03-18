@@ -19,8 +19,8 @@ import java.util.List;
 
 @Service
 public class TestServiceImpl implements TestService{
-    private static final String INS_B_QUERY = "INSERT INTO TEST_B (ID,SHARD_VALUE,C_VALUE,C_NEW_VALUE) VALUES (?,?,?,?)";
-    private static final String INS_C_QUERY = "INSERT INTO TEST_C (ID,SHARD_VALUE,C_VALUE,C_NEW_VALUE,C_B_REF) VALUES (?,?,?,?,?)";
+    private static final String INS_B_QUERY = "INSERT INTO TEST_B (ID,SHARD_MAP,C_VALUE,C_NEW_VALUE) VALUES (?,?,?,?)";
+    private static final String INS_C_QUERY = "INSERT INTO TEST_C (ID,SHARD_MAP,C_VALUE,C_NEW_VALUE,C_B_REF) VALUES (?,?,?,?,?)";
 
 
     private final DataSource dataSource;

@@ -6,6 +6,8 @@ import com.antalex.db.entity.abstraction.BaseShardEntity;
 import lombok.Data;
 
 import javax.persistence.Column;
+import javax.persistence.JoinColumn;
+import javax.persistence.OneToOne;
 import javax.persistence.Table;
 
 @Table(name = "TEST_C")
@@ -14,6 +16,7 @@ import javax.persistence.Table;
 public class TestCShardEntity extends BaseShardEntity {
     private String value;
     private String newValue;
-    @Column(name = "C_B_REF")
-    private Long b;
+    @OneToOne
+    @JoinColumn(name = "C_B_REF")
+    private TestBShardEntity b;
 }

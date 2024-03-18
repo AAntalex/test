@@ -20,6 +20,7 @@ import java.util.List;
 public class TestBShardEntity extends BaseShardEntity {
     private String value;
     @ParentShard
+    @OneToOne
     @JoinColumn(name = "C_A_REF")
     private TestAShardEntity a;
     private String newValue;

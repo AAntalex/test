@@ -17,7 +17,7 @@ import java.util.Optional;
 @Component
 public class TestBShardEntityRepository {
     private static final ShardType SHARD_TYPE = ShardType.SHARDABLE;
-    private static final String INS_QUERY = "INSERT INTO $$$.TEST_B (ID,SHARD_VALUE,C_VALUE,C_A,C_NEW_VALUE,C_C_LIST) VALUES (?,?,?,?,?,?)";
+    private static final String INS_QUERY = "INSERT INTO $$$.TEST_B (ID,SHARD_MAP,C_VALUE,C_A,C_NEW_VALUE,C_C_LIST) VALUES (?,?,?,?,?,?)";
 
     private final TestCShardEntityRepository testCShardEntityRepository;
     private final TestAShardEntityRepository testAShardEntityRepository;
@@ -70,7 +70,7 @@ public class TestBShardEntityRepository {
         testAShardEntityRepository.generateId(entity.getA());
         testCShardEntityRepository.generateAllId(entity.getCList());
         entity.getCList().forEach(it ->
-                it.setB(entity.getId())
+                it.setB(entity)
         );
     }
 
