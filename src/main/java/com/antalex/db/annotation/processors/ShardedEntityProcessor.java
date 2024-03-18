@@ -30,6 +30,7 @@ import javax.tools.JavaFileObject;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.lang.annotation.Annotation;
+import java.sql.ResultSet;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -258,7 +259,7 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                 .isPresent();
     }
 
-    private String findSetterByLinkedColumn(FieldDto field) {
+    private FieldDto findFieldByLinkedColumn(FieldDto field) {
         ClassDto fieldClass = getClassDtoByElement(
                 ((DeclaredType) getDeclaredType(field.getElement()).getTypeArguments().get(0)).asElement()
         );
@@ -270,10 +271,13 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                 .filter(it ->
                         field.getColumnName().equals(
                                 Optional.ofNullable(it.getColumnName()).orElse(StringUtils.EMPTY)
-                        ) && getClassByType(it.getElement().asType()) == Long.class
+                        ) &&
+                                (
+                                        isAnnotationPresentByType(it, ShardEntity.class) ||
+                                                getClassByType(it.getElement().asType()) == Long.class
+                                )
                 )
-                .map(FieldDto::getSetter)
-                .filter(Objects::nonNull)
+                .filter(it -> Objects.nonNull(it.getSetter()))
                 .findFirst()
                 .orElse(null);
     }
@@ -290,7 +294,7 @@ public class ShardedEntityProcessor extends AbstractProcessor {
         String columns = "SN,ST,SHARD_MAP";
         String values = "0,?,?";
         for (FieldDto field : unique ? classDto.getUniqueFields() : classDto.getFields()) {
-            if (field.getColumnName() != null && !field.getIsLinked()) {
+            if (Objects.nonNull(field.getColumnName()) && !field.getIsLinked() && Objects.nonNull(field.getGetter())) {
                 columns = columns.concat(",").concat(field.getColumnName());
                 values = values.concat(",?");
             }
@@ -299,14 +303,13 @@ public class ShardedEntityProcessor extends AbstractProcessor {
     }
 
     private static String getUpdateSQLCode(ClassDto classDto, boolean unique) {
-        return (unique ? classDto.getUniqueFields() : classDto.getFields())
-                .stream()
-                .filter(it -> it.getColumnName() != null && !it.getIsLinked())
-                .map(field -> "," + field.getColumnName() + "=?")
-                .reduce(
-                        "UPDATE $$$." + classDto.getTableName() + " SET SN=SN+1,ST=?,SHARD_MAP=?",
-                        String::concat
-                ) + " WHERE ID=?";
+        String values = "SN=SN+1,ST=?,SHARD_MAP=?";
+        for (FieldDto field : unique ? classDto.getUniqueFields() : classDto.getFields()) {
+            if (Objects.nonNull(field.getColumnName()) && !field.getIsLinked() && Objects.nonNull(field.getGetter())) {
+                values = values.concat("," + field.getColumnName() + "=?");
+            }
+        }
+        return "UPDATE $$$." + classDto.getTableName() + " SET SN=SN+1,ST=?,SHARD_MAP=?" + values + " WHERE ID=?";
     }
 
     private static String getSelectSQLCode(ClassDto classDto) {
@@ -317,14 +320,13 @@ public class ShardedEntityProcessor extends AbstractProcessor {
     }
 
     private static String getSelectList(ClassDto classDto, String alias) {
-        return classDto.getFields()
-                .stream()
-                .filter(it -> it.getColumnName() != null && !it.getIsLinked())
-                .map(field -> "," + alias + "." + field.getColumnName())
-                .reduce(
-                        alias + ".ID," + alias + ".SHARD_MAP",
-                        String::concat
-                );
+        String values = alias + ".ID," + alias + ".SHARD_MAP";
+        for (FieldDto field : classDto.getFields()) {
+            if (Objects.nonNull(field.getColumnName()) && !field.getIsLinked() && Objects.nonNull(field.getSetter())) {
+                values = values.concat("," + alias + "." + field.getColumnName());
+            }
+        }
+        return values;
     }
 
     private static String getLockSQLCode(ClassDto classDto) {
@@ -344,17 +346,27 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                     "import " + classDto.getClassPackage() + "." +
                             classDto.getTargetClassName() + CLASS_INTERCEPT_POSTFIX + ";"
             );
-            out.println("import " + QueryType.class.getCanonicalName() + ";");
-            out.println("import " + QueryStrategy.class.getCanonicalName() + ";");
-            out.println("import " + ShardEntityRepository.class.getCanonicalName() + ";");
-            out.println("import " + ShardEntityManager.class.getCanonicalName() + ";");
-            out.println("import " + Component.class.getCanonicalName() + ";");
-            out.println("import " + Autowired.class.getCanonicalName() + ";");
-            out.println("import " + ShardType.class.getCanonicalName() + ";");
-            out.println("import " + Cluster.class.getCanonicalName() + ";");
-            out.println("import " + ShardDataBaseManager.class.getCanonicalName() + ";");
-            out.println();
-            out.println("import " + Objects.class.getCanonicalName() + ";");
+            out.println(
+                    getImportedTypes(
+                            classDto,
+                            new ArrayList<>(
+                                    Arrays.asList(
+                                            QueryType.class.getCanonicalName(),
+                                            QueryStrategy.class.getCanonicalName(),
+                                            ShardEntityRepository.class.getCanonicalName(),
+                                            ShardEntityManager.class.getCanonicalName(),
+                                            Component.class.getCanonicalName(),
+                                            Autowired.class.getCanonicalName(),
+                                            ShardType.class.getCanonicalName(),
+                                            Cluster.class.getCanonicalName(),
+                                            ShardDataBaseManager.class.getCanonicalName(),
+                                            StorageContext.class.getCanonicalName(),
+
+                                            ResultSet.class.getCanonicalName()
+                                    )
+                            )
+                    )
+            );
             out.println();
             out.println("@Component");
             out.println("public class " +
@@ -410,6 +422,8 @@ public class ShardedEntityProcessor extends AbstractProcessor {
             out.println();
             out.println(getLockCode(classDto));
             out.println();
+            out.println(getFindCode(classDto));
+            out.println();
             out.println(getAdditionalPersistCode(classDto));
             out.println("}");
         }
@@ -424,9 +438,7 @@ public class ShardedEntityProcessor extends AbstractProcessor {
         try (PrintWriter out = new PrintWriter(builderFile.openWriter())) {
             out.println("package " + classDto.getClassPackage() + ";");
             out.println();
-            out.println("import " + Optional.class.getCanonicalName() + ";");
-            out.println("import " + StorageContext.class.getCanonicalName() + ";");
-            out.println(getImportedTypes(classDto));
+            out.println(getImportedTypes(classDto, new ArrayList<>()));
             out.println("public class " + className + " extends " + classDto.getTargetClassName() + " {");
             out.println(getGettersCode(classDto));
             out.println(getSettersCode(classDto));
@@ -434,8 +446,7 @@ public class ShardedEntityProcessor extends AbstractProcessor {
         }
     }
 
-    private static String getImportedTypes(ClassDto classDto) {
-        List<String> importedTypes = new ArrayList<>();
+    private static String getImportedTypes(ClassDto classDto, List<String> importedTypes) {
         classDto.getFields()
                 .stream()
                 .filter(field ->
@@ -514,27 +525,43 @@ public class ShardedEntityProcessor extends AbstractProcessor {
     }
 
     private static String getFindCode(ClassDto classDto) {
-        return "    @Override\n" +
-                "    public TestCShardEntity find(Long id, StorageContext storageContext) {\n" +
+        String code = "    @Override\n" +
+                "    public " + classDto.getTargetClassName() + " find(Long id, StorageContext storageContext) {\n" +
                 "        return find(newEntity(id, storageContext));\n" +
                 "    }\n" +
                 "\n" +
                 "    @Override\n" +
-                "    public TestCShardEntity find(TestCShardEntity entity) {\n" +
+                "    public " + classDto.getTargetClassName() + " find(" + classDto.getTargetClassName() +
+                " entity) {\n" +
                 "        try {\n" +
                 "            ResultSet resultSet = (ResultSet) entityManager\n" +
                 "                    .createQuery(entity, SELECT_QUERY, QueryType.SELECT, QueryStrategy.OWN_SHARD)\n" +
                 "                    .bind(entity.getId())\n" +
                 "                    .getResult();\n" +
                 "            if (resultSet.next()) {\n" +
-                "                entity.getStorageContext().setShardMap(resultSet.getLong(1));\n" +
-                "                entity.setValue((String) resultSet.getObject(2));\n" +
-                "                entity.setNewValue((String) resultSet.getObject(3));\n" +
-                "                entity.setB((Long) resultSet.getObject(4));\n" +
+                "                entity.getStorageContext().setShardMap(resultSet.getLong(2));\n";
+
+        int idx = 2;
+        for (FieldDto field : classDto.getFields()) {
+            if (Objects.nonNull(field.getColumnName()) && !field.getIsLinked() && Objects.nonNull(field.getSetter())) {
+                if (isAnnotationPresentByType(field, ShardEntity.class)) {
+                    code = code.concat(
+                            "                entity." + field.getSetter() + "(entityManager.newEntity(" +
+                                    getTypeField(field) + ".class, resultSet.getLong(" + (++idx) + ")));\n"
+                    );
+                } else {
+                    code = code.concat(
+                            "                entity." + field.getSetter() +
+                                    "((" + getTypeField(field) + ") resultSet.getObject(" + (++idx) + "));\n"
+                    );
+                }
+            }
+        }
+        return code +
                 "            } else {\n" +
                 "                return null;\n" +
                 "            }\n" +
-                "        } catch (SQLException err) {\n" +
+                "        } catch (Exception err) {\n" +
                 "            throw new RuntimeException(err);\n" +
                 "        }\n" +
                 "        return entity;\n" +
@@ -722,10 +749,17 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                     if (isAnnotationPresentInArgument(field, ShardEntity.class)) {
                         code = "        entityManager.generateAllId(entity." + field.getGetter() + "());\n";
                         if (field.getIsLinked()) {
-                            String linkedSetter = findSetterByLinkedColumn(field);
-                            if (linkedSetter != null) {
+                            FieldDto linkedField = findFieldByLinkedColumn(field);
+                            if (Objects.nonNull(linkedField)) {
+                                String linkedSetter = linkedField.getSetter();
                                 code = code + "        entity." + field.getGetter() +
-                                        "().forEach(it -> it." + linkedSetter + "(entity.getId()));\n";
+                                        "().forEach(it -> it." + linkedSetter + "(entity" +
+                                        (
+                                                isAnnotationPresentByType(linkedField, ShardEntity.class) ?
+                                                        StringUtils.EMPTY :
+                                                        ".getId()"
+                                        )
+                                        + "));\n";
                             }
                         }
                     }
