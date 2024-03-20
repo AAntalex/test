@@ -1,20 +1,33 @@
 package com.antalex.db.service.api;
 
+import com.antalex.db.entity.abstraction.ShardInstance;
+import com.antalex.db.model.Shard;
 import com.antalex.db.model.enums.QueryType;
 
 import java.util.concurrent.ExecutorService;
 
 public interface TransactionalQuery {
     TransactionalQuery bind(Object o);
+    TransactionalQuery bind(int index, Object o);
+    void bindOriginal(int idx, Object o) throws Exception;
+    TransactionalQuery bindShardMap(ShardInstance entity);
     TransactionalQuery addBatch();
+    void addBatchOriginal() throws Exception;
     void addRelatedQuery(TransactionalQuery query);
     String getQuery();
-    Object getResult();
+    ResultQuery getResult();
+    ResultQuery getResult(int keyCount);
     QueryType getQueryType();
     int getCount();
     void execute();
+    int[] executeBatch() throws Exception;
+    int executeUpdate() throws Exception;
+    ResultQuery executeQuery() throws Exception;
     void setMainQuery(TransactionalQuery mainQuery);
     TransactionalQuery getMainQuery();
     void setExecutorService(ExecutorService executorService);
     public void setParallelRun(Boolean parallelRun);
+    void setShard(Shard shard);
+    Shard getShard();
+    void init();
 }

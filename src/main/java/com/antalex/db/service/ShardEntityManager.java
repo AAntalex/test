@@ -38,11 +38,13 @@ public interface ShardEntityManager {
             QueryType queryType,
             QueryStrategy queryStrategy
     );
+    <T extends ShardInstance> Iterable<TransactionalQuery> createQueries(Class<T> clazz, String query);
+    <T extends ShardInstance> TransactionalQuery createQuery(Class<T> clazz, String query);
     <T extends ShardInstance> boolean lock(T entity);
     <T extends ShardInstance> T find(Class<T> clazz, Long id);
     <T extends ShardInstance> T find(T entity);
     EntityTransaction getTransaction();
-    UUID getTransactionUUID();
+    String getTransactionUUID();
     void setAutonomousTransaction();
     void addParallel();
     void flush();

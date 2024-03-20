@@ -13,6 +13,7 @@ import com.antalex.db.service.ShardEntityManager;
 import com.antalex.db.service.ShardEntityRepository;
 import com.antalex.db.model.dto.ClassDto;
 import com.antalex.db.model.dto.FieldDto;
+import com.antalex.db.service.api.ResultQuery;
 import com.google.auto.service.AutoService;
 import com.google.common.base.CaseFormat;
 import org.apache.commons.lang3.StringUtils;
@@ -316,7 +317,7 @@ public class ShardedEntityProcessor extends AbstractProcessor {
         int idx = 0;
         String alias = "x" + idx;
         return "SELECT " + getSelectList(classDto, alias) + " FROM $$$." +
-                classDto.getTableName() + " " + alias + " WHERE " + alias + ".ID=?";
+                classDto.getTableName() + " " + alias + " WHERE " + alias + ".ID=? and " + alias + ".SHARD_MAP>=0";
     }
 
     private static String getSelectList(ClassDto classDto, String alias) {
@@ -361,8 +362,7 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                                             Cluster.class.getCanonicalName(),
                                             ShardDataBaseManager.class.getCanonicalName(),
                                             StorageContext.class.getCanonicalName(),
-
-                                            ResultSet.class.getCanonicalName()
+                                            ResultQuery.class.getCanonicalName()
                                     )
                             )
                     )
@@ -534,12 +534,12 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                 "    public " + classDto.getTargetClassName() + " find(" + classDto.getTargetClassName() +
                 " entity) {\n" +
                 "        try {\n" +
-                "            ResultSet resultSet = (ResultSet) entityManager\n" +
+                "            ResultQuery result = entityManager\n" +
                 "                    .createQuery(entity, SELECT_QUERY, QueryType.SELECT, QueryStrategy.OWN_SHARD)\n" +
                 "                    .bind(entity.getId())\n" +
                 "                    .getResult();\n" +
-                "            if (resultSet.next()) {\n" +
-                "                entity.getStorageContext().setShardMap(resultSet.getLong(2));\n";
+                "            if (result.next()) {\n" +
+                "                entity.setShardMap(result.getLong(2));\n";
 
         int idx = 2;
         for (FieldDto field : classDto.getFields()) {
@@ -547,12 +547,12 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                 if (isAnnotationPresentByType(field, ShardEntity.class)) {
                     code = code.concat(
                             "                entity." + field.getSetter() + "(entityManager.newEntity(" +
-                                    getTypeField(field) + ".class, resultSet.getLong(" + (++idx) + ")));\n"
+                                    getTypeField(field) + ".class, result.getLong(" + (++idx) + ")));\n"
                     );
                 } else {
                     code = code.concat(
                             "                entity." + field.getSetter() +
-                                    "((" + getTypeField(field) + ") resultSet.getObject(" + (++idx) + "));\n"
+                                    "((" + getTypeField(field) + ") result.getObject(" + (++idx) + "));\n"
                     );
                 }
             }
@@ -581,7 +581,7 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                                 "                .forEach(query ->\n" +
                                 "                        query\n" +
                                 "                                .bind(entityManager.getTransactionUUID())\n" +
-                                "                                .bind(entity.getStorageContext().getShardMap())\n"
+                                "                                .bindShardMap(entity)\n"
                 );
 
         StringBuilder childPersistCode = new StringBuilder(StringUtils.EMPTY);
@@ -651,8 +651,7 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                                 "                    .forEach(query ->\n" +
                                 "                            query\n" +
                                 "                                    .bind(entityManager.getTransactionUUID())\n" +
-                                "                                    .bind(entity.getStorageContext()." +
-                                "getShardMap())\n",
+                                "                                    .bindShardMap(entity)\n",
                         String::concat
                 )
                 .concat(
@@ -682,8 +681,7 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                                                 ", QueryStrategy.MAIN_SHARD)\n" +
                                                 "                    .bind(entityManager." +
                                                 "getTransactionUUID())\n" +
-                                                "                    .bind(entity.getStorageContext()." +
-                                                "getShardMap())\n",
+                                                "                    .bindShardMap(entity)\n",
                                         String::concat
                                 )
                                 .concat(

@@ -13,9 +13,9 @@ import java.util.*;
 
 public class SharedEntityTransaction implements EntityTransaction {
     private static final String SAVE_TRANSACTION_QUERY = "INSERT INTO $$$.APP_TRANSACTION " +
-            "(UUID,EXECUTE_TIME,FAILED,ERROR,DURATION) VALUES (?,?,?,?,?)";
+            "(UUID,EXECUTE_TIME,FAILED,ERROR,ELAPSED_TIME) VALUES (?,?,?,?,?)";
     private static final String SAVE_DML_QUERY = "INSERT INTO $$$.APP_DML_QUERY " +
-            "(TRN_UUID,QUERY_ORDER,QUERY,ROWS) VALUES (?,?,?,?)";
+            "(TRN_UUID,QUERY_ORDER,SQL_TEXT,ROWS_PROCESSED) VALUES (?,?,?,?)";
     private static final String SQL_ERROR_TEXT = "Ошибки при выполнении запроса: ";
     private static final String SQL_ERROR_COMMIT_TEXT = "Ошибки при подтверждении транзакции: ";
     private static final String SQL_ERROR_ROLLBACK_TEXT = "Ошибки при откате транзакции: ";
@@ -193,7 +193,7 @@ public class SharedEntityTransaction implements EntityTransaction {
                 .filter(it -> !it.getDmlQueries().isEmpty())
                 .forEach(task -> {
                     TransactionalQuery saveTransactionQuery = task.createQuery(SAVE_TRANSACTION_QUERY, QueryType.DML)
-                            .bind(this.uuid)
+                            .bind(this.uuid.toString())
                             .bind(new Timestamp(System.currentTimeMillis()))
                             .bind(this.hasError)
                             .bind(this.error)
@@ -202,10 +202,11 @@ public class SharedEntityTransaction implements EntityTransaction {
                     TransactionalQuery saveDMLQuery = task.createQuery(SAVE_DML_QUERY, QueryType.DML);
                     int idx = 0;
                     for (TransactionalQuery query : task.getDmlQueries()) {
+                        String sqlText = query.getQuery();
                         saveDMLQuery
-                                .bind(this.uuid)
+                                .bind(this.uuid.toString())
                                 .bind(++idx)
-                                .bind(query.getQuery())
+                                .bind(sqlText.length() > 2000 ? sqlText.substring(2000) : sqlText)
                                 .bind(query.getCount())
                                 .addBatch();
                     }

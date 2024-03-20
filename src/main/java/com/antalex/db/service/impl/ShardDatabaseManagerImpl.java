@@ -101,9 +101,10 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         return Optional.ofNullable(
                 transaction.getCurrentTask(
                         shard,
-                        ((HikariDataSource) shard.getDataSource())
-                                .getHikariPoolMXBean()
-                                .getActiveConnections() > parallelLimit
+                        !shard.getExternal() &&
+                                ((HikariDataSource) shard.getDataSource())
+                                        .getHikariPoolMXBean()
+                                        .getActiveConnections() > parallelLimit
                 )
         )
                 .orElseGet(() -> {
@@ -202,7 +203,15 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     }
 
     @Override
-    public Stream<Shard> getAllShards(ShardInstance entity) {
+    public Stream<Shard> getEnabledShards(Cluster cluster) {
+        return cluster
+                .getShards()
+                .stream()
+                .filter(this::isEnabled);
+    }
+
+    @Override
+    public Stream<Shard> getEntityShards(ShardInstance entity) {
         return getShardsFromValue(
                 entity,
                 entity.isStored() ?
@@ -474,7 +483,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                     );
                     task.addStep(() -> {
                         try {
-                            ResultSet resultSet = query.getResult();
+                            ResultQuery resultSet = query.getResult();
                             if (resultSet.next()) {
                                 shard.setDataBaseInfo(
                                         DataBaseInfo
@@ -492,7 +501,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                                 dynamicDBInfo.setSegment(resultSet.getString(6));
                                 dynamicDBInfo.setAccessible(resultSet.getBoolean(7));
                             }
-                        } catch (SQLException err) {
+                        } catch (Exception err) {
                             throw new ShardDataBaseException(err);
                         }
                     });

@@ -57,7 +57,7 @@ databaseChangeLog:
           columns:
           - column:
               name: UUID
-              type: uuid
+              type: VARCHAR(40)
               constraints:
                 primaryKey: true
                 nullable: false
@@ -66,7 +66,7 @@ databaseChangeLog:
               name: EXECUTE_TIME
               type: timestamp
           - column:
-              name: DURATION
+              name: ELAPSED_TIME
               type: bigint
           - column:
               name: FAILED
@@ -79,7 +79,7 @@ databaseChangeLog:
           columns:
           - column:
               name: TRN_UUID
-              type: uuid
+              type: VARCHAR(40)
               constraints:
                 foreignKey:
                   referencedColumnNames: UUID
@@ -89,8 +89,8 @@ databaseChangeLog:
               name: QUERY_ORDER
               type: int
           - column:
-              name: QUERY
+              name: SQL_TEXT
               type: VARCHAR(2000)
           - column:
-              name: ROWS
+              name: ROWS_PROCESSED
               type: int

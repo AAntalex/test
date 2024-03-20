@@ -1,5 +1,6 @@
 package com.antalex.db.entity.abstraction;
 
+import com.antalex.db.model.Shard;
 import com.antalex.db.model.StorageContext;
 
 import javax.persistence.EntityTransaction;
@@ -15,5 +16,7 @@ public interface ShardInstance {
     void setChanged();
     boolean hasNewShards();
     boolean hasMainShard();
+    boolean isOurShard(Shard shard);
     boolean setTransactionalContext(EntityTransaction transaction);
+    void setShardMap(Long shardMap);
 }

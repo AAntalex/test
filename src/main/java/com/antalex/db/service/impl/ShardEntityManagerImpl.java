@@ -15,7 +15,6 @@ import com.antalex.db.service.SharedTransactionManager;
 import com.antalex.db.service.api.TransactionalQuery;
 import com.antalex.db.utils.ShardUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.condition.SearchStrategy;
 import org.springframework.context.annotation.Primary;
 import org.springframework.core.GenericTypeResolver;
 import org.springframework.stereotype.Component;
@@ -280,7 +279,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
         }
         if (entity.setTransactionalContext(getTransaction())) {
             ShardEntityRepository<T> repository = getEntityRepository(entity.getClass());
-            checkShardValue(entity, repository.getShardType());
+            checkShardMap(entity, repository.getShardType());
             if (!entity.isStored() || entity.isChanged() || entity.hasNewShards())
             {
                 repository.persist(entity);
@@ -323,8 +322,8 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
     }
 
     @Override
-    public UUID getTransactionUUID() {
-        return sharedTransactionManager.getTransactionUUID();
+    public String getTransactionUUID() {
+        return sharedTransactionManager.getTransactionUUID().toString();
     }
 
     @Override
@@ -375,7 +374,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
             case MAIN_SHARD:
                 return Collections.singletonList(createQuery(entity, query, queryType, queryStrategy));
             case ALL_SHARDS:
-                return dataBaseManager.getAllShards(entity)
+                return dataBaseManager.getEntityShards(entity)
                         .map(shard -> this.createQuery(shard, query, queryType))
                         .collect(Collectors.toList());
             case NEW_SHARDS:
@@ -384,6 +383,19 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
                         .collect(Collectors.toList());
         }
         return Collections.emptyList();
+    }
+
+    @Override
+    public <T extends ShardInstance> Iterable<TransactionalQuery> createQueries(Class<T> clazz, String query) {
+        ShardEntityRepository<T> repository = getEntityRepository(clazz);
+        return dataBaseManager.getEnabledShards(repository.getCluster())
+                .map(shard -> this.createQuery(shard, query, QueryType.SELECT))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public <T extends ShardInstance> TransactionalQuery createQuery(Class<T> clazz, String query) {
+        return getMainQuery(createQueries(clazz, query));
     }
 
     @Override
@@ -402,6 +414,10 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
     }
 
     private TransactionalQuery getMainQuery(Iterable<TransactionalQuery> queries) {
+
+
+
+
         TransactionalQuery mainQuery = null;
         for (TransactionalQuery query : queries) {
             if (Objects.isNull(mainQuery)) {
@@ -415,6 +431,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
 
     private TransactionalQuery createQuery(Shard shard, String query, QueryType queryType) {
         TransactionalQuery transactionalQuery = dataBaseManager.getTransactionalTask(shard).addQuery(query, queryType);
+        transactionalQuery.setShard(shard);
         if (queryType == QueryType.SELECT) {
             transactionalQuery.setParallelRun(((SharedEntityTransaction) getTransaction()).getParallelRun());
         }
@@ -429,7 +446,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
         return false;
     }
 
-    private void checkShardValue(ShardInstance entity, ShardType shardType) {
+    private void checkShardMap(ShardInstance entity, ShardType shardType) {
         Long shardMap = entity.getStorageContext().getShardMap();
         if (shardType == ShardType.REPLICABLE && !shardMap.equals(0L))
         {

@@ -41,7 +41,7 @@ public abstract class AbstractTransactionalTask implements TransactionalTask {
                     steps.forEach(step -> {
                                 if (this.error == null) {
                                     try {
-                                        log.debug(
+                                        log.trace(
                                                 String.format("Running \"%s\", step \"%s\"...", this.name, step.name)
                                         );
                                         step.target.run();
@@ -65,7 +65,7 @@ public abstract class AbstractTransactionalTask implements TransactionalTask {
     public void waitTask() {
         if (this.status == TaskStatus.RUNNING) {
             try {
-                log.debug(String.format("Waiting \"%s\"...", this.name));
+                log.trace(String.format("Waiting \"%s\"...", this.name));
                 this.future.get();
             } catch (Exception err) {
                 throw new ShardDataBaseException(err);
@@ -104,7 +104,7 @@ public abstract class AbstractTransactionalTask implements TransactionalTask {
                                 .forEachOrdered(step -> {
                                     if (this.errorCompletion == null) {
                                         try {
-                                            log.debug(
+                                            log.trace(
                                                     String.format(
                                                             "%s for \"%s\", step \"%s\"...",
                                                             rollback ? "ROLLBACK" : "COMMIT",
@@ -237,6 +237,8 @@ public abstract class AbstractTransactionalTask implements TransactionalTask {
             if (queryType == QueryType.SELECT) {
                 transactionalQuery.setExecutorService(executorService);
             }
+        } else {
+            transactionalQuery.init();
         }
         return transactionalQuery;
     }

@@ -27,7 +27,7 @@ public class StorageContext {
             this.transactionalContext = new TransactionalContext();
             this.transactionalContext.setStored(this.stored);
             this.transactionalContext.setChanged(this.changed);
-            this.transactionalContext.setOriginalShardValue(this.originalShardMap);
+            this.transactionalContext.setOriginalShardMap(this.originalShardMap);
             this.transactionalContext.setTransaction(transaction);
             this.transactionalContext.setPersist(false);
             return true;
@@ -41,11 +41,11 @@ public class StorageContext {
                     if (it.hasError()) {
                         this.transactionalContext.setChanged(this.changed);
                         this.transactionalContext.setStored(this.stored);
-                        this.transactionalContext.setOriginalShardValue(this.originalShardMap);
+                        this.transactionalContext.setOriginalShardMap(this.originalShardMap);
                     } else {
                         this.changed = this.transactionalContext.getChanged();
                         this.stored = this.transactionalContext.getStored();
-                        this.originalShardMap = this.transactionalContext.getOriginalShardValue();
+                        this.originalShardMap = this.transactionalContext.getOriginalShardMap();
                     }
                 });
         this.transactionalContext.setPersist(false);
@@ -57,7 +57,7 @@ public class StorageContext {
         if (this.transactionalContext != null) {
             this.transactionalContext.setChanged(false);
             this.transactionalContext.setStored(true);
-            this.transactionalContext.setOriginalShardValue(this.shardMap);
+            this.transactionalContext.setOriginalShardMap(this.shardMap);
             this.transactionalContext.setPersist(true);
         }
     }
@@ -86,7 +86,7 @@ public class StorageContext {
     public Long getOriginalShardMap() {
         return Optional.ofNullable(this.transactionalContext)
                 .filter(it -> !it.transaction.hasError())
-                .map(TransactionalContext::getOriginalShardValue)
+                .map(TransactionalContext::getOriginalShardMap)
                 .orElse(this.originalShardMap);
     }
 
@@ -137,7 +137,7 @@ public class StorageContext {
     private class TransactionalContext {
         private SharedEntityTransaction transaction;
         private Boolean changed;
-        private Long originalShardValue;
+        private Long originalShardMap;
         private Boolean stored;
         private Boolean persist;
     }
