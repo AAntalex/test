@@ -14,7 +14,7 @@ hibernate:
 
 logging:
   level:
-    com.antalex.db: debug
+    com.antalex.db: trace
     org.hibernate.type:
       descriptor:
         sql.BasicBinder: INFO
@@ -47,12 +47,18 @@ shardDbConfig:
             user: ${PMTS_DB_PUBLIC_1_USER:pmts_public_1_admin}
             pass: ${PMTS_DB_PUBLIC_1_PASSWORD:123}
             owner: pmts_public_1
-          id: 63
         - database:
             url: ${PMTS_DATASOURCE_JDBC_URL_PUBLIC_1:jdbc:postgresql://d5pmts-pgc001lk.corp.dev.vtb:5432/pmts_public_2}
             user: ${PMTS_DB_PUBLIC_2_USER:pmts_public_2_admin}
             pass: ${PMTS_DB_PUBLIC_2_PASSWORD:123}
             owner: pmts_public_2
+        - database:
+            url: ${PMTS_DATASOURCE_JDBC_URL_PUBLIC_1:jdbc:postgresql://d5pmts-pgc001lk.corp.dev.vtb:5432/pmts_main}
+            user: ${PMTS_DB_MAIN_USER:pmts_main_admin}
+            pass: ${PMTS_DB_MAIN_PASSWORD:123}
+            owner: pmts_main
+          main: true
+          id: 63
         - database:
             driver: oracle.jdbc.driver.OracleDriver
             url: jdbc:oracle:thin:@d5cftm-apc005ln.corp.dev.vtb:1521/ELVIS

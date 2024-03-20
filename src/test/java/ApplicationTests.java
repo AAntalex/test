@@ -1,3 +1,5 @@
+import com.antalex.db.model.enums.QueryStrategy;
+import com.antalex.db.model.enums.QueryType;
 import com.antalex.db.service.ShardDataBaseManager;
 import com.antalex.db.service.ShardEntityManager;
 import com.antalex.db.utils.ShardUtils;
@@ -114,7 +116,7 @@ public class ApplicationTests {
 */
 	}
 
-	@Test
+//	@Test
 	public void saveJPA() {
 /*
 		profiler.start("testService.generate");
@@ -158,6 +160,100 @@ public class ApplicationTests {
 		profiler.stop();
 		System.out.println(profiler.printTimeCounter());
 	}
+
+//	@Test
+	public void bind() {
+		profiler.start("BIND.Query");
+		for (int i = 0; i < 100000; i++) {
+			entityManager
+					.createQuery(
+							TestBShardEntity.class,
+							"SELECT ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,? WHERE x0.ID=?"
+					)
+					.bind(1).bind(2).bind(3).bind(4).bind(5).bind(6).bind(7).bind(8).bind(9).bind(10)
+					.bind(11).bind(12).bind(13).bind(14).bind(15).bind(16).bind(17).bind(18).bind(19).bind(20);
+		}
+		profiler.stop();
+		System.out.println(profiler.printTimeCounter());
+
+		profiler.start("BIND.Queries");
+		for (int i = 0; i < 100000; i++) {
+			entityManager
+					.createQueries(
+							TestBShardEntity.class,
+							"SELECT ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,? WHERE x0.ID=?"
+					)
+					.forEach(query ->
+							query
+									.bind(1).bind(2).bind(3).bind(4).bind(5).bind(6).bind(7).bind(8).bind(9).bind(10)
+									.bind(11).bind(12).bind(13).bind(14).bind(15).bind(16).bind(17).bind(18).bind(19).bind(20)
+					);
+		}
+		profiler.stop();
+		System.out.println(profiler.printTimeCounter());
+
+		profiler.start("BIND.Query");
+		for (int i = 0; i < 100000; i++) {
+			entityManager
+					.createQuery(
+							TestBShardEntity.class,
+							"SELECT ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,? WHERE x0.ID=?"
+					)
+					.bind(1).bind(2).bind(3).bind(4).bind(5).bind(6).bind(7).bind(8).bind(9).bind(10)
+					.bind(11).bind(12).bind(13).bind(14).bind(15).bind(16).bind(17).bind(18).bind(19).bind(20);
+		}
+		profiler.stop();
+		System.out.println(profiler.printTimeCounter());
+
+		profiler.start("BIND.Query");
+		for (int i = 0; i < 100000; i++) {
+			entityManager
+					.createQuery(
+							TestBShardEntity.class,
+							"SELECT ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,? WHERE x0.ID=?"
+					)
+					.bind(1).bind(2).bind(3).bind(4).bind(5).bind(6).bind(7).bind(8).bind(9).bind(10)
+					.bind(11).bind(12).bind(13).bind(14).bind(15).bind(16).bind(17).bind(18).bind(19).bind(20);
+		}
+		profiler.stop();
+		System.out.println(profiler.printTimeCounter());
+
+		profiler.start("BIND.Queries");
+		for (int i = 0; i < 100000; i++) {
+			entityManager
+					.createQueries(
+							TestBShardEntity.class,
+							"SELECT ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,? WHERE x0.ID=?"
+					)
+					.forEach(query ->
+							query
+									.bind(1).bind(2).bind(3).bind(4).bind(5).bind(6).bind(7).bind(8).bind(9).bind(10)
+									.bind(11).bind(12).bind(13).bind(14).bind(15).bind(16).bind(17).bind(18).bind(19).bind(20)
+					);
+		}
+		profiler.stop();
+		System.out.println(profiler.printTimeCounter());
+
+		profiler.start("BIND.Queries");
+		for (int i = 0; i < 100000; i++) {
+			entityManager
+					.createQueries(
+							TestBShardEntity.class,
+							"SELECT ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,? WHERE x0.ID=?"
+					)
+					.forEach(query ->
+							query
+									.bind(1).bind(2).bind(3).bind(4).bind(5).bind(6).bind(7).bind(8).bind(9).bind(10)
+									.bind(11).bind(12).bind(13).bind(14).bind(15).bind(16).bind(17).bind(18).bind(19).bind(20)
+					);
+		}
+		profiler.stop();
+		System.out.println(profiler.printTimeCounter());
+
+
+	}
+
+
 
 	@Test
 	public void saveShard() {
