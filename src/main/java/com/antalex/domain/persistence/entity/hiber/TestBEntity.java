@@ -8,14 +8,14 @@ import javax.persistence.*;
 import java.util.ArrayList;
 import java.util.List;
 
-@Table(name = "TEST_B", schema = "pmts_public_1")
+@Table(name = "TEST_B", schema = "pmts_main")
 @Data
 @Entity
 public class TestBEntity extends BaseShardEntity {
     @Id
     @Column(name = "ID")
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "seq_id")
-    @SequenceGenerator(name = "seq_id", sequenceName = "SEQ_ID", schema = "pmts_public_1")
+    @SequenceGenerator(name = "seq_id", sequenceName = "SEQ_ID", schema = "pmts_main")
     private Long id;
     @Column(name = "SHARD_MAP")
     private Long shardMap;

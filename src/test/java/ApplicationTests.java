@@ -4,8 +4,11 @@ import com.antalex.db.service.ShardDataBaseManager;
 import com.antalex.db.service.ShardEntityManager;
 import com.antalex.db.utils.ShardUtils;
 import com.antalex.domain.persistence.entity.AdditionalParameterEntity;
+import com.antalex.domain.persistence.entity.hiber.TestAEntity;
 import com.antalex.domain.persistence.entity.hiber.TestBEntity;
+import com.antalex.domain.persistence.entity.hiber.TestCEntity;
 import com.antalex.domain.persistence.entity.shard.TestBShardEntity;
+import com.antalex.domain.persistence.entity.shard.TestCShardEntity;
 import com.antalex.domain.persistence.repository.AdditionalParameterRepository;
 import com.antalex.domain.persistence.repository.TestARepository;
 import com.antalex.domain.persistence.repository.TestBRepository;
@@ -73,6 +76,36 @@ public class ApplicationTests {
 	}
 
 //	@Test
+	public void findJPA() {
+		profiler.start("findJPA");
+		TestBEntity b = testBRepository.findById(656667962L).orElse(null);
+		System.out.println("FIND B");
+
+		TestAEntity a = b.getA();
+
+		System.out.println("FIND A");
+//		System.out.println("FIND b.getCList().size() " + b.getCList().size());
+		System.out.println("FIND A value " + a.getValue());
+
+		List<TestCEntity> cList =  b.getCList();
+
+
+		System.out.println("b.getCList()");
+
+		int size = cList.size();
+		System.out.println("cList.size() " + size);
+
+		TestCEntity c = b.getCList().get(0);
+		System.out.println("FIND C value " + c.getValue());
+		System.out.println("c.getB().getValue() " + c.getB().getValue());
+
+
+
+		profiler.stop();
+		System.out.println(profiler.printTimeCounter());
+	}
+
+//	@Test
 	public void sequence() {
 		/*
 		SequenceGenerator sequenceGenerator = new ApplicationSequenceGenerator(
@@ -130,7 +163,7 @@ public class ApplicationTests {
 		System.out.println(profiler.printTimeCounter());
 */
 		profiler.start("testService.generate");
-		List<TestBEntity> testBEntities = testService.generate(1000, 100, null, "JPA");
+		List<TestBEntity> testBEntities = testService.generate(100, 100, null, "JPA");
 		profiler.stop();
 		System.out.println(profiler.printTimeCounter());
 
@@ -138,17 +171,22 @@ public class ApplicationTests {
 		testService.saveTransactionalJPA(testBEntities);
 		profiler.stop();
 		System.out.println(profiler.printTimeCounter());
-/*
-		profiler.start("ADD testService.saveTransactionalJPA");
+
+		TestBEntity b = testBEntities.get(0);
+		b.setNewValue("JPAnewVal_B!!!");
 		System.out.println("AAA!!!!!!!!!!!!!!");
-		testBEntities.get(0).setNewValue("newVal!!!");
+		TestCEntity c = b.getCList().get(10);
+		c.setNewValue("JPAnewVal_C!!!");
+
+
+		profiler.start("ADD testService.saveTransactionalJPA");
 		testService.saveTransactionalJPA(testBEntities);
 		profiler.stop();
 		System.out.println(profiler.printTimeCounter());
-*/
+
 	}
 
-	@Test
+//	@Test
 	public void saveStatement() {
 		profiler.start("testService.generate");
 		List<TestBEntity> testBEntities = testService.generate(1000, 100, null, "Statement");
@@ -168,7 +206,8 @@ public class ApplicationTests {
 			entityManager
 					.createQuery(
 							TestBShardEntity.class,
-							"SELECT ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,? WHERE x0.ID=?"
+							"SELECT ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,? WHERE x0.ID=?",
+							QueryType.SELECT
 					)
 					.bind(1).bind(2).bind(3).bind(4).bind(5).bind(6).bind(7).bind(8).bind(9).bind(10)
 					.bind(11).bind(12).bind(13).bind(14).bind(15).bind(16).bind(17).bind(18).bind(19).bind(20);
@@ -181,7 +220,8 @@ public class ApplicationTests {
 			entityManager
 					.createQueries(
 							TestBShardEntity.class,
-							"SELECT ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,? WHERE x0.ID=?"
+							"SELECT ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,? WHERE x0.ID=?",
+							QueryType.SELECT
 					)
 					.forEach(query ->
 							query
@@ -191,66 +231,6 @@ public class ApplicationTests {
 		}
 		profiler.stop();
 		System.out.println(profiler.printTimeCounter());
-
-		profiler.start("BIND.Query");
-		for (int i = 0; i < 100000; i++) {
-			entityManager
-					.createQuery(
-							TestBShardEntity.class,
-							"SELECT ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,? WHERE x0.ID=?"
-					)
-					.bind(1).bind(2).bind(3).bind(4).bind(5).bind(6).bind(7).bind(8).bind(9).bind(10)
-					.bind(11).bind(12).bind(13).bind(14).bind(15).bind(16).bind(17).bind(18).bind(19).bind(20);
-		}
-		profiler.stop();
-		System.out.println(profiler.printTimeCounter());
-
-		profiler.start("BIND.Query");
-		for (int i = 0; i < 100000; i++) {
-			entityManager
-					.createQuery(
-							TestBShardEntity.class,
-							"SELECT ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,? WHERE x0.ID=?"
-					)
-					.bind(1).bind(2).bind(3).bind(4).bind(5).bind(6).bind(7).bind(8).bind(9).bind(10)
-					.bind(11).bind(12).bind(13).bind(14).bind(15).bind(16).bind(17).bind(18).bind(19).bind(20);
-		}
-		profiler.stop();
-		System.out.println(profiler.printTimeCounter());
-
-		profiler.start("BIND.Queries");
-		for (int i = 0; i < 100000; i++) {
-			entityManager
-					.createQueries(
-							TestBShardEntity.class,
-							"SELECT ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,? WHERE x0.ID=?"
-					)
-					.forEach(query ->
-							query
-									.bind(1).bind(2).bind(3).bind(4).bind(5).bind(6).bind(7).bind(8).bind(9).bind(10)
-									.bind(11).bind(12).bind(13).bind(14).bind(15).bind(16).bind(17).bind(18).bind(19).bind(20)
-					);
-		}
-		profiler.stop();
-		System.out.println(profiler.printTimeCounter());
-
-		profiler.start("BIND.Queries");
-		for (int i = 0; i < 100000; i++) {
-			entityManager
-					.createQueries(
-							TestBShardEntity.class,
-							"SELECT ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,? WHERE x0.ID=?"
-					)
-					.forEach(query ->
-							query
-									.bind(1).bind(2).bind(3).bind(4).bind(5).bind(6).bind(7).bind(8).bind(9).bind(10)
-									.bind(11).bind(12).bind(13).bind(14).bind(15).bind(16).bind(17).bind(18).bind(19).bind(20)
-					);
-		}
-		profiler.stop();
-		System.out.println(profiler.printTimeCounter());
-
-
 	}
 
 
@@ -311,11 +291,24 @@ public class ApplicationTests {
 		System.out.println(profiler.printTimeCounter());
 */
 		profiler.start("testShardService.generate");
-		List<TestBShardEntity>  testBEntities2 = testShardService.generate(1000, 100, null);
+		List<TestBShardEntity>  testBEntities2 = testShardService.generate(100, 100, null);
 		profiler.stop();
 		System.out.println(profiler.printTimeCounter());
 
 		profiler.start("testShardService.save");
+		testShardService.save(testBEntities2);
+		profiler.stop();
+		System.out.println(profiler.printTimeCounter());
+
+
+		TestBShardEntity b = testBEntities2.get(0);
+		b.setNewValue("ShardNewVal_B!!!");
+		System.out.println("AAA!!!!!!!!!!!!!!");
+		TestCShardEntity c = b.getCList().get(10);
+		c.setNewValue("ShardNewVal_C!!!");
+
+
+		profiler.start("ADD testShardService.save");
 		testShardService.save(testBEntities2);
 		profiler.stop();
 		System.out.println(profiler.printTimeCounter());

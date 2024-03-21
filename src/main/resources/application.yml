@@ -8,7 +8,7 @@ hibernate:
   order_inserts: true
   order_updates: true
   enable_lazy_load_no_trans: true
-  show_sql: flase
+  show_sql: false
   format_sql: false
   id.new_generator_mappings: false
 
@@ -25,6 +25,7 @@ spring:
 
 shardDbConfig:
   timeOut: 10
+  sequenceCacheSize: 100000
   TransactionConfig:
     activeConnectionParallelLimit: 12
     parallelCommit: true
