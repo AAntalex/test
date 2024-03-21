@@ -13,7 +13,6 @@ import java.util.Optional;
 public abstract class BaseShardEntity implements ShardInstance {
     protected Long id;
     private StorageContext storageContext;
-    private Boolean changed;
 
     public BaseShardEntity () {
         if (this.getClass().isAnnotationPresent(ShardEntity.class)) {
@@ -86,6 +85,13 @@ public abstract class BaseShardEntity implements ShardInstance {
     public boolean hasMainShard() {
         return Optional.ofNullable(this.storageContext)
                 .map(StorageContext::hasMainShard)
+                .orElse(false);
+    }
+
+    @Override
+    public boolean isLazy() {
+        return Optional.ofNullable(this.storageContext)
+                .map(StorageContext::isLazy)
                 .orElse(false);
     }
 

@@ -38,8 +38,12 @@ public interface ShardEntityManager {
             QueryType queryType,
             QueryStrategy queryStrategy
     );
-    <T extends ShardInstance> Iterable<TransactionalQuery> createQueries(Class<T> clazz, String query);
-    <T extends ShardInstance> TransactionalQuery createQuery(Class<T> clazz, String query);
+    <T extends ShardInstance> Iterable<TransactionalQuery> createQueries(
+            Class<T> clazz,
+            String query,
+            QueryType queryType
+    );
+    <T extends ShardInstance> TransactionalQuery createQuery(Class<T> clazz, String query, QueryType queryType);
     <T extends ShardInstance> boolean lock(T entity);
     <T extends ShardInstance> T find(Class<T> clazz, Long id);
     <T extends ShardInstance> T find(T entity);

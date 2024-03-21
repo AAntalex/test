@@ -17,6 +17,7 @@ public interface ShardInstance {
     boolean hasNewShards();
     boolean hasMainShard();
     boolean isOurShard(Shard shard);
+    boolean isLazy();
     boolean setTransactionalContext(EntityTransaction transaction);
     void setShardMap(Long shardMap);
 }

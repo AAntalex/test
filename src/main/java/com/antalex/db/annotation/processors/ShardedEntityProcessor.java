@@ -2,6 +2,7 @@ package com.antalex.db.annotation.processors;
 
 import com.antalex.db.annotation.ParentShard;
 import com.antalex.db.annotation.ShardEntity;
+import com.antalex.db.entity.abstraction.ShardInstance;
 import com.antalex.db.model.Cluster;
 import com.antalex.db.model.StorageContext;
 import com.antalex.db.model.dto.IndexDto;
@@ -310,7 +311,7 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                 values = values.concat("," + field.getColumnName() + "=?");
             }
         }
-        return "UPDATE $$$." + classDto.getTableName() + " SET SN=SN+1,ST=?,SHARD_MAP=?" + values + " WHERE ID=?";
+        return "UPDATE $$$." + classDto.getTableName() + " SET " + values + " WHERE ID=?";
     }
 
     private static String getSelectSQLCode(ClassDto classDto) {
@@ -362,6 +363,7 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                                             Cluster.class.getCanonicalName(),
                                             ShardDataBaseManager.class.getCanonicalName(),
                                             StorageContext.class.getCanonicalName(),
+                                            Optional.class.getCanonicalName(),
                                             ResultQuery.class.getCanonicalName()
                                     )
                             )
@@ -438,8 +440,24 @@ public class ShardedEntityProcessor extends AbstractProcessor {
         try (PrintWriter out = new PrintWriter(builderFile.openWriter())) {
             out.println("package " + classDto.getClassPackage() + ";");
             out.println();
-            out.println(getImportedTypes(classDto, new ArrayList<>()));
+            out.println(
+                    getImportedTypes(
+                            classDto,
+                            new ArrayList<>(
+                                    Arrays.asList(
+                                            ShardEntityManager.class.getCanonicalName(),
+                                            Optional.class.getCanonicalName(),
+                                            ShardInstance.class.getCanonicalName()
+                                    )
+                            )
+                    )
+            );
             out.println("public class " + className + " extends " + classDto.getTargetClassName() + " {");
+            out.println("    private ShardEntityManager entityManager;\n" +
+                    "    public void setEntityManager(ShardEntityManager entityManager) {\n" +
+                    "        this.entityManager = entityManager;\n" +
+                    "    }");
+            out.println();
             out.println(getGettersCode(classDto));
             out.println(getSettersCode(classDto));
             out.println("}");
@@ -475,10 +493,19 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                                 Objects.nonNull(field.getGetter())
                 )
                 .map(field ->
-                        "\n   @Override\n" +
-                                "   public " + getTypeField(field) + " " + field.getGetter() + "() {\n" +
-                                "       return super." + field.getGetter() + "();\n" +
-                                "   }"
+                        "\n    @Override\n" +
+                                "    public " + getTypeField(field) + " " + field.getGetter() + "() {\n" +
+                                (
+                                        isAnnotationPresentByType(field, ShardEntity.class) ?
+                                                "        " + getTypeField(field) + " " + field.getFieldName() +
+                                                        " = super." + field.getGetter() + "();\n" +
+                                                "        return Optional.ofNullable(" + field.getFieldName() + ")\n" +
+                                                        "                .filter(ShardInstance::isLazy)\n" +
+                                                        "                .map(entity -> entityManager.find(entity))\n" +
+                                                        "                .orElse(" + field.getFieldName() + ");\n" :
+                                                "        return super." + field.getGetter() + "();\n"
+                                ) +
+                                "    }"
                 )
                 .reduce(StringUtils.EMPTY, String::concat);
     }
@@ -491,11 +518,17 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                                 Objects.nonNull(field.getSetter())
                 )
                 .map(field ->
-                        "\n   @Override\n" +
-                                "   public void " + field.getSetter() + "(" + getTypeField(field) + " value) {\n" +
-                                "       this.setChanged();\n" +
-                                "       super." + field.getSetter() + "(value);\n" +
-                                "   }"
+                        "\n    public void " + field.getSetter() + "(" + getTypeField(field) +
+                                " value, boolean change) {\n" +
+                                "        if (change) {\n" +
+                                "            this.setChanged();\n" +
+                                "        }\n" +
+                                "        super." + field.getSetter() + "(value);\n" +
+                                "    }\n" +
+                                "    @Override\n" +
+                                "    public void " + field.getSetter() + "(" + getTypeField(field) + " value) {\n" +
+                                "        " + field.getSetter() + "(value, true);\n" +
+                                "    }"
                 )
                 .reduce(StringUtils.EMPTY, String::concat);
     }
@@ -516,10 +549,11 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                 "    @Override\n" +
                 "    public " + classDto.getTargetClassName() + " newEntity(Long id, StorageContext" +
                 " storageContext) {\n" +
-                "        " + classDto.getTargetClassName() + " entity = new " + classDto.getTargetClassName() +
-                CLASS_INTERCEPT_POSTFIX + "();\n" +
+                "        " + classDto.getTargetClassName() + CLASS_INTERCEPT_POSTFIX +" entity = new " +
+                classDto.getTargetClassName() + CLASS_INTERCEPT_POSTFIX + "();\n" +
                 "        entity.setId(id);\n" +
                 "        entity.setStorageContext(storageContext);\n" +
+                "        entity.setEntityManager(entityManager);\n" +
                 "        return entity;\n" +
                 "    }";
     }
@@ -534,6 +568,8 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                 "    public " + classDto.getTargetClassName() + " find(" + classDto.getTargetClassName() +
                 " entity) {\n" +
                 "        try {\n" +
+                "            " + classDto.getTargetClassName() + CLASS_INTERCEPT_POSTFIX + " entityInterceptor = (" +
+                classDto.getTargetClassName() + CLASS_INTERCEPT_POSTFIX + ") entity;\n" +
                 "            ResultQuery result = entityManager\n" +
                 "                    .createQuery(entity, SELECT_QUERY, QueryType.SELECT, QueryStrategy.OWN_SHARD)\n" +
                 "                    .bind(entity.getId())\n" +
@@ -546,18 +582,19 @@ public class ShardedEntityProcessor extends AbstractProcessor {
             if (Objects.nonNull(field.getColumnName()) && !field.getIsLinked() && Objects.nonNull(field.getSetter())) {
                 if (isAnnotationPresentByType(field, ShardEntity.class)) {
                     code = code.concat(
-                            "                entity." + field.getSetter() + "(entityManager.newEntity(" +
-                                    getTypeField(field) + ".class, result.getLong(" + (++idx) + ")));\n"
+                            "                entityInterceptor." + field.getSetter() + "(entityManager.newEntity(" +
+                                    getTypeField(field) + ".class, result.getLong(" + (++idx) + ")), false);\n"
                     );
                 } else {
                     code = code.concat(
-                            "                entity." + field.getSetter() +
-                                    "((" + getTypeField(field) + ") result.getObject(" + (++idx) + "));\n"
+                            "                entityInterceptor." + field.getSetter() +
+                                    "((" + getTypeField(field) + ") result.getObject(" + (++idx) + "), false);\n"
                     );
                 }
             }
         }
         return code +
+                "                entity.getStorageContext().setLazy(false);\n" +
                 "            } else {\n" +
                 "                return null;\n" +
                 "            }\n" +
@@ -749,15 +786,24 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                         if (field.getIsLinked()) {
                             FieldDto linkedField = findFieldByLinkedColumn(field);
                             if (Objects.nonNull(linkedField)) {
-                                String linkedSetter = linkedField.getSetter();
-                                code = code + "        entity." + field.getGetter() +
-                                        "().forEach(it -> it." + linkedSetter + "(entity" +
+                                code = code + "        entity." + field.getGetter() + "()\n" +
+                                        "                .stream()\n" +
+                                        "                .filter(child -> \n" +
+                                        "                        Optional.ofNullable(child." + linkedField.getGetter() + "())\n" +
+                                        (
+                                                isAnnotationPresentByType(linkedField, ShardEntity.class) ?
+                                                        "                                .map(it -> it.getId())\n" :
+                                                        StringUtils.EMPTY
+                                        ) +
+                                        "                                .map(it -> !it.equals(entity.getId()))\n" +
+                                        "                                .orElse(true)\n" +
+                                        "                )\n" +
+                                        "                .forEach(it -> it." + linkedField.getSetter() + "(entity" +
                                         (
                                                 isAnnotationPresentByType(linkedField, ShardEntity.class) ?
                                                         StringUtils.EMPTY :
                                                         ".getId()"
-                                        )
-                                        + "));\n";
+                                        ) + "));\n";
                             }
                         }
                     }

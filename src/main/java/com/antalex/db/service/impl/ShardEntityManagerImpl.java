@@ -90,7 +90,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
         setStorage(entity, null, true);
         generateId(entity, true);
         boolean isAurTransaction = startTransaction();
-        persist(entity);
+        persist(entity, true);
         if (isAurTransaction) {
             flush();
         }
@@ -272,15 +272,14 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
         generateId(entity, false);
     }
 
-    @Override
-    public <T extends ShardInstance> void persist(T entity) {
+    private <T extends ShardInstance> void persist(T entity, boolean force) {
         if (entity == null) {
             return;
         }
         if (entity.setTransactionalContext(getTransaction())) {
             ShardEntityRepository<T> repository = getEntityRepository(entity.getClass());
             checkShardMap(entity, repository.getShardType());
-            if (!entity.isStored() || entity.isChanged() || entity.hasNewShards())
+            if (force || !entity.isStored() || entity.isChanged() || entity.hasNewShards())
             {
                 repository.persist(entity);
                 entity.getStorageContext().persist();
@@ -289,11 +288,16 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
     }
 
     @Override
+    public <T extends ShardInstance> void persist(T entity) {
+        persist(entity, false);
+    }
+
+    @Override
     public <T extends ShardInstance> void persistAll(Iterable<T> entities) {
         if (entities == null) {
             return;
         }
-        entities.forEach(this::persist);
+        entities.forEach(it -> persist(it, false));
     }
 
     @Override
@@ -386,16 +390,20 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
     }
 
     @Override
-    public <T extends ShardInstance> Iterable<TransactionalQuery> createQueries(Class<T> clazz, String query) {
+    public <T extends ShardInstance> Iterable<TransactionalQuery> createQueries(
+            Class<T> clazz,
+            String query,
+            QueryType queryType)
+    {
         ShardEntityRepository<T> repository = getEntityRepository(clazz);
         return dataBaseManager.getEnabledShards(repository.getCluster())
-                .map(shard -> this.createQuery(shard, query, QueryType.SELECT))
+                .map(shard -> this.createQuery(shard, query, queryType))
                 .collect(Collectors.toList());
     }
 
     @Override
-    public <T extends ShardInstance> TransactionalQuery createQuery(Class<T> clazz, String query) {
-        return getMainQuery(createQueries(clazz, query));
+    public <T extends ShardInstance> TransactionalQuery createQuery(Class<T> clazz, String query, QueryType queryType) {
+        return getMainQuery(createQueries(clazz, query, queryType));
     }
 
     @Override

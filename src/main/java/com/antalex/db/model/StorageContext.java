@@ -25,8 +25,8 @@ public class StorageContext {
         }
         if (this.transactionalContext == null) {
             this.transactionalContext = new TransactionalContext();
-            this.transactionalContext.setStored(this.stored);
-            this.transactionalContext.setChanged(this.changed);
+            this.transactionalContext.setStored(Optional.ofNullable(this.stored).orElse(false));
+            this.transactionalContext.setChanged(Optional.ofNullable(this.changed).orElse(false));
             this.transactionalContext.setOriginalShardMap(this.originalShardMap);
             this.transactionalContext.setTransaction(transaction);
             this.transactionalContext.setPersist(false);
@@ -39,8 +39,8 @@ public class StorageContext {
                 .filter(SharedEntityTransaction::isCompleted)
                 .ifPresent(it -> {
                     if (it.hasError()) {
-                        this.transactionalContext.setChanged(this.changed);
-                        this.transactionalContext.setStored(this.stored);
+                        this.transactionalContext.setChanged(Optional.ofNullable(this.changed).orElse(false));
+                        this.transactionalContext.setStored(Optional.ofNullable(this.stored).orElse(false));
                         this.transactionalContext.setOriginalShardMap(this.originalShardMap);
                     } else {
                         this.changed = this.transactionalContext.getChanged();
