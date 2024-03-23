@@ -30,6 +30,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
 
     private ThreadLocal<ShardEntityRepository<?>> currentShardEntityRepository = new ThreadLocal<>();
     private ThreadLocal<Class<?>> currentSourceClass = new ThreadLocal<>();
+    private ThreadLocal<Map<Class<?>, Map<Long, ShardInstance>>> entities = new ThreadLocal<>();
 
     @Autowired
     private ShardDataBaseManager dataBaseManager;
@@ -98,7 +99,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
     }
 
     @Override
-    public <T extends ShardInstance> Iterable saveAll(Iterable<T> entities) {
+    public <T extends ShardInstance> Iterable<T> saveAll(Iterable<T> entities) {
         if (entities == null) {
             return null;
         }
@@ -309,18 +310,6 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
     }
 
     @Override
-    public <T extends ShardInstance> T newEntity(Class<T> clazz) {
-        ShardEntityRepository<T> repository = getEntityRepository(clazz);
-        return repository.newEntity();
-    }
-
-    @Override
-    public <T extends ShardInstance> T newEntity(Class<T> clazz, Long id) {
-        ShardEntityRepository<T> repository = getEntityRepository(clazz);
-        return repository.newEntity(id, dataBaseManager.getStorageContext(id));
-    }
-
-    @Override
     public EntityTransaction getTransaction() {
         return sharedTransactionManager.getTransaction();
     }
@@ -407,9 +396,34 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
     }
 
     @Override
-    public <T extends ShardInstance> T find(Class<T> clazz, Long id) {
+    public <T extends ShardInstance> T newEntity(Class<T> clazz) {
         ShardEntityRepository<T> repository = getEntityRepository(clazz);
-        return repository.find(id, dataBaseManager.getStorageContext(id));
+        return repository.newEntity();
+    }
+
+    @Override
+    public <T extends ShardInstance> T newEntity(Class<T> clazz, Long id) {
+        if (Optional.ofNullable(id).map(it -> it.equals(0L)).orElse(true)) {
+            return null;
+        }
+        T entity = getEntity(clazz, id);
+        if (Objects.isNull(entity)) {
+            ShardEntityRepository<T> repository = getEntityRepository(clazz);
+            entity = repository.newEntity(id, dataBaseManager.getStorageContext(id));
+            addEntity(clazz, id, entity);
+        }
+        return entity;
+    }
+
+    @Override
+    public <T extends ShardInstance> T find(Class<T> clazz, Long id) {
+        return find(newEntity(clazz, id));
+    }
+
+    @Override
+    public <T extends ShardInstance> List<T> findAll(Class<T> clazz, String condition, Object... binds) {
+        ShardEntityRepository<T> repository = getEntityRepository(clazz);
+        return repository.findAll(condition, binds);
     }
 
     @Override
@@ -421,11 +435,32 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
         return repository.find(entity);
     }
 
+    private <T extends ShardInstance> T getEntity(Class<T> clazz, Long id) {
+        if (Objects.isNull(entities.get())) {
+            entities.set(new HashMap<>());
+        }
+        Map<Long, ShardInstance> classEntities = entities.get().get(clazz);
+        if (Objects.isNull(classEntities)) {
+            classEntities = new HashMap<>();
+            entities.get().put(clazz, classEntities);
+            return null;
+        }
+        return (T) classEntities.get(id);
+    }
+
+    private <T extends ShardInstance> void addEntity(Class<T> clazz, Long id, T entity) {
+        if (entity == null) {
+            return;
+        }
+        Map<Long, ShardInstance> classEntities = entities.get().get(clazz);
+        if (Objects.isNull(classEntities)) {
+            classEntities = new HashMap<>();
+            entities.get().put(clazz, classEntities);
+        }
+        classEntities.put(id, entity);
+    }
+
     private TransactionalQuery getMainQuery(Iterable<TransactionalQuery> queries) {
-
-
-
-
         TransactionalQuery mainQuery = null;
         for (TransactionalQuery query : queries) {
             if (Objects.isNull(mainQuery)) {

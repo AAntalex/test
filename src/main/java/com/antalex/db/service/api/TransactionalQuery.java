@@ -8,6 +8,7 @@ import java.util.concurrent.ExecutorService;
 
 public interface TransactionalQuery {
     TransactionalQuery bind(Object o);
+    TransactionalQuery bindAll(Object... objects);
     TransactionalQuery bind(int index, Object o);
     void bindOriginal(int idx, Object o) throws Exception;
     TransactionalQuery bindShardMap(ShardInstance entity);

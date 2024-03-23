@@ -8,13 +8,15 @@ import com.antalex.db.model.enums.ShardType;
 import com.antalex.db.service.api.TransactionalQuery;
 
 import javax.persistence.EntityTransaction;
+import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 public interface ShardEntityManager {
     <T extends ShardInstance> ShardType getShardType(T entity);
     <T extends ShardInstance> Cluster getCluster(T entity);
     <T extends ShardInstance> T save(T entity);
-    <T extends ShardInstance> Iterable saveAll(Iterable<T> entities);
+    <T extends ShardInstance> Iterable<T> saveAll(Iterable<T> entities);
     <T extends ShardInstance> void setDependentStorage(T entity);
     <T extends ShardInstance> void generateId(T entity, boolean force);
     <T extends ShardInstance> void generateId(T entity);
@@ -47,6 +49,7 @@ public interface ShardEntityManager {
     <T extends ShardInstance> boolean lock(T entity);
     <T extends ShardInstance> T find(Class<T> clazz, Long id);
     <T extends ShardInstance> T find(T entity);
+    <T extends ShardInstance> List<T> findAll(Class<T> clazz, String condition, Object... binds);
     EntityTransaction getTransaction();
     String getTransactionUUID();
     void setAutonomousTransaction();
@@ -63,5 +66,9 @@ public interface ShardEntityManager {
             QueryType queryType)
     {
         return createQueries(entity, query, queryType, QueryStrategy.ALL_SHARDS);
+    }
+
+    default  <T extends ShardInstance> List<T> findAll(Class<T> clazz) {
+        return findAll(clazz, null);
     }
 }

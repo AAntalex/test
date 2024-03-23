@@ -49,6 +49,7 @@ public abstract class AbstractTransactionalQuery implements TransactionalQuery, 
     @Override
     public void execute() {
         if (queryType != QueryType.DML) {
+            log.trace("Execute Query '" + this.query + "'");
             if (relatedQueries.isEmpty()) {
                 run();
             } else {
@@ -73,6 +74,14 @@ public abstract class AbstractTransactionalQuery implements TransactionalQuery, 
     @Override
     public TransactionalQuery bind(Object o) {
         return bind(this.currentIndex + 1, o);
+    }
+
+    @Override
+    public TransactionalQuery bindAll(Object... objects) {
+        for (int i = 0; i < objects.length; i++) {
+            bind(i+1, objects[i]);
+        }
+        return this;
     }
 
     @Override
@@ -228,7 +237,7 @@ public abstract class AbstractTransactionalQuery implements TransactionalQuery, 
 
     private void waitRun(RunInfo runInfo) {
         try {
-            log.trace(String.format("Waiting \"%s\"...", runInfo.getName()));
+            log.trace(String.format("Waiting %s...", runInfo.getName()));
             runInfo.getFuture().get();
         } catch (Exception err) {
             throw new ShardDataBaseException(err);

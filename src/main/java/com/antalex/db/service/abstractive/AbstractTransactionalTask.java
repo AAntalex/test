@@ -46,7 +46,7 @@ public abstract class AbstractTransactionalTask implements TransactionalTask {
                                         );
                                         step.target.run();
                                     } catch (Exception err) {
-                                        this.error = step.name + ":\n" + err.getLocalizedMessage();
+                                        this.error = step.name + ":\n" + err.getMessage();
                                     }
                                 }
                             });
@@ -65,7 +65,7 @@ public abstract class AbstractTransactionalTask implements TransactionalTask {
     public void waitTask() {
         if (this.status == TaskStatus.RUNNING) {
             try {
-                log.trace(String.format("Waiting \"%s\"...", this.name));
+                log.trace(String.format("Waiting %s...", this.name));
                 this.future.get();
             } catch (Exception err) {
                 throw new ShardDataBaseException(err);
@@ -225,6 +225,7 @@ public abstract class AbstractTransactionalTask implements TransactionalTask {
     public TransactionalQuery addQuery(String query, QueryType queryType, String name) {
         TransactionalQuery transactionalQuery = this.queries.get(query);
         if (transactionalQuery == null) {
+            log.trace("Create Query '" + query + "' on " + shard.getName());
             transactionalQuery = createQuery(query, queryType);
             this.queries.put(query, transactionalQuery);
             if (queryType == QueryType.DML) {

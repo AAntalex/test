@@ -242,6 +242,13 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                 ) : type.asElement().getSimpleName().toString();
     }
 
+    private static String getFinalType(FieldDto field) {
+        DeclaredType type = getDeclaredType(field.getElement());
+        return type.getTypeArguments().size() > 0 ?
+                ((DeclaredType) type.getTypeArguments().get(0)).asElement().getSimpleName().toString() :
+                type.asElement().getSimpleName().toString();
+    }
+
     private static DeclaredType getDeclaredType(Element element) {
         return (DeclaredType) Optional.ofNullable(element)
                 .map(Element::asType)
@@ -318,7 +325,7 @@ public class ShardedEntityProcessor extends AbstractProcessor {
         int idx = 0;
         String alias = "x" + idx;
         return "SELECT " + getSelectList(classDto, alias) + " FROM $$$." +
-                classDto.getTableName() + " " + alias + " WHERE " + alias + ".ID=? and " + alias + ".SHARD_MAP>=0";
+                classDto.getTableName() + " " + alias + " WHERE " + alias + ".SHARD_MAP>=0";
     }
 
     private static String getSelectList(ClassDto classDto, String alias) {
@@ -364,7 +371,10 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                                             ShardDataBaseManager.class.getCanonicalName(),
                                             StorageContext.class.getCanonicalName(),
                                             Optional.class.getCanonicalName(),
-                                            ResultQuery.class.getCanonicalName()
+                                            ResultQuery.class.getCanonicalName(),
+                                            List.class.getCanonicalName(),
+                                            ArrayList.class.getCanonicalName(),
+                                            StringUtils.class.getCanonicalName()
                                     )
                             )
                     )
@@ -426,6 +436,8 @@ public class ShardedEntityProcessor extends AbstractProcessor {
             out.println();
             out.println(getFindCode(classDto));
             out.println();
+            out.println(getFindAllCode(classDto));
+            out.println();
             out.println(getAdditionalPersistCode(classDto));
             out.println("}");
         }
@@ -456,8 +468,9 @@ public class ShardedEntityProcessor extends AbstractProcessor {
             out.println("    private ShardEntityManager entityManager;\n" +
                     "    public void setEntityManager(ShardEntityManager entityManager) {\n" +
                     "        this.entityManager = entityManager;\n" +
-                    "    }");
+                    "    }\n");
             out.println();
+            out.println(getLazyFlagsCode(classDto));
             out.println(getGettersCode(classDto));
             out.println(getSettersCode(classDto));
             out.println("}");
@@ -485,7 +498,41 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                 .reduce(StringUtils.EMPTY, String::concat);
     }
 
-    private static String getGettersCode(ClassDto classDto) {
+    private String getColumn(FieldDto field) {
+        return findFieldByLinkedColumn(field).getColumnName();
+    }
+
+    private static boolean isLazyList(FieldDto field) {
+        return Optional.ofNullable(field)
+                .map(FieldDto::getElement)
+                .map(it -> it.getAnnotation(OneToMany.class))
+                .map(OneToMany::fetch)
+                .filter(it -> it == FetchType.LAZY)
+                .isPresent();
+    }
+
+    private static boolean isLazyField(FieldDto field) {
+        return Optional.ofNullable(field)
+                .map(FieldDto::getElement)
+                .map(it -> it.getAnnotation(OneToOne.class))
+                .map(OneToOne::fetch)
+                .filter(it -> it == FetchType.LAZY)
+                .isPresent();
+    }
+    private String getLazyFlagsCode(ClassDto classDto) {
+        return classDto.getFields()
+                .stream()
+                .filter(field ->
+                        field.getIsLinked() &&
+                                Objects.nonNull(field.getGetter()) &&
+                                !isAnnotationPresent(field.getElement(), Transient.class) &&
+                                isLazyList(field)
+                )
+                .map(field -> "    private boolean " + field.getFieldName() + "Lazy = true;\n")
+                .reduce(StringUtils.EMPTY, String::concat);
+    }
+
+    private String getGettersCode(ClassDto classDto) {
         return classDto.getFields()
                 .stream()
                 .filter(field ->
@@ -496,15 +543,25 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                         "\n    @Override\n" +
                                 "    public " + getTypeField(field) + " " + field.getGetter() + "() {\n" +
                                 (
-                                        isAnnotationPresentByType(field, ShardEntity.class) ?
-                                                "        " + getTypeField(field) + " " + field.getFieldName() +
-                                                        " = super." + field.getGetter() + "();\n" +
-                                                "        return Optional.ofNullable(" + field.getFieldName() + ")\n" +
-                                                        "                .filter(ShardInstance::isLazy)\n" +
-                                                        "                .map(entity -> entityManager.find(entity))\n" +
-                                                        "                .orElse(" + field.getFieldName() + ");\n" :
-                                                "        return super." + field.getGetter() + "();\n"
+                                        field.getIsLinked() &&
+                                                isAnnotationPresentInArgument(field, ShardEntity.class) ?
+                                                (
+                                                        isLazyList(field) ?
+                                                                "        if (" + field.getFieldName() + "Lazy) {\n" +
+                                                                        "            this." + field.getSetter() +
+                                                                        "(entityManager.findAll(" +
+                                                                        getFinalType(field) + ".class, \"x0." +
+                                                                        field.getColumnName() + "=?\", this.id));\n" +
+                                                                        "            this." + field.getFieldName() +
+                                                                        "Lazy = false;\n" +
+                                                                        "        }\n" :
+                                                                StringUtils.EMPTY
+                                                ) :
+                                                "        if (this.isLazy()) {\n" +
+                                                        "            entityManager.find(this);\n" +
+                                                        "        }\n"
                                 ) +
+                                "        return super." + field.getGetter() + "();\n" +
                                 "    }"
                 )
                 .reduce(StringUtils.EMPTY, String::concat);
@@ -559,24 +616,69 @@ public class ShardedEntityProcessor extends AbstractProcessor {
     }
 
     private static String getFindCode(ClassDto classDto) {
-        String code = "    @Override\n" +
-                "    public " + classDto.getTargetClassName() + " find(Long id, StorageContext storageContext) {\n" +
-                "        return find(newEntity(id, storageContext));\n" +
-                "    }\n" +
-                "\n" +
-                "    @Override\n" +
+        return  "    @Override\n" +
                 "    public " + classDto.getTargetClassName() + " find(" + classDto.getTargetClassName() +
                 " entity) {\n" +
                 "        try {\n" +
                 "            " + classDto.getTargetClassName() + CLASS_INTERCEPT_POSTFIX + " entityInterceptor = (" +
                 classDto.getTargetClassName() + CLASS_INTERCEPT_POSTFIX + ") entity;\n" +
                 "            ResultQuery result = entityManager\n" +
-                "                    .createQuery(entity, SELECT_QUERY, QueryType.SELECT, QueryStrategy.OWN_SHARD)\n" +
+                "                    .createQuery(entity, SELECT_QUERY + \" and x0.ID=?\", QueryType.SELECT," +
+                " QueryStrategy.OWN_SHARD)\n" +
                 "                    .bind(entity.getId())\n" +
                 "                    .getResult();\n" +
                 "            if (result.next()) {\n" +
-                "                entity.setShardMap(result.getLong(2));\n";
+                "                entity.setShardMap(result.getLong(2));\n" +
+                setFieldsCode(classDto) +
+                "                entity.getStorageContext().setLazy(false);\n" +
+                "            } else {\n" +
+                "                return null;\n" +
+                "            }\n" +
+                "        } catch (Exception err) {\n" +
+                "            throw new RuntimeException(err);\n" +
+                "        }\n" +
+                "        return entity;\n" +
+                "    }\n";
+    }
 
+    private static String getFindAllCode(ClassDto classDto) {
+        return  "    @Override\n" +
+                "    public List<" + classDto.getTargetClassName() +
+                "> findAll(String condition, Object... binds) {\n" +
+                "        List<" + classDto.getTargetClassName() + "> entities = new ArrayList<>();\n" +
+                "        try {\n" +
+                "            ResultQuery result = entityManager\n" +
+
+                "                    .createQuery(\n" +
+                "                            " + classDto.getTargetClassName() + ".class, \n" +
+                "                            SELECT_QUERY + \n" +
+                "                                    Optional.ofNullable(condition).map(it -> \" and \" + it)" +
+                ".orElse(StringUtils.EMPTY), \n" +
+                "                            QueryType.SELECT\n" +
+                "                    )\n" +
+                "                    .bindAll(binds)\n" +
+                "                    .getResult();\n" +
+                "            while (result.next()) {\n" +
+                "                " + classDto.getTargetClassName() + CLASS_INTERCEPT_POSTFIX +
+                " entityInterceptor = (" + classDto.getTargetClassName() + CLASS_INTERCEPT_POSTFIX +
+                ") entityManager.newEntity(\n" +
+                "                        " + classDto.getTargetClassName() + ".class,\n" +
+                "                        result.getLong(1)\n" +
+                "                );\n" +
+                "                entityInterceptor.setShardMap(result.getLong(2));\n" +
+                setFieldsCode(classDto) +
+                "                entityInterceptor.getStorageContext().setLazy(false);\n" +
+                "                entities.add(entityInterceptor);\n" +
+                "            }\n" +
+                "        } catch (Exception err) {\n" +
+                "            throw new RuntimeException(err);\n" +
+                "        }\n" +
+                "        return entities;\n" +
+                "    }\n";
+    }
+
+    private static String setFieldsCode(ClassDto classDto) {
+        String code = StringUtils.EMPTY;
         int idx = 2;
         for (FieldDto field : classDto.getFields()) {
             if (Objects.nonNull(field.getColumnName()) && !field.getIsLinked() && Objects.nonNull(field.getSetter())) {
@@ -593,16 +695,7 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                 }
             }
         }
-        return code +
-                "                entity.getStorageContext().setLazy(false);\n" +
-                "            } else {\n" +
-                "                return null;\n" +
-                "            }\n" +
-                "        } catch (Exception err) {\n" +
-                "            throw new RuntimeException(err);\n" +
-                "        }\n" +
-                "        return entity;\n" +
-                "    }\n";
+        return code;
     }
 
     private static String getPersistCode(ClassDto classDto) {
