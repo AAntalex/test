@@ -7,6 +7,7 @@ import com.antalex.domain.persistence.entity.AdditionalParameterEntity;
 import com.antalex.domain.persistence.entity.hiber.TestAEntity;
 import com.antalex.domain.persistence.entity.hiber.TestBEntity;
 import com.antalex.domain.persistence.entity.hiber.TestCEntity;
+import com.antalex.domain.persistence.entity.shard.TestAShardEntity;
 import com.antalex.domain.persistence.entity.shard.TestBShardEntity;
 import com.antalex.domain.persistence.entity.shard.TestCShardEntity;
 import com.antalex.domain.persistence.repository.AdditionalParameterRepository;
@@ -75,30 +76,54 @@ public class ApplicationTests {
 		}
 	}
 
-//	@Test
+	@Test
 	public void findJPA() {
 		profiler.start("findJPA");
-		TestBEntity b = testBRepository.findById(656667962L).orElse(null);
+		TestBEntity b = testBRepository.findById(643891562L).orElse(null);
 		System.out.println("FIND B");
 
 		TestAEntity a = b.getA();
 
 		System.out.println("FIND A");
-//		System.out.println("FIND b.getCList().size() " + b.getCList().size());
 		System.out.println("FIND A value " + a.getValue());
 
+        TestBEntity b2 = testBRepository.findById(650304962L).orElse(null);
+        TestBEntity b3 = testBRepository.findById(656667962L).orElse(null);
+
+
 		List<TestCEntity> cList =  b.getCList();
-
-
 		System.out.println("b.getCList()");
-
 		int size = cList.size();
 		System.out.println("cList.size() " + size);
-
 		TestCEntity c = b.getCList().get(0);
 		System.out.println("FIND C value " + c.getValue());
 		System.out.println("c.getB().getValue() " + c.getB().getValue());
 
+		profiler.stop();
+		System.out.println(profiler.printTimeCounter());
+	}
+
+
+	@Test
+	public void findShard() {
+		profiler.start("findShard");
+		TestBShardEntity b = entityManager.find(TestBShardEntity.class, 643891562L);
+		System.out.println("FIND B");
+
+		TestAShardEntity a = b.getA();
+		System.out.println("FIND A");
+		System.out.println("FIND A value " + a.getValue());
+
+		TestBShardEntity b2 = entityManager.find(TestBShardEntity.class, 650304962L);
+		TestBShardEntity b3 = entityManager.find(TestBShardEntity.class, 656667962L);
+
+		List<TestCShardEntity> cList =  b.getCList();
+		System.out.println("b.getCList()");
+		int size = cList.size();
+		System.out.println("cList.size() " + size);
+		TestCShardEntity c = b.getCList().get(0);
+		System.out.println("FIND C value " + c.getValue());
+		System.out.println("c.getB().getValue() " + c.getB().getValue());
 
 
 		profiler.stop();
@@ -235,7 +260,7 @@ public class ApplicationTests {
 
 
 
-	@Test
+//	@Test
 	public void saveShard() {
 		EntityManager em = entityManagerFactory.createEntityManager();
 		Boolean active = em.getTransaction().isActive();

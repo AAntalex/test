@@ -70,7 +70,7 @@ public class TestBShardEntityRepository {
         testAShardEntityRepository.generateId(entity.getA());
         testCShardEntityRepository.generateAllId(entity.getCList());
         entity.getCList().forEach(it ->
-                it.setB(entity.getId())
+                it.setB(entity)
         );
     }
 

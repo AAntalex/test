@@ -1,13 +1,19 @@
 package com.antalex.optimizer;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.ComponentScan;
+
+import javax.persistence.EntityManager;
+import javax.sql.DataSource;
 
 @SpringBootApplication
 @ComponentScan("com.antalex")
 public class OptimizerApplication {
     public static void main(String[] args) {
+
+
 //        long allTimeMillis = System.currentTimeMillis();
 //        long timeMillis = System.currentTimeMillis();
         /*ApplicationContext context = */SpringApplication.run(OptimizerApplication.class, args);
