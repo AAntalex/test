@@ -30,7 +30,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
 
     private ThreadLocal<ShardEntityRepository<?>> currentShardEntityRepository = new ThreadLocal<>();
     private ThreadLocal<Class<?>> currentSourceClass = new ThreadLocal<>();
-    private ThreadLocal<Map<Class<?>, Map<Long, ShardInstance>>> entities = new ThreadLocal<>();
+    private ThreadLocal<Map<Long, ShardInstance>> entities = new ThreadLocal<>();
 
     @Autowired
     private ShardDataBaseManager dataBaseManager;
@@ -406,11 +406,11 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
         if (Optional.ofNullable(id).map(it -> it.equals(0L)).orElse(true)) {
             return null;
         }
-        T entity = getEntity(clazz, id);
+        T entity = getEntity(id);
         if (Objects.isNull(entity)) {
             ShardEntityRepository<T> repository = getEntityRepository(clazz);
             entity = repository.newEntity(id, dataBaseManager.getStorageContext(id));
-            addEntity(clazz, id, entity);
+            addEntity(id, entity);
         }
         return entity;
     }
@@ -435,29 +435,18 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
         return repository.find(entity);
     }
 
-    private <T extends ShardInstance> T getEntity(Class<T> clazz, Long id) {
+    private <T extends ShardInstance> T getEntity(Long id) {
         if (Objects.isNull(entities.get())) {
             entities.set(new HashMap<>());
         }
-        Map<Long, ShardInstance> classEntities = entities.get().get(clazz);
-        if (Objects.isNull(classEntities)) {
-            classEntities = new HashMap<>();
-            entities.get().put(clazz, classEntities);
-            return null;
-        }
-        return (T) classEntities.get(id);
+        return (T) entities.get().get(id);
     }
 
-    private <T extends ShardInstance> void addEntity(Class<T> clazz, Long id, T entity) {
+    private <T extends ShardInstance> void addEntity(Long id, T entity) {
         if (entity == null) {
             return;
         }
-        Map<Long, ShardInstance> classEntities = entities.get().get(clazz);
-        if (Objects.isNull(classEntities)) {
-            classEntities = new HashMap<>();
-            entities.get().put(clazz, classEntities);
-        }
-        classEntities.put(id, entity);
+        entities.get().put(id, entity);
     }
 
     private TransactionalQuery getMainQuery(Iterable<TransactionalQuery> queries) {
