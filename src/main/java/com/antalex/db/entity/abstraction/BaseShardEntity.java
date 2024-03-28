@@ -68,9 +68,9 @@ public abstract class BaseShardEntity implements ShardInstance {
     }
 
     @Override
-    public void setChanged() {
+    public void setChanges(int index) {
         if (this.storageContext != null) {
-            this.storageContext.setChanged();
+            this.storageContext.setChanges(index);
         }
     }
 

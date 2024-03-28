@@ -3,8 +3,8 @@ package com.antalex.db.model;
 import com.antalex.db.service.impl.SharedEntityTransaction;
 import com.antalex.db.utils.ShardUtils;
 import lombok.Builder;
-import lombok.Data;
 
+import java.util.Objects;
 import java.util.Optional;
 
 @Builder
@@ -14,7 +14,7 @@ public class StorageContext {
     private Long shardMap;
     private Long originalShardMap;
     private Boolean stored;
-    private Boolean changed;
+    private Long changes;
     private boolean isLazy;
     private boolean temporary;
     private TransactionalContext transactionalContext;
@@ -25,68 +25,86 @@ public class StorageContext {
         }
         if (this.transactionalContext == null) {
             this.transactionalContext = new TransactionalContext();
-            this.transactionalContext.setStored(Optional.ofNullable(this.stored).orElse(false));
-            this.transactionalContext.setChanged(Optional.ofNullable(this.changed).orElse(false));
-            this.transactionalContext.setOriginalShardMap(this.originalShardMap);
-            this.transactionalContext.setTransaction(transaction);
-            this.transactionalContext.setPersist(false);
+            this.transactionalContext.stored = Optional.ofNullable(this.stored).orElse(false);
+            this.transactionalContext.changes = this.changes;
+            this.transactionalContext.originalShardMap = this.originalShardMap;
+            this.transactionalContext.transaction = transaction;
+            this.transactionalContext.persist = false;
             return true;
         }
-        if (!this.transactionalContext.getPersist() && this.transactionalContext.getTransaction() == transaction) {
+        if (!this.transactionalContext.persist && this.transactionalContext.transaction == transaction) {
             return false;
         }
-        Optional.ofNullable(this.transactionalContext.getTransaction())
+        Optional.ofNullable(this.transactionalContext.transaction)
                 .filter(SharedEntityTransaction::isCompleted)
                 .ifPresent(it -> {
                     if (it.hasError()) {
-                        this.transactionalContext.setChanged(Optional.ofNullable(this.changed).orElse(false));
-                        this.transactionalContext.setStored(Optional.ofNullable(this.stored).orElse(false));
-                        this.transactionalContext.setOriginalShardMap(this.originalShardMap);
+                        this.transactionalContext.changes = this.changes;
+                        this.transactionalContext.stored = Optional.ofNullable(this.stored).orElse(false);
+                        this.transactionalContext.originalShardMap = this.originalShardMap;
                     } else {
-                        this.changed = this.transactionalContext.getChanged();
-                        this.stored = this.transactionalContext.getStored();
-                        this.originalShardMap = this.transactionalContext.getOriginalShardMap();
+                        this.changes = this.transactionalContext.changes;
+                        this.stored = this.transactionalContext.stored;
+                        this.originalShardMap = this.transactionalContext.originalShardMap;
                     }
                 });
-        this.transactionalContext.setPersist(false);
-        this.transactionalContext.setTransaction(transaction);
+        this.transactionalContext.persist = false;
+        this.transactionalContext.transaction = transaction;
         return true;
     }
 
     public void persist() {
         if (this.transactionalContext != null) {
-            this.transactionalContext.setChanged(false);
-            this.transactionalContext.setStored(true);
-            this.transactionalContext.setOriginalShardMap(this.shardMap);
-            this.transactionalContext.setPersist(true);
+            this.transactionalContext.changes = null;
+            this.transactionalContext.stored = true;
+            this.transactionalContext.originalShardMap = this.shardMap;
+            this.transactionalContext.persist = true;
         }
     }
 
-    public void setChanged() {
-        this.changed = true;
+    private Long addChanges(int index, Long changes) {
+        return Optional.ofNullable(changes).orElse(0L) |
+                (index > Long.SIZE ? 0L : (1L << (index - 1)));
+    }
+
+    public void setChanges(int index) {
+        this.changes = addChanges(index, this.changes);
         if (this.transactionalContext != null) {
-            this.transactionalContext.setChanged(true);
+            this.transactionalContext.changes = addChanges(index, this.transactionalContext.changes);
         }
     }
 
     public Boolean isChanged() {
         return Optional.ofNullable(this.transactionalContext)
                 .filter(it -> !it.transaction.hasError())
-                .map(TransactionalContext::getChanged)
-                .orElse(this.changed);
+                .map(it -> Objects.nonNull(it.changes))
+                .orElse(Objects.nonNull(this.changes));
+    }
+
+    private Boolean isChanged(int index, Long changes) {
+        return Optional.ofNullable(changes)
+                .map(it -> index > Long.SIZE || (it & (1L << (index - 1))) > 0L)
+                .orElse(false);
+    }
+
+    public Boolean isChanged(int index) {
+        return Optional.ofNullable(this.transactionalContext)
+                .filter(it -> !it.transaction.hasError())
+                .map(it -> isChanged(index, it.changes))
+                .orElse(isChanged(index, this.changes));
     }
 
     public Boolean isStored() {
         return Optional.ofNullable(this.transactionalContext)
                 .filter(it -> !it.transaction.hasError())
-                .map(TransactionalContext::getStored)
+                .map(it -> it.stored)
                 .orElse(this.stored);
     }
 
     public Long getOriginalShardMap() {
         return Optional.ofNullable(this.transactionalContext)
                 .filter(it -> !it.transaction.hasError())
-                .map(TransactionalContext::getOriginalShardMap)
+                .map(it -> it.originalShardMap)
                 .orElse(this.originalShardMap);
     }
 
@@ -133,10 +151,9 @@ public class StorageContext {
         return isLazy;
     }
 
-    @Data
     private class TransactionalContext {
         private SharedEntityTransaction transaction;
-        private Boolean changed;
+        private Long changes;
         private Long originalShardMap;
         private Boolean stored;
         private Boolean persist;

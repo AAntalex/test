@@ -13,7 +13,7 @@ public interface ShardInstance {
     void setStorageContext(StorageContext storageContext);
     boolean isChanged();
     Boolean isStored();
-    void setChanged();
+    void setChanges(int index);
     boolean hasNewShards();
     boolean hasMainShard();
     boolean isOurShard(Shard shard);

@@ -11,6 +11,7 @@ public class FieldDto {
     private String fieldName;
     private Element element;
     private String columnName;
+    private int columnIndex;
     private String getter;
     private String setter;
     private Boolean isLinked;

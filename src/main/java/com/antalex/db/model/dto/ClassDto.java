@@ -22,4 +22,5 @@ public class ClassDto {
     private Map<String, FieldDto> fieldMap;
     private List<IndexDto> indexes;
     private List<FieldDto> uniqueFields;
+    private List<FieldDto> columnFields;
 }
