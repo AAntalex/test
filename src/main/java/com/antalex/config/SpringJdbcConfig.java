@@ -69,5 +69,4 @@ public class SpringJdbcConfig {
         properties.put("hibernate.enable_lazy_load_no_trans", env.getProperty("hibernate.enable_lazy_load_no_trans"));
         return properties;
     }
-
 }

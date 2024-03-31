@@ -6,10 +6,16 @@ import com.antalex.domain.persistence.entity.hiber.TestAEntity;
 import com.antalex.domain.persistence.entity.hiber.TestBEntity;
 import com.antalex.domain.persistence.entity.hiber.TestCEntity;
 import com.antalex.domain.persistence.repository.TestBRepository;
+import com.antalex.service.mapper.EntityCMapper;
+import com.antalex.service.mapper.EntityMapper;
 import com.antalex.service.TestService;
+import org.apache.ibatis.session.ExecutorType;
+import org.apache.ibatis.session.SqlSession;
+import org.apache.ibatis.session.SqlSessionFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.persistence.EntityManager;
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -24,16 +30,20 @@ public class TestServiceImpl implements TestService{
 
 
     private final DataSource dataSource;
-    private final TestBRepository testBRepository;
     private final ShardDataBaseManager databaseManager;
+    private final TestBRepository testBRepository;
+    private final SqlSessionFactory sqlSessionFactory;
+
 
     TestServiceImpl(SpringJdbcConfig springJdbcConfig,
+                    ShardDataBaseManager databaseManager,
                     TestBRepository testBRepository,
-                    ShardDataBaseManager databaseManager)
+                    SqlSessionFactory sqlSessionFactory)
     {
         this.dataSource = springJdbcConfig.getDataSource();
-        this.testBRepository = testBRepository;
         this.databaseManager = databaseManager;
+        this.testBRepository = testBRepository;
+        this.sqlSessionFactory = sqlSessionFactory;
     }
 
     @Override
@@ -80,11 +90,46 @@ public class TestServiceImpl implements TestService{
         testBRepository.saveAll(testBEntities);
     }
 
+    @Override
+    public void saveMyBatis(List<TestBEntity> testBEntities) {
+        SqlSession sqlSession = sqlSessionFactory.openSession(ExecutorType.BATCH);
+        try {
+            EntityMapper entityMapper = sqlSession.getMapper(EntityMapper.class);
+            EntityCMapper entityCMapper = sqlSession.getMapper(EntityCMapper.class);
+            testBEntities.forEach(
+                    entity -> {
+                        try {
+                            entity.setId(databaseManager.sequenceNextVal() * 10000L);
+                            entityMapper.insert("TEST_B", entity);
+
+                            entity.getCList().forEach(cEntity -> {
+                                try {
+                                    cEntity.setId(databaseManager.sequenceNextVal() * 10000L);
+                                    entityCMapper.insert("TEST_C", cEntity);
+                                } catch (Exception err) {
+                                    throw new RuntimeException(err);
+                                }
+                            });
+
+                        } catch (Exception err) {
+                            throw new RuntimeException(err);
+                        }
+                    }
+            );
+            sqlSession.commit();
+        } finally {
+            sqlSession.close();
+        }
+    }
+
+
     @Transactional
     @Override
     public void saveTransactionalJPA(List<TestBEntity> testBEntities) {
         saveJPA(testBEntities);
     }
+
+
 
     @Override
     public void save(List<TestBEntity> entities) {

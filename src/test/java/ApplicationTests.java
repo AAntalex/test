@@ -76,7 +76,7 @@ public class ApplicationTests {
 		}
 	}
 
-	@Test
+//	@Test
 	public void findJPA() {
 		profiler.start("findJPA");
 		TestBEntity b = testBRepository.findById(643891562L).orElse(null);
@@ -188,7 +188,7 @@ public class ApplicationTests {
 		System.out.println(profiler.printTimeCounter());
 */
 		profiler.start("testService.generate");
-		List<TestBEntity> testBEntities = testService.generate(100, 100, null, "JPA");
+		List<TestBEntity> testBEntities = testService.generate(1000, 100, null, "JPA5");
 		profiler.stop();
 		System.out.println(profiler.printTimeCounter());
 
@@ -197,6 +197,8 @@ public class ApplicationTests {
 		profiler.stop();
 		System.out.println(profiler.printTimeCounter());
 
+		System.out.println("testBEntities.size = " + testBEntities.size());
+		/*
 		TestBEntity b = testBEntities.get(0);
 		b.setNewValue("JPAnewVal_B!!!");
 		System.out.println("AAA!!!!!!!!!!!!!!");
@@ -208,13 +210,27 @@ public class ApplicationTests {
 		testService.saveTransactionalJPA(testBEntities);
 		profiler.stop();
 		System.out.println(profiler.printTimeCounter());
+*/
+	}
 
+//	@Test
+	public void saveMyBatis() {
+		profiler.start("testService.generate");
+		List<TestBEntity> testBEntities = testService.generate(1000, 100, null, "MyBatis5");
+		profiler.stop();
+		System.out.println(profiler.printTimeCounter());
+
+		profiler.start("testService.saveMyBatis");
+		testService.saveMyBatis(testBEntities);
+		profiler.stop();
+		System.out.println(profiler.printTimeCounter());
+		System.out.println("testBEntities.size = " + testBEntities.size());
 	}
 
 //	@Test
 	public void saveStatement() {
 		profiler.start("testService.generate");
-		List<TestBEntity> testBEntities = testService.generate(1000, 100, null, "Statement");
+		List<TestBEntity> testBEntities = testService.generate(1000, 100, null, "Statement5");
 		profiler.stop();
 		System.out.println(profiler.printTimeCounter());
 
@@ -222,6 +238,7 @@ public class ApplicationTests {
 		testService.save(testBEntities);
 		profiler.stop();
 		System.out.println(profiler.printTimeCounter());
+		System.out.println("testBEntities.size = " + testBEntities.size());
 	}
 
 //	@Test
@@ -260,10 +277,8 @@ public class ApplicationTests {
 
 
 
-//	@Test
+	@Test
 	public void saveShard() {
-		EntityManager em = entityManagerFactory.createEntityManager();
-		Boolean active = em.getTransaction().isActive();
 		List<TestBShardEntity> testBEntities;
 
 		/*
@@ -316,7 +331,7 @@ public class ApplicationTests {
 		System.out.println(profiler.printTimeCounter());
 */
 		profiler.start("testShardService.generate");
-		List<TestBShardEntity>  testBEntities2 = testShardService.generate(100, 100, null);
+		List<TestBShardEntity>  testBEntities2 = testShardService.generate(1000, 100, null);
 		profiler.stop();
 		System.out.println(profiler.printTimeCounter());
 
@@ -325,6 +340,7 @@ public class ApplicationTests {
 		profiler.stop();
 		System.out.println(profiler.printTimeCounter());
 
+		System.out.println("testBEntities2.size = " + testBEntities2.size());
 
 		TestBShardEntity b = testBEntities2.get(0);
 		b.setNewValue("ShardNewVal_B!!!");

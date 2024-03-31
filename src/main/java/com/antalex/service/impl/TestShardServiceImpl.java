@@ -29,7 +29,7 @@ public class TestShardServiceImpl implements TestShardService {
         List<TestAShardEntity> aList = new ArrayList<>();
         for (int i = 0; i < 10; i++) {
             TestAShardEntity a = entityManager.newEntity(TestAShardEntity.class);
-            a.setValue("AShard" + i);
+            a.setValue("AShard5" + i);
             a.setNewValue("newAShard" + i);
             aList.add(a);
         }
@@ -44,13 +44,13 @@ public class TestShardServiceImpl implements TestShardService {
             b.setA(aList.get(i % 10));
 
 
-            b.setValue("BShard" + i);
+            b.setValue("BShard5" + i);
             b.setNewValue("newBShard" + i);
 
             List<TestCShardEntity> cEntities = new ArrayList<>();
             for (int j = 0; j < cntArray; j++) {
                 TestCShardEntity c = entityManager.newEntity(TestCShardEntity.class);
-                c.setValue("CShard" + (i * cntArray + j));
+                c.setValue("CShard5" + (i * cntArray + j));
                 c.setNewValue("newCShard" + (i * cntArray + j));
                 cEntities.add(c);
             }
