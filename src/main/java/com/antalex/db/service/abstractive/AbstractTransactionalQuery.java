@@ -72,8 +72,8 @@ public abstract class AbstractTransactionalQuery implements TransactionalQuery, 
     }
 
     @Override
-    public TransactionalQuery bind(Object o) {
-        return bind(this.currentIndex + 1, o);
+    public TransactionalQuery bind(Object o, boolean skip) {
+        return skip ? this : bind(this.currentIndex + 1, o);
     }
 
     @Override

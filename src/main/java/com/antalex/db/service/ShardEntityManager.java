@@ -9,19 +9,19 @@ import com.antalex.db.service.api.TransactionalQuery;
 
 import javax.persistence.EntityTransaction;
 import java.util.List;
-import java.util.Objects;
-import java.util.UUID;
 
 public interface ShardEntityManager {
     <T extends ShardInstance> ShardType getShardType(T entity);
     <T extends ShardInstance> Cluster getCluster(T entity);
     <T extends ShardInstance> T save(T entity);
     <T extends ShardInstance> Iterable<T> saveAll(Iterable<T> entities);
+    <T extends ShardInstance> T update(T entity);
+    <T extends ShardInstance> Iterable<T> updateAll(Iterable<T> entities);
     <T extends ShardInstance> void setDependentStorage(T entity);
     <T extends ShardInstance> void generateId(T entity, boolean force);
     <T extends ShardInstance> void generateId(T entity);
-    <T extends ShardInstance> void persist(T entity);
-    <T extends ShardInstance> void persistAll(Iterable<T> entities);
+    <T extends ShardInstance> void persist(T entity, boolean onlyChanged);
+    <T extends ShardInstance> void persistAll(Iterable<T> entities, boolean onlyChanged);
     <T extends ShardInstance> void generateAllId(Iterable<T> entities);
     <T extends ShardInstance> void generateDependentId(T entity);
     <T extends ShardInstance> void setStorage(T entity, ShardInstance parent, boolean force);

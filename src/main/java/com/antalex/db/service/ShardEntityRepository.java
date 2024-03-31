@@ -15,7 +15,7 @@ public interface ShardEntityRepository<T extends ShardInstance> {
     void setDependentStorage(T entity);
     T newEntity();
     T newEntity(Long id, StorageContext storageContext);
-    void persist(T entity);
+    void persist(T entity, boolean onlyChanged);
     void lock(T entity);
     T find(T entity);
     List<T> findAll(String condition, Object... binds);

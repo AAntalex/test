@@ -883,6 +883,8 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                             shard.getOwner()
                     );
                 } catch (LiquibaseException err) {
+
+
                     throw new ShardDataBaseException(err);
                 }
             }, changeLog);

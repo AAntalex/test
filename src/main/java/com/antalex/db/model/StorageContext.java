@@ -74,17 +74,19 @@ public class StorageContext {
         }
     }
 
+    public Long getChanges() {
+        if (this.transactionalContext == null || this.transactionalContext.transaction.hasError()) {
+            return this.changes;
+        } else {
+            return this.transactionalContext.changes;
+        }
+    }
+
     public Boolean isChanged() {
         return Optional.ofNullable(this.transactionalContext)
                 .filter(it -> !it.transaction.hasError())
                 .map(it -> Objects.nonNull(it.changes))
                 .orElse(Objects.nonNull(this.changes));
-    }
-
-    private Boolean isChanged(int index, Long changes) {
-        return Optional.ofNullable(changes)
-                .map(it -> index > Long.SIZE || (it & (1L << (index - 1))) > 0L)
-                .orElse(false);
     }
 
     public Boolean isChanged(int index) {
@@ -149,6 +151,12 @@ public class StorageContext {
 
     public boolean isLazy() {
         return isLazy;
+    }
+
+    private Boolean isChanged(int index, Long changes) {
+        return Optional.ofNullable(changes)
+                .map(it -> index > Long.SIZE || (it & (1L << (index - 1))) > 0L)
+                .orElse(false);
     }
 
     private class TransactionalContext {

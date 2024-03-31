@@ -169,6 +169,8 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                         .filter(field -> !field.getIsLinked() && Objects.nonNull(field.getColumnName()))
                         .collect(Collectors.toList())
         );
+        IntStream.range(0, classDto.getColumnFields().size())
+                .forEach(idx -> classDto.getColumnFields().get(idx).setColumnIndex(idx + 1));
         classDto.setUniqueFields(
                 classDto.getColumnFields()
                         .stream()
@@ -308,7 +310,7 @@ public class ShardedEntityProcessor extends AbstractProcessor {
     private static Long getUniqueColumnsValueCode(ClassDto classDto) {
         long ret = 0L;
         for (int i = 0; i < classDto.getColumnFields().size(); i++) {
-            if (classDto.getColumnFields().get(i).isUnique()) {
+            if (classDto.getColumnFields().get(i).isUnique() && i <= Long.SIZE) {
                 ret = ret | 1L << i;
             }
         }
@@ -327,8 +329,8 @@ public class ShardedEntityProcessor extends AbstractProcessor {
         return "INSERT INTO $$$." + classDto.getTableName() + " (" + columns + ",ID) VALUES (" + values + ",?)";
     }
 
-    private static String getUpdateSQLCode(ClassDto classDto, boolean unique) {
-        return (unique ? classDto.getUniqueFields() : classDto.getColumnFields())
+    private static String getUpdateSQLCode(ClassDto classDto) {
+        return classDto.getColumnFields()
                 .stream()
                 .filter(it -> Objects.nonNull(it.getGetter()))
                 .map(field -> "," + field.getColumnName() + "=?")
@@ -418,16 +420,12 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                     "    private static final String INS_QUERY = \"" + getInsertSQLCode(classDto, false) + "\";"
             );
             out.println(
-                    "    private static final String UPD_QUERY = \"" + getUpdateSQLCode(classDto, false) + "\";"
+                    "    private static final String UPD_QUERY = \"" + getUpdateSQLCode(classDto) + "\";"
             );
             if (!classDto.getUniqueFields().isEmpty()) {
                 out.println(
                         "    private static final String INS_UNIQUE_FIELDS_QUERY = \"" +
                                 getInsertSQLCode(classDto, true) + "\";"
-                );
-                out.println(
-                        "    private static final String UPD_UNIQUE_FIELDS_QUERY = \"" +
-                                getUpdateSQLCode(classDto, true) + "\";"
                 );
             }
             out.println(
@@ -601,31 +599,33 @@ public class ShardedEntityProcessor extends AbstractProcessor {
     }
 
     private static String getSettersCode(ClassDto classDto) {
-        return IntStream.range(0, classDto.getColumnFields().size())
-                .filter(idx -> Objects.nonNull(classDto.getColumnFields().get(idx).getSetter()))
-                .mapToObj(idx ->
-                        "\n    public void " + classDto.getColumnFields().get(idx).getSetter() +
-                                "(" + getTypeField(classDto.getColumnFields().get(idx)) +
+        return classDto.getColumnFields()
+                .stream()
+                .filter(it -> Objects.nonNull(it.getSetter()))
+                .map(field ->
+                        "\n    public void " + field.getSetter() +
+                                "(" + getTypeField(field) +
                                 " value, boolean change) {\n" +
                                 "        if (change) {\n" +
-                                "            this.setChanges(" + (idx + 1) + ");\n" +
+                                "            this.setChanges(" + field.getColumnIndex() + ");\n" +
                                 "        }\n" +
-                                "        super." + classDto.getColumnFields().get(idx).getSetter() + "(value);\n" +
+                                "        super." + field.getSetter() + "(value);\n" +
                                 "    }\n" +
                                 "    @Override\n" +
-                                "    public void " + classDto.getColumnFields().get(idx).getSetter() +
-                                "(" + getTypeField(classDto.getColumnFields().get(idx)) + " value) {\n" +
-                                "        " + classDto.getColumnFields().get(idx).getSetter() + "(value, true);\n" +
+                                "    public void " + field.getSetter() +
+                                "(" + getTypeField(field) + " value) {\n" +
+                                "        " + field.getSetter() + "(value, true);\n" +
                                 "    }"
                 )
                 .reduce(StringUtils.EMPTY, String::concat);
     }
 
     private static String getColumnsCode(ClassDto classDto) {
-        return IntStream.range(0, classDto.getColumnFields().size())
-                .mapToObj(idx ->
-                        (idx == 0 ? StringUtils.EMPTY : ",") +
-                                "\n            \"" + classDto.getColumnFields().get(idx).getColumnName() + "\""
+        return classDto.getColumnFields()
+                .stream()
+                .map(field ->
+                        (field.getColumnIndex() == 1 ? StringUtils.EMPTY : ",") +
+                                "\n            \"" + field.getColumnName() + "\""
                 )
                 .reduce(
                         "    private static final List<String> COLUMNS = Arrays.asList(",
@@ -642,6 +642,13 @@ public class ShardedEntityProcessor extends AbstractProcessor {
 
     private static String getMethodUpdateSQLCode(ClassDto classDto) {
         return "    private String getUpdateSQL(Long changes) {\n" +
+                "        if (\n" +
+                "                Optional.ofNullable(changes)\n" +
+                "                .map(it -> it.equals(0L) && COLUMNS.size() <= Long.SIZE)\n" +
+                "                .orElse(true)) \n" +
+                "        {\n" +
+                "            return null;\n" +
+                "        }\n" +
                 "        String sql = updateQueries.get(changes);\n" +
                 "        if (Objects.isNull(sql)) {\n" +
                 "            sql = IntStream.range(0, COLUMNS.size())\n" +
@@ -758,17 +765,20 @@ public class ShardedEntityProcessor extends AbstractProcessor {
     private static String getPersistCode(ClassDto classDto) {
         StringBuilder code = new StringBuilder(
                 "    @Override\n" +
-                        "    public void persist(" + classDto.getTargetClassName() + " entity) {\n"
+                        "    public void persist(" + classDto.getTargetClassName() + " entity, boolean onlyChanged) {\n"
         );
         StringBuilder persistCode =
                 new StringBuilder(
-                        "        entityManager\n" +
-                                "                .createQueries(entity, entity.isStored() ? UPD_QUERY : INS_QUERY," +
-                                " QueryType.DML)\n" +
-                                "                .forEach(query ->\n" +
-                                "                        query\n" +
-                                "                                .bind(entityManager.getTransactionUUID())\n" +
-                                "                                .bindShardMap(entity)\n"
+                        "        String sql = entity.isStored() ? (onlyChanged ? getUpdateSQL(entity.getChanges())" +
+                                " : UPD_QUERY) : INS_QUERY;\n" +
+                                "        if (Objects.nonNull(sql)) {\n" +
+                                "            boolean checkChanges = onlyChanged && entity.isStored();\n" +
+                                "            entityManager\n" +
+                                "                    .createQueries(entity, sql, QueryType.DML)\n" +
+                                "                    .forEach(query ->\n" +
+                                "                            query\n" +
+                                "                                    .bind(entityManager.getTransactionUUID())\n" +
+                                "                                    .bindShardMap(entity)\n"
                 );
 
         StringBuilder childPersistCode = new StringBuilder(StringUtils.EMPTY);
@@ -778,33 +788,37 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                     code
                             .append("        entityManager.persist(entity.")
                             .append(field.getGetter())
-                            .append("());\n");
+                            .append("(), onlyChanged);\n");
                 }
                 if (isAnnotationPresentInArgument(field, ShardEntity.class)) {
                     childPersistCode
                             .append("        entityManager.persistAll(entity.")
                             .append(field.getGetter())
-                            .append("());\n");
+                            .append("(), onlyChanged);\n");
                 }
 
-                if (Objects.nonNull(field.getColumnName()) && !field.getIsLinked()) {
+                if (field.getColumnIndex() > 0) {
                     persistCode
-                            .append("                                .bind(entity.")
+                            .append("                                    .bind(entity.")
                             .append(field.getGetter())
                             .append(
                                     isAnnotationPresentByType(field, ShardEntity.class) ?
-                                            "().getId())\n" :
-                                            "())\n"
-                            );
+                                            "().getId()" :
+                                            "()"
+                            )
+                            .append(", checkChanges && !entity.isChanged(")
+                            .append(field.getColumnIndex())
+                            .append("))\n");
                 }
             }
         }
         return code
                 .append(persistCode)
                 .append(
-                        "                                .bind(entity.getId())\n" +
-                                "                                .addBatch()\n" +
-                                "                );\n" +
+                        "                                    .bind(entity.getId())\n" +
+                                "                                    .addBatch()\n" +
+                                "                    );\n" +
+                                "        }\n" +
                                 "        additionalPersist(entity);\n"
                 )
                 .append(childPersistCode)
@@ -852,18 +866,25 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                                                 field.getGetter() +
                                                 (
                                                         isAnnotationPresentByType(field, ShardEntity.class) ?
-                                                                "().getId())\n" :
-                                                                "())\n"
-                                                )
+                                                                "().getId()" :
+                                                                "()"
+                                                ) + ", isUpdate && !entity.isChanged(" + field.getColumnIndex() + "))\n"
                                 )
                                 .reduce(
-                                        "        if (!entity.hasMainShard()) {\n" +
+                                        "        boolean isUpdate = entity.isStored();\n" +
+                                                "        if (!entity.hasMainShard() && (!isUpdate || " +
+                                                "(entity.getChanges() & UNIQUE_COLUMNS) > 0L)) {\n" +
                                                 "            entityManager\n" +
-                                                "                    .createQuery(entity, entity.isStored()" +
-                                                " ? UPD_UNIQUE_FIELDS_QUERY : INS_UNIQUE_FIELDS_QUERY, QueryType.DML" +
-                                                ", QueryStrategy.MAIN_SHARD)\n" +
-                                                "                    .bind(entityManager." +
-                                                "getTransactionUUID())\n" +
+                                                "                    .createQuery(\n" +
+                                                "                            entity,\n" +
+                                                "                            isUpdate ?\n" +
+                                                "                                    getUpdateSQL(entity.getChanges()" +
+                                                " & UNIQUE_COLUMNS) :\n" +
+                                                "                                    INS_UNIQUE_FIELDS_QUERY,\n" +
+                                                "                            QueryType.DML,\n" +
+                                                "                            QueryStrategy.MAIN_SHARD\n" +
+                                                "                    )\n" +
+                                                "                    .bind(entityManager.getTransactionUUID())\n" +
                                                 "                    .bindShardMap(entity)\n",
                                         String::concat
                                 )

@@ -7,7 +7,7 @@ import com.antalex.db.model.enums.QueryType;
 import java.util.concurrent.ExecutorService;
 
 public interface TransactionalQuery {
-    TransactionalQuery bind(Object o);
+    TransactionalQuery bind(Object o, boolean skip);
     TransactionalQuery bindAll(Object... objects);
     TransactionalQuery bind(int index, Object o);
     void bindOriginal(int idx, Object o) throws Exception;
@@ -31,4 +31,8 @@ public interface TransactionalQuery {
     void setShard(Shard shard);
     Shard getShard();
     void init();
+
+    default TransactionalQuery bind(Object o) {
+        return bind(o, false);
+    }
 }

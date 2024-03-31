@@ -59,6 +59,19 @@ public abstract class BaseShardEntity implements ShardInstance {
                 .orElse(false);
     }
 
+    @Override
+    public boolean isChanged(int index) {
+        return Optional.ofNullable(this.storageContext)
+                .map(it -> it.isChanged(index))
+                .orElse(false);
+    }
+
+    @Override
+    public Long getChanges() {
+        return Optional.ofNullable(this.storageContext)
+                .map(StorageContext::getChanges)
+                .orElse(null);
+    }
 
     @Override
     public Boolean isStored() {

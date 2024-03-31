@@ -88,27 +88,22 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
 
     @Override
     public <T extends ShardInstance> T save(T entity) {
-        setStorage(entity, null, true);
-        generateId(entity, true);
-        boolean isAurTransaction = startTransaction();
-        persist(entity, true);
-        if (isAurTransaction) {
-            flush();
-        }
-        return entity;
+        return save(entity, false);
     }
 
     @Override
     public <T extends ShardInstance> Iterable<T> saveAll(Iterable<T> entities) {
-        if (entities == null) {
-            return null;
-        }
-        boolean isAurTransaction = startTransaction();
-        entities.forEach(it -> it = save(it));
-        if (isAurTransaction) {
-            flush();
-        }
-        return entities;
+        return saveAll(entities, false);
+    }
+
+    @Override
+    public <T extends ShardInstance> T update(T entity) {
+        return save(entity, true);
+    }
+
+    @Override
+    public <T extends ShardInstance> Iterable<T> updateAll(Iterable<T> entities) {
+        return saveAll(entities, true);
     }
 
     @Override
@@ -273,32 +268,17 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
         generateId(entity, false);
     }
 
-    private <T extends ShardInstance> void persist(T entity, boolean force) {
-        if (entity == null) {
-            return;
-        }
-        if (entity.setTransactionalContext(getTransaction())) {
-            ShardEntityRepository<T> repository = getEntityRepository(entity.getClass());
-            checkShardMap(entity, repository.getShardType());
-            if (force || !entity.isStored() || entity.isChanged() || entity.hasNewShards())
-            {
-                repository.persist(entity);
-                entity.getStorageContext().persist();
-            }
-        }
+    @Override
+    public <T extends ShardInstance> void persist(T entity, boolean onlyChanged) {
+        persist(entity, onlyChanged,false);
     }
 
     @Override
-    public <T extends ShardInstance> void persist(T entity) {
-        persist(entity, false);
-    }
-
-    @Override
-    public <T extends ShardInstance> void persistAll(Iterable<T> entities) {
+    public <T extends ShardInstance> void persistAll(Iterable<T> entities, boolean onlyChanged) {
         if (entities == null) {
             return;
         }
-        entities.forEach(it -> persist(it, false));
+        entities.forEach(it -> persist(it, onlyChanged, false));
     }
 
     @Override
@@ -433,6 +413,44 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
         }
         ShardEntityRepository<T> repository = getEntityRepository(entity.getClass());
         return repository.find(entity);
+    }
+
+    private <T extends ShardInstance> T save(T entity, boolean onlyChanged) {
+        setStorage(entity, null, true);
+        generateId(entity, true);
+        boolean isAurTransaction = startTransaction();
+        persist(entity, onlyChanged, true);
+        if (isAurTransaction) {
+            flush();
+        }
+        return entity;
+    }
+
+    private  <T extends ShardInstance> Iterable<T> saveAll(Iterable<T> entities, boolean onlyChanged) {
+        if (entities == null) {
+            return null;
+        }
+        boolean isAurTransaction = startTransaction();
+        entities.forEach(it -> it = save(it, onlyChanged));
+        if (isAurTransaction) {
+            flush();
+        }
+        return entities;
+    }
+
+    private <T extends ShardInstance> void persist(T entity, boolean onlyChanged, boolean force) {
+        if (entity == null) {
+            return;
+        }
+        if (entity.setTransactionalContext(getTransaction())) {
+            ShardEntityRepository<T> repository = getEntityRepository(entity.getClass());
+            checkShardMap(entity, repository.getShardType());
+            if (force || !entity.isStored() || entity.isChanged() || entity.hasNewShards())
+            {
+                repository.persist(entity, onlyChanged);
+                entity.getStorageContext().persist();
+            }
+        }
     }
 
     private <T extends ShardInstance> T getEntity(Long id) {
