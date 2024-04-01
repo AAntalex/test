@@ -4,7 +4,7 @@
 hibernate:
   dialect: org.hibernate.dialect.PostgreSQL82Dialect
   jdbc:
-    batch_size: 10000
+    batch_size: 1000000
   order_inserts: true
   order_updates: true
   enable_lazy_load_no_trans: true
@@ -37,7 +37,7 @@ shardDbConfig:
     changeLogSrc: classpath:db/changelog
     changeLogName: db.changelog-master.yaml
   hikari:
-    minimumIdle: 10
+    minimumIdle: 3
     maximumPoolSize: 20
   clusters:
     - name: MAIN

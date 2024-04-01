@@ -6,16 +6,18 @@ import com.antalex.domain.persistence.entity.hiber.TestAEntity;
 import com.antalex.domain.persistence.entity.hiber.TestBEntity;
 import com.antalex.domain.persistence.entity.hiber.TestCEntity;
 import com.antalex.domain.persistence.repository.TestBRepository;
+import com.antalex.domain.persistence.repository.TestCRepository;
+import com.antalex.profiler.service.ProfilerService;
 import com.antalex.service.mapper.EntityCMapper;
 import com.antalex.service.mapper.EntityMapper;
 import com.antalex.service.TestService;
 import org.apache.ibatis.session.ExecutorType;
 import org.apache.ibatis.session.SqlSession;
 import org.apache.ibatis.session.SqlSessionFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.persistence.EntityManager;
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -34,6 +36,10 @@ public class TestServiceImpl implements TestService{
     private final TestBRepository testBRepository;
     private final SqlSessionFactory sqlSessionFactory;
 
+    @Autowired
+    private ProfilerService profiler;
+    @Autowired
+    private TestCRepository testCRepository;
 
     TestServiceImpl(SpringJdbcConfig springJdbcConfig,
                     ShardDataBaseManager databaseManager,
@@ -95,13 +101,20 @@ public class TestServiceImpl implements TestService{
         SqlSession sqlSession = sqlSessionFactory.openSession(ExecutorType.BATCH);
         try {
             EntityMapper entityMapper = sqlSession.getMapper(EntityMapper.class);
-            EntityCMapper entityCMapper = sqlSession.getMapper(EntityCMapper.class);
             testBEntities.forEach(
                     entity -> {
                         try {
                             entity.setId(databaseManager.sequenceNextVal() * 10000L);
                             entityMapper.insert("TEST_B", entity);
+                        } catch (Exception err) {
+                            throw new RuntimeException(err);
+                        }
+                    }
+            );
 
+            EntityCMapper entityCMapper = sqlSession.getMapper(EntityCMapper.class);
+            testBEntities.forEach(
+                    entity ->
                             entity.getCList().forEach(cEntity -> {
                                 try {
                                     cEntity.setId(databaseManager.sequenceNextVal() * 10000L);
@@ -109,12 +122,7 @@ public class TestServiceImpl implements TestService{
                                 } catch (Exception err) {
                                     throw new RuntimeException(err);
                                 }
-                            });
-
-                        } catch (Exception err) {
-                            throw new RuntimeException(err);
-                        }
-                    }
+                            })
             );
             sqlSession.commit();
         } finally {

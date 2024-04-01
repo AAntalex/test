@@ -174,7 +174,7 @@ public class ApplicationTests {
 */
 	}
 
-//	@Test
+	@Test
 	public void saveJPA() {
 /*
 		profiler.start("testService.generate");
@@ -213,7 +213,7 @@ public class ApplicationTests {
 */
 	}
 
-//	@Test
+	@Test
 	public void saveMyBatis() {
 		profiler.start("testService.generate");
 		List<TestBEntity> testBEntities = testService.generate(1000, 100, null, "MyBatis5");
@@ -227,7 +227,7 @@ public class ApplicationTests {
 		System.out.println("testBEntities.size = " + testBEntities.size());
 	}
 
-//	@Test
+	@Test
 	public void saveStatement() {
 		profiler.start("testService.generate");
 		List<TestBEntity> testBEntities = testService.generate(1000, 100, null, "Statement5");
@@ -241,7 +241,35 @@ public class ApplicationTests {
 		System.out.println("testBEntities.size = " + testBEntities.size());
 	}
 
-//	@Test
+	@Test
+	public void saveShard() {
+		profiler.start("testShardService.generate");
+		List<TestBShardEntity>  testBEntities2 = testShardService.generate(1000, 100, "Shard5");
+		profiler.stop();
+		System.out.println(profiler.printTimeCounter());
+
+		profiler.start("testShardService.save");
+		testShardService.save(testBEntities2);
+		profiler.stop();
+		System.out.println(profiler.printTimeCounter());
+
+		System.out.println("testBEntities2.size = " + testBEntities2.size());
+
+		TestBShardEntity b = testBEntities2.get(0);
+		b.setNewValue("ShardNewVal_B!!!");
+		System.out.println("AAA!!!!!!!!!!!!!!");
+		TestCShardEntity c = b.getCList().get(10);
+		c.setNewValue("ShardNewVal_C!!!");
+
+
+		profiler.start("ADD testShardService.save");
+		testShardService.update(testBEntities2);
+		profiler.stop();
+		System.out.println(profiler.printTimeCounter());
+		System.out.println("STOP");
+	}
+
+	//	@Test
 	public void bind() {
 		profiler.start("BIND.Query");
 		for (int i = 0; i < 100000; i++) {
@@ -273,151 +301,6 @@ public class ApplicationTests {
 		}
 		profiler.stop();
 		System.out.println(profiler.printTimeCounter());
-	}
-
-
-
-	@Test
-	public void saveShard() {
-		List<TestBShardEntity> testBEntities;
-
-		/*
-		profiler.start("testShardService.generate 0");
-		testBEntities = testShardService.generate(100000, 0, null);
-		profiler.stop();
-		System.out.println(profiler.printTimeCounter());
-
-
-		profiler.start("testShardService.generate 1");
-		testBEntities = testShardService.generate(100000, 0, null);
-		profiler.stop();
-		System.out.println(profiler.printTimeCounter());
-
-
-		profiler.start("testShardService.generate 2");
-		testBEntities = testShardService.generate(100000, 0, null);
-		profiler.stop();
-		System.out.println(profiler.printTimeCounter());
-
-
-
-		profiler.start("testShardService.generate");
-		testBEntities = testShardService.generate(1000, 100, null);
-		profiler.stop();
-		System.out.println(profiler.printTimeCounter());
-
-
-		profiler.start("testShardService.saveLocal");
-		testShardService.saveLocal(testBEntities);
-		profiler.stop();
-		System.out.println(profiler.printTimeCounter());
-
-
-		profiler.start("ADD testShardService.save");
-		testBEntities.get(0).setNewValue("newVal!!!");
-		testShardService.save(testBEntities);
-		profiler.stop();
-		System.out.println(profiler.printTimeCounter());
-
-
-		profiler.start("testShardService.generate");
-		List<TestBShardEntity>  testBEntities3 = testShardService.generate(1000, 100, null);
-		profiler.stop();
-		System.out.println(profiler.printTimeCounter());
-
-		profiler.start("testShardService.saveLocal2");
-		testShardService.saveLocal(testBEntities3);
-		profiler.stop();
-		System.out.println(profiler.printTimeCounter());
-*/
-		profiler.start("testShardService.generate");
-		List<TestBShardEntity>  testBEntities2 = testShardService.generate(1000, 100, null);
-		profiler.stop();
-		System.out.println(profiler.printTimeCounter());
-
-		profiler.start("testShardService.save");
-		testShardService.save(testBEntities2);
-		profiler.stop();
-		System.out.println(profiler.printTimeCounter());
-
-		System.out.println("testBEntities2.size = " + testBEntities2.size());
-
-		TestBShardEntity b = testBEntities2.get(0);
-		b.setNewValue("ShardNewVal_B!!!");
-		System.out.println("AAA!!!!!!!!!!!!!!");
-		TestCShardEntity c = b.getCList().get(10);
-		c.setNewValue("ShardNewVal_C!!!");
-
-
-		profiler.start("ADD testShardService.save");
-		testShardService.save(testBEntities2);
-		profiler.stop();
-		System.out.println(profiler.printTimeCounter());
-
-		/*
-		profiler.start("testShardService.generate");
-		List<TestBShardEntity>  testBEntities5 = testShardService.generate(1000, 100, null);
-		profiler.stop();
-		System.out.println(profiler.printTimeCounter());
-
-		profiler.start("testShardService.saveLocal3");
-		testShardService.saveLocal(testBEntities5);
-		profiler.stop();
-		System.out.println(profiler.printTimeCounter());
-
-		profiler.start("testShardService.generate");
-		List<TestBShardEntity>  testBEntities4 = testShardService.generate(1000, 100, null);
-		profiler.stop();
-		System.out.println(profiler.printTimeCounter());
-
-		profiler.start("testShardService.save2");
-		testShardService.save(testBEntities4);
-		profiler.stop();
-		System.out.println(profiler.printTimeCounter());
-
-		profiler.start("testShardService.generate");
-		List<TestBShardEntity>  testBEntities7 = testShardService.generate(1000, 100, null);
-		profiler.stop();
-		System.out.println(profiler.printTimeCounter());
-
-		profiler.start("testShardService.saveLocal4");
-		testShardService.saveLocal(testBEntities7);
-		profiler.stop();
-		System.out.println(profiler.printTimeCounter());
-
-		profiler.start("testShardService.generate");
-		List<TestBShardEntity>  testBEntities6 = testShardService.generate(1000, 100, null);
-		profiler.stop();
-		System.out.println(profiler.printTimeCounter());
-
-		profiler.start("testShardService.save3");
-		testShardService.save(testBEntities6);
-		profiler.stop();
-		System.out.println(profiler.printTimeCounter());
-
-		profiler.start("testShardService.generate");
-		List<TestBShardEntity>  testBEntities8 = testShardService.generate(1000, 100, null);
-		profiler.stop();
-		System.out.println(profiler.printTimeCounter());
-
-		profiler.start("testShardService.save4");
-		testShardService.save(testBEntities8);
-		profiler.stop();
-		System.out.println(profiler.printTimeCounter());
-
-		List<TestBShardEntity>  testBEntities9 = testShardService.generate(1000, 100, null);
-		profiler.start("testShardService.saveLocal5");
-		testShardService.saveLocal(testBEntities9);
-		profiler.stop();
-		System.out.println(profiler.printTimeCounter());
-
-		List<TestBShardEntity>  testBEntities10 = testShardService.generate(1000, 100, null);
-		profiler.start("testShardService.save5");
-		testShardService.save(testBEntities10);
-		profiler.stop();
-		System.out.println(profiler.printTimeCounter());
-*/
-		System.out.println("STOP");
 	}
 
 //	@Test

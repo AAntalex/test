@@ -23,14 +23,14 @@ public class TestShardServiceImpl implements TestShardService {
 
 
     @Override
-    public List<TestBShardEntity> generate(int cnt, int cntArray, TestAShardEntity testAEntity) {
+    public List<TestBShardEntity> generate(int cnt, int cntArray, String prefix) {
         List<TestBShardEntity> bList = new ArrayList<>();
 
         List<TestAShardEntity> aList = new ArrayList<>();
         for (int i = 0; i < 10; i++) {
             TestAShardEntity a = entityManager.newEntity(TestAShardEntity.class);
-            a.setValue("AShard5" + i);
-            a.setNewValue("newAShard" + i);
+            a.setValue(prefix + "A" + i);
+            a.setNewValue(prefix + "newA" + i);
             aList.add(a);
         }
 
@@ -44,14 +44,14 @@ public class TestShardServiceImpl implements TestShardService {
             b.setA(aList.get(i % 10));
 
 
-            b.setValue("BShard5" + i);
-            b.setNewValue("newBShard" + i);
+            b.setValue(prefix + "B" + i);
+            b.setNewValue(prefix + "newB" + i);
 
             List<TestCShardEntity> cEntities = new ArrayList<>();
             for (int j = 0; j < cntArray; j++) {
                 TestCShardEntity c = entityManager.newEntity(TestCShardEntity.class);
-                c.setValue("CShard5" + (i * cntArray + j));
-                c.setNewValue("newCShard" + (i * cntArray + j));
+                c.setValue(prefix + "C" + (i * cntArray + j));
+                c.setNewValue(prefix + "newC" + (i * cntArray + j));
                 cEntities.add(c);
             }
             b.getCList().addAll(cEntities);
@@ -64,6 +64,11 @@ public class TestShardServiceImpl implements TestShardService {
     @Override
     public void save(List<TestBShardEntity> testBEntities) {
         entityManager.saveAll(testBEntities);
+    }
+
+    @Override
+    public void update(List<TestBShardEntity> testBEntities) {
+        entityManager.updateAll(testBEntities);
     }
 
     @Override
