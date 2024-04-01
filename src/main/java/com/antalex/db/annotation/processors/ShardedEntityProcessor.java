@@ -504,8 +504,8 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                     "    public void setEntityManager(ShardEntityManager entityManager) {\n" +
                     "        this.entityManager = entityManager;\n" +
                     "    }\n");
-            out.println();
             out.println(getLazyFlagsCode(classDto));
+            out.println(getsetLazyListsCode(classDto));
             out.println(getGettersCode(classDto));
             out.println(getSettersCode(classDto));
             out.println("}");
@@ -550,7 +550,8 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                 .filter(it -> it == FetchType.LAZY)
                 .isPresent();
     }
-    private String getLazyFlagsCode(ClassDto classDto) {
+
+    private static String getLazyFlagsCode(ClassDto classDto) {
         return classDto.getFields()
                 .stream()
                 .filter(field ->
@@ -559,11 +560,24 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                                 !isAnnotationPresent(field.getElement(), Transient.class) &&
                                 isLazyList(field)
                 )
-                .map(field -> "    private boolean " + field.getFieldName() + "Lazy = true;\n")
+                .map(field -> "    private boolean " + field.getFieldName() + "Lazy = false;\n")
                 .reduce(StringUtils.EMPTY, String::concat);
     }
 
-    private String getGettersCode(ClassDto classDto) {
+    private static String getsetLazyListsCode(ClassDto classDto) {
+        return classDto.getFields()
+                .stream()
+                .filter(field ->
+                        field.getIsLinked() &&
+                                Objects.nonNull(field.getGetter()) &&
+                                !isAnnotationPresent(field.getElement(), Transient.class) &&
+                                isLazyList(field)
+                )
+                .map(field -> "\n        this." + field.getFieldName() + "Lazy = true;")
+                .reduce("    public void setLazyLists() {", String::concat) + "    }" ;
+    }
+
+    private static String getGettersCode(ClassDto classDto) {
         return classDto.getFields()
                 .stream()
                 .filter(field ->
@@ -653,7 +667,7 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                 "        if (Objects.isNull(sql)) {\n" +
                 "            sql = IntStream.range(0, COLUMNS.size())\n" +
                 "                    .filter(idx -> idx > Long.SIZE || (changes & (1L << idx)) > 0L)\n" +
-                "                    .mapToObj(idx -> \",\" + updateQueries.get(idx) + \"=?\")\n" +
+                "                    .mapToObj(idx -> \",\" + COLUMNS.get(idx) + \"=?\")\n" +
                 "                    .reduce(UPD_QUERY_PREFIX, String::concat) + \" WHERE ID=?\";\n" +
                 "            updateQueries.put(changes, sql);\n" +
                 "        }\n" +
@@ -675,6 +689,7 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                 "        entity.setId(id);\n" +
                 "        entity.setStorageContext(storageContext);\n" +
                 "        entity.setEntityManager(entityManager);\n" +
+                "        entity.setLazyLists();\n" +
                 "        return entity;\n" +
                 "    }";
     }
@@ -872,8 +887,8 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                                 )
                                 .reduce(
                                         "        boolean isUpdate = entity.isStored();\n" +
-                                                "        if (!entity.hasMainShard() && (!isUpdate || " +
-                                                "(entity.getChanges() & UNIQUE_COLUMNS) > 0L)) {\n" +
+                                                "        if (!entity.hasMainShard() && (!isUpdate || entity.isChanged" +
+                                                "() && (entity.getChanges() & UNIQUE_COLUMNS) > 0L)) {\n" +
                                                 "            entityManager\n" +
                                                 "                    .createQuery(\n" +
                                                 "                            entity,\n" +
