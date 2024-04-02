@@ -16,7 +16,6 @@ import javax.persistence.Table;
 public class TestCShardEntity extends BaseShardEntity {
     private String value;
     private String newValue;
-    @OneToOne
-    @JoinColumn(name = "C_B_REF")
-    private TestBShardEntity b;
+    @Column(name = "C_B_REF")
+    private Long b;
 }

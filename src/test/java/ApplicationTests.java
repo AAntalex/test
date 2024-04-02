@@ -77,36 +77,6 @@ public class ApplicationTests {
 	}
 
 	@Test
-	public void findJPA() {
-		profiler.start("findJPA");
-		TestBEntity b = testBRepository.findById(643891562L).orElse(null);
-		System.out.println("FIND B");
-
-		TestAEntity a = b.getA();
-
-		System.out.println("FIND A");
-		System.out.println("FIND A value " + a.getValue());
-
-        TestBEntity b2 = testBRepository.findById(650304962L).orElse(null);
-        TestBEntity b3 = testBRepository.findById(656667962L).orElse(null);
-
-		TestBEntity b4 = testBRepository.findById(656667962L).orElse(null);
-
-
-		List<TestCEntity> cList =  b.getCList();
-		System.out.println("b.getCList()");
-		int size = cList.size();
-		System.out.println("cList.size() " + size);
-		TestCEntity c = b.getCList().get(0);
-		System.out.println("FIND C value " + c.getValue());
-		System.out.println("c.getB().getValue() " + c.getB().getValue());
-
-		profiler.stop();
-		System.out.println(profiler.printTimeCounter());
-	}
-
-
-	@Test
 	public void findShard() {
 		profiler.start("findShard");
 		TestBShardEntity b = entityManager.find(TestBShardEntity.class, 643891562L);
@@ -118,8 +88,10 @@ public class ApplicationTests {
 
 		TestBShardEntity b2 = entityManager.find(TestBShardEntity.class, 650304962L);
 		TestBShardEntity b3 = entityManager.find(TestBShardEntity.class, 656667962L);
-
+		System.out.println("b3.getCList().size() " + b3.getCList().size());
 		TestBShardEntity b4 = entityManager.find(TestBShardEntity.class, 656667962L);
+		System.out.println("b4.getCList().size() " + b3.getCList().size());
+		System.out.println("b4.getCList().size() 2 " + b4.getCList().size());
 
 		List<TestCShardEntity> cList =  b.getCList();
 		System.out.println("b.getCList()");
@@ -127,14 +99,44 @@ public class ApplicationTests {
 		System.out.println("cList.size() " + size);
 		TestCShardEntity c = b.getCList().get(0);
 		System.out.println("FIND C value " + c.getValue());
-		System.out.println("c.getB().getValue() " + c.getB().getValue());
+//		System.out.println("c.getB().getValue() " + c.getB().getValue());
 
 
 		profiler.stop();
 		System.out.println(profiler.printTimeCounter());
 	}
 
-//	@Test
+	@Test
+	public void findJPA() {
+		profiler.start("findJPA");
+		TestBEntity b = testBRepository.findById(643891562L).orElse(null);
+		System.out.println("FIND B");
+
+		TestAEntity a = b.getA();
+
+		System.out.println("FIND A");
+		System.out.println("FIND A value " + a.getValue());
+
+		TestBEntity b2 = testBRepository.findById(650304962L).orElse(null);
+		TestBEntity b3 = testBRepository.findById(656667962L).orElse(null);
+		System.out.println("b3.getCList().size() " + b3.getCList().size());
+		TestBEntity b4 = testBRepository.findById(656667962L).orElse(null);
+		System.out.println("b4.getCList().size() " + b4.getCList().size());
+		System.out.println("b4.getCList().size() 2 " + b4.getCList().size());
+
+		List<TestCEntity> cList =  b.getCList();
+		System.out.println("b.getCList()");
+		int size = cList.size();
+		System.out.println("cList.size() " + size);
+		TestCEntity c = b.getCList().get(0);
+		System.out.println("FIND C value " + c.getValue());
+//		System.out.println("c.getB().getValue() " + c.getB().getValue());
+
+		profiler.stop();
+		System.out.println(profiler.printTimeCounter());
+	}
+
+	//	@Test
 	public void sequence() {
 		/*
 		SequenceGenerator sequenceGenerator = new ApplicationSequenceGenerator(
