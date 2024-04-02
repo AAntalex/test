@@ -31,7 +31,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
 
     private ThreadLocal<ShardEntityRepository<?>> currentShardEntityRepository = new ThreadLocal<>();
     private ThreadLocal<Class<?>> currentSourceClass = new ThreadLocal<>();
-    private ThreadLocal<Map<Long, ShardInstance>> entities = new ThreadLocal<>();
+    private ThreadLocal<Map<Long, ShardInstance>> entities = ThreadLocal.withInitial(HashMap::new);
 
     @Autowired
     private ShardDataBaseManager dataBaseManager;
@@ -469,13 +469,14 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
             {
                 repository.persist(entity, onlyChanged);
                 entity.getStorageContext().persist();
+                addEntity(entity.getId(), entity);
             }
         }
     }
 
     private <T extends ShardInstance> T getEntity(Long id) {
-        if (Objects.isNull(entities.get())) {
-            entities.set(new HashMap<>());
+        if (id == null) {
+            return null;
         }
         return (T) entities.get().get(id);
     }
