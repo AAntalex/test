@@ -4,6 +4,7 @@ import com.antalex.db.entity.abstraction.ShardInstance;
 import com.antalex.db.model.Cluster;
 import com.antalex.db.model.StorageContext;
 import com.antalex.db.model.enums.ShardType;
+import com.antalex.db.service.api.ResultQuery;
 
 import java.util.List;
 import java.util.Objects;
@@ -19,4 +20,6 @@ public interface ShardEntityRepository<T extends ShardInstance> {
     void lock(T entity);
     T find(T entity);
     List<T> findAll(String condition, Object... binds);
+    List<T> findAll(ShardInstance parent, String condition, Object... binds);
+    void extractValues(T entity, ResultQuery result, int index);
 }

@@ -127,6 +127,7 @@ public abstract class BaseShardEntity implements ShardInstance {
     public void setShardMap(Long shardMap) {
         if (this.storageContext != null) {
             this.storageContext.setShardMap(Math.abs(shardMap));
+            this.storageContext.setOriginalShardMap(this.storageContext.getShardMap());
         }
     }
 }

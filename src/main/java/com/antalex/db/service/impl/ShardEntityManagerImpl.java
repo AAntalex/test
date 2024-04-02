@@ -12,6 +12,7 @@ import com.antalex.db.service.ShardDataBaseManager;
 import com.antalex.db.service.ShardEntityManager;
 import com.antalex.db.service.ShardEntityRepository;
 import com.antalex.db.service.SharedTransactionManager;
+import com.antalex.db.service.api.ResultQuery;
 import com.antalex.db.service.api.TransactionalQuery;
 import com.antalex.db.utils.ShardUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -404,6 +405,25 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
     public <T extends ShardInstance> List<T> findAll(Class<T> clazz, String condition, Object... binds) {
         ShardEntityRepository<T> repository = getEntityRepository(clazz);
         return repository.findAll(condition, binds);
+    }
+
+    @Override
+    public <T extends ShardInstance> List<T> findAll(
+            Class<T> clazz,
+            ShardInstance parent,
+            String condition,
+            Object... binds)
+    {
+        ShardEntityRepository<T> repository = getEntityRepository(clazz);
+        return repository.findAll(parent, condition, binds);
+    }
+
+    @Override
+    public <T extends ShardInstance> void extractValues(T entity, ResultQuery result, int index) {
+        if (entity == null) {
+            return;
+        }
+        getEntityRepository(entity.getClass()).extractValues(entity, result, index);
     }
 
     @Override

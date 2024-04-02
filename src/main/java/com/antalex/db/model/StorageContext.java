@@ -137,6 +137,10 @@ public class StorageContext {
         this.shardMap = shardMap;
     }
 
+    public void setOriginalShardMap(Long originalShardMap) {
+        this.originalShardMap = originalShardMap;
+    }
+
     public Cluster getCluster() {
         return cluster;
     }

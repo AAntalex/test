@@ -5,6 +5,7 @@ import com.antalex.db.model.Cluster;
 import com.antalex.db.model.enums.QueryStrategy;
 import com.antalex.db.model.enums.QueryType;
 import com.antalex.db.model.enums.ShardType;
+import com.antalex.db.service.api.ResultQuery;
 import com.antalex.db.service.api.TransactionalQuery;
 
 import javax.persistence.EntityTransaction;
@@ -50,6 +51,8 @@ public interface ShardEntityManager {
     <T extends ShardInstance> T find(Class<T> clazz, Long id);
     <T extends ShardInstance> T find(T entity);
     <T extends ShardInstance> List<T> findAll(Class<T> clazz, String condition, Object... binds);
+    <T extends ShardInstance> List<T> findAll(Class<T> clazz, ShardInstance parent, String condition, Object... binds);
+    <T extends ShardInstance> void extractValues(T entity, ResultQuery result, int index);
     EntityTransaction getTransaction();
     String getTransactionUUID();
     void setAutonomousTransaction();
