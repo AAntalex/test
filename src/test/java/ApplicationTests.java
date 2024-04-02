@@ -76,7 +76,7 @@ public class ApplicationTests {
 		}
 	}
 
-//	@Test
+	@Test
 	public void findJPA() {
 		profiler.start("findJPA");
 		TestBEntity b = testBRepository.findById(643891562L).orElse(null);
@@ -89,6 +89,8 @@ public class ApplicationTests {
 
         TestBEntity b2 = testBRepository.findById(650304962L).orElse(null);
         TestBEntity b3 = testBRepository.findById(656667962L).orElse(null);
+
+		TestBEntity b4 = testBRepository.findById(656667962L).orElse(null);
 
 
 		List<TestCEntity> cList =  b.getCList();
@@ -116,6 +118,8 @@ public class ApplicationTests {
 
 		TestBShardEntity b2 = entityManager.find(TestBShardEntity.class, 650304962L);
 		TestBShardEntity b3 = entityManager.find(TestBShardEntity.class, 656667962L);
+
+		TestBShardEntity b4 = entityManager.find(TestBShardEntity.class, 656667962L);
 
 		List<TestCShardEntity> cList =  b.getCList();
 		System.out.println("b.getCList()");
@@ -174,7 +178,7 @@ public class ApplicationTests {
 */
 	}
 
-	@Test
+//	@Test
 	public void saveJPA() {
 /*
 		profiler.start("testService.generate");
@@ -213,7 +217,7 @@ public class ApplicationTests {
 */
 	}
 
-	@Test
+//	@Test
 	public void saveMyBatis() {
 		profiler.start("testService.generate");
 		List<TestBEntity> testBEntities = testService.generate(1000, 100, null, "MyBatis5");
@@ -227,7 +231,7 @@ public class ApplicationTests {
 		System.out.println("testBEntities.size = " + testBEntities.size());
 	}
 
-	@Test
+//	@Test
 	public void saveStatement() {
 		profiler.start("testService.generate");
 		List<TestBEntity> testBEntities = testService.generate(1000, 100, null, "Statement5");
@@ -241,7 +245,7 @@ public class ApplicationTests {
 		System.out.println("testBEntities.size = " + testBEntities.size());
 	}
 
-	@Test
+//	@Test
 	public void saveShard() {
 		profiler.start("testShardService.generate");
 		List<TestBShardEntity>  testBEntities2 = testShardService.generate(1000, 100, "Shard5");
