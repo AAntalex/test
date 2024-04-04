@@ -3,10 +3,11 @@ package com.antalex.db.service.impl;
 import com.antalex.db.service.api.ResultQuery;
 import org.apache.commons.lang3.StringUtils;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.math.BigDecimal;
+import java.net.URL;
+import java.sql.*;
+import java.util.*;
+import java.util.Date;
 
 public class ResultParallelQuery implements ResultQuery {
     private List<ResultQuery> results = new ArrayList<>();
@@ -37,7 +38,7 @@ public class ResultParallelQuery implements ResultQuery {
     }
 
     @Override
-    public long getLong(int idx) throws Exception {
+    public Long getLong(int idx) throws Exception {
         return currentResult.getLong(idx);
     }
 
@@ -47,18 +48,83 @@ public class ResultParallelQuery implements ResultQuery {
     }
 
     @Override
-    public short getShort(int idx) throws Exception {
+    public Short getShort(int idx) throws Exception {
         return currentResult.getShort(idx);
     }
 
     @Override
-    public boolean getBoolean(int idx) throws Exception {
+    public Boolean getBoolean(int idx) throws Exception {
         return currentResult.getBoolean(idx);
     }
 
     @Override
     public String getString(int idx) throws Exception {
         return currentResult.getString(idx);
+    }
+
+    @Override
+    public BigDecimal getBigDecimal(int idx) throws Exception {
+        return currentResult.getBigDecimal(idx);
+    }
+
+    @Override
+    public Blob getBlob(int idx) throws Exception {
+        return currentResult.getBlob(idx);
+    }
+
+    @Override
+    public Byte getByte(int idx) throws Exception {
+        return currentResult.getByte(idx);
+    }
+
+    @Override
+    public Clob getClob(int idx) throws Exception {
+        return currentResult.getClob(idx);
+    }
+
+    @Override
+    public Date getDate(int idx) throws Exception {
+        return currentResult.getDate(idx);
+    }
+
+    @Override
+    public Double getDouble(int idx) throws Exception {
+        return currentResult.getDouble(idx);
+    }
+
+    @Override
+    public Float getFloat(int idx) throws Exception {
+        return currentResult.getFloat(idx);
+    }
+
+    @Override
+    public Integer getInteger(int idx) throws Exception {
+        return currentResult.getInteger(idx);
+    }
+
+    @Override
+    public RowId getRowId(int idx) throws Exception {
+        return currentResult.getRowId(idx);
+    }
+
+    @Override
+    public SQLXML getSQLXML(int idx) throws Exception {
+        return currentResult.getSQLXML(idx);
+    }
+
+    @Override
+    public Time getTime(int idx) throws Exception {
+        return currentResult.getTime(idx);
+    }
+
+    @Override
+    public Timestamp getTimestamp(int idx) throws Exception {
+        return currentResult.getTimestamp(idx);
+    }
+
+    @Override
+    public URL getURL(int idx) throws Exception {
+        return currentResult.getURL(idx);
     }
 
     private boolean uniqueKey() throws Exception {

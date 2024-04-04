@@ -32,7 +32,11 @@ import javax.tools.JavaFileObject;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.lang.annotation.Annotation;
+import java.math.BigDecimal;
+import java.net.URL;
+import java.sql.*;
 import java.util.*;
+import java.util.Date;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -242,7 +246,7 @@ public class ShardedEntityProcessor extends AbstractProcessor {
 
     private static String getTypeField(FieldDto field) {
         DeclaredType type = getDeclaredType(field.getElement());
-        return type.getTypeArguments().size() > 0 ?
+        return type.getTypeArguments().size() == 1 ?
                 String.format(
                         "%s<%s>",
                         type.asElement().getSimpleName(),
@@ -838,6 +842,64 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                 );
     }
 
+    private static String getResultObjectCode(FieldDto field) {
+        Class<?> clazz = getClassByType(field.getElement().asType());
+        if (clazz != null) {
+            if (clazz.isAssignableFrom(String.class)) {
+                return "result.getString";
+            }
+            if (clazz.isAssignableFrom(Byte.class)) {
+                return "result.getByte";
+            }
+            if (clazz.isAssignableFrom(Boolean.class)) {
+                return "result.getBoolean";
+            }
+            if (clazz.isAssignableFrom(Short.class)) {
+                return "result.getShort";
+            }
+            if (clazz.isAssignableFrom(Integer.class)) {
+                return "result.getInteger";
+            }
+            if (clazz.isAssignableFrom(Long.class)) {
+                return "result.getLong";
+            }
+            if (clazz.isAssignableFrom(Float.class)) {
+                return "result.getFloat";
+            }
+            if (clazz.isAssignableFrom(Double.class)) {
+                return "result.getDouble";
+            }
+            if (clazz.isAssignableFrom(BigDecimal.class)) {
+                return "result.getBigDecimal";
+            }
+            if (clazz.isAssignableFrom(Date.class)) {
+                return "result.getDate";
+            }
+            if (clazz.isAssignableFrom(Time.class)) {
+                return "result.getTime";
+            }
+            if (clazz.isAssignableFrom(Timestamp.class)) {
+                return "result.getTimestamp";
+            }
+            if (clazz.isAssignableFrom(Blob.class)) {
+                return "result.getBlob";
+            }
+            if (clazz.isAssignableFrom(Clob.class)) {
+                return "result.getClob";
+            }
+            if (clazz.isAssignableFrom(URL.class)) {
+                return "result.getURL";
+            }
+            if (clazz.isAssignableFrom(RowId.class)) {
+                return "result.getRowId";
+            }
+            if (clazz.isAssignableFrom(SQLXML.class)) {
+                return "result.getSQLXML";
+            }
+        }
+        return "(" + getTypeField(field) + ") result.getObject";
+    }
+
     private static String getExtractValuesCode(ClassDto classDto) {
         return classDto.getColumnFields()
                 .stream()
@@ -848,7 +910,7 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                                         isAnnotationPresentByType(field, ShardEntity.class) ?
                                                 "(entityManager.newEntity(" + getTypeField(field) +
                                                         ".class, result.getLong(++index)), false);\n" :
-                                        "((" + getTypeField(field) + ") result.getObject(++index), false);\n"
+                                        "(" + getResultObjectCode(field) + "(++index), false);\n"
                                 )
                 )
                 .reduce(

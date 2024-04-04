@@ -5,6 +5,7 @@ import com.antalex.db.model.Shard;
 import com.antalex.db.model.enums.QueryType;
 import com.antalex.db.service.api.TransactionalQuery;
 import com.antalex.db.service.api.TransactionalTask;
+import com.antalex.profiler.service.ProfilerService;
 import org.apache.commons.lang3.StringUtils;
 
 import javax.persistence.EntityTransaction;

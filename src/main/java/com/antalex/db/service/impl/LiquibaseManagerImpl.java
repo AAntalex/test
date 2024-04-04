@@ -1,5 +1,6 @@
 package com.antalex.db.service.impl;
 
+import com.antalex.db.exception.ShardDataBaseException;
 import com.antalex.db.service.api.LiquibaseManager;
 import liquibase.Contexts;
 import liquibase.LabelExpression;
@@ -17,17 +18,21 @@ import java.sql.Connection;
 public class LiquibaseManagerImpl implements LiquibaseManager {
     @Override
     public void run(Connection connection, String changeLog, String catalogName) throws LiquibaseException {
-        Database database = DatabaseFactory.getInstance().findCorrectDatabaseImplementation(
-                new JdbcConnection(connection)
-        );
-        database.setDefaultCatalogName(catalogName);
-        database.setDefaultSchemaName(catalogName);
-        Liquibase liquibase = new Liquibase(
-                changeLog,
-                new ClassLoaderResourceAccessor(),
-                database
+        try {
+            Database database = DatabaseFactory.getInstance().findCorrectDatabaseImplementation(
+                    new JdbcConnection(connection)
+            );
+            database.setDefaultCatalogName(catalogName);
+            database.setDefaultSchemaName(catalogName);
+            Liquibase liquibase = new Liquibase(
+                    changeLog,
+                    new ClassLoaderResourceAccessor(),
+                    database
 
-        );
-        liquibase.update(new Contexts(), new LabelExpression());
+            );
+            liquibase.update(new Contexts(), new LabelExpression());
+        } catch (Exception err) {
+            throw new ShardDataBaseException(err);
+        }
     }
 }

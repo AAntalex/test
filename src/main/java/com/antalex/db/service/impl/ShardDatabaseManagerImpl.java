@@ -161,7 +161,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         Assert.notNull(id, "Не указан идентификатор шарды");
         Shard shard = cluster.getShardMap().get(id);
         Assert.notNull(
-                cluster,
+                shard,
                 String.format("Отсутсвует шарда с идентификатором '%d' в кластере '%s'", id, cluster.getName())
         );
         return shard;
