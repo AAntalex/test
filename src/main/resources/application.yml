@@ -2,7 +2,7 @@
 #dialect: org.hibernate.dialect.Oracle10gDialect
 
 hibernate:
-  dialect: org.hibernate.dialect.PostgreSQL82Dialect
+  dialect: org.hibernate.dialect.Oracle10gDialect
   jdbc:
     batch_size: 1000000
   order_inserts: true
@@ -25,7 +25,7 @@ spring:
 
 shardDbConfig:
   timeOut: 10
-  sequenceCacheSize: 100000
+  sequenceCacheSize: 1000000
   TransactionConfig:
     activeConnectionParallelLimit: 12
     parallelCommit: true

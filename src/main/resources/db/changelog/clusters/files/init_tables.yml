@@ -37,6 +37,9 @@ databaseChangeLog:
           - column:
               name: C_NEW_VALUE
               type: VARCHAR(128)
+          - column:
+              name: C_EXECUTE_TIME
+              type: date
       - createTable:
           tableName: TEST_B
           columns:
@@ -70,6 +73,9 @@ databaseChangeLog:
                   referencedColumnNames: ID
                   referencedTableName: TEST_A
                 nullable: true
+          - column:
+              name: C_EXECUTE_TIME
+              type: date
       - createTable:
           tableName: TEST_C
           columns:
@@ -103,3 +109,73 @@ databaseChangeLog:
                   referencedColumnNames: ID
                   referencedTableName: TEST_B
                 nullable: true
+          - column:
+              name: C_EXECUTE_TIME
+              type: date
+      - createTable:
+          tableName: TEST_OTHER
+          columns:
+          - column:
+              name: ID
+              type: bigint
+              constraints:
+                primaryKey: true
+                nullable: false
+                primaryKeyName: PK_TEST_OTHER_ID
+          - column:
+              name: SN
+              type: int
+          - column:
+              name: ST
+              type: VARCHAR(40)
+          - column:
+              name: SHARD_MAP
+              type: bigint
+          - column:
+              name: C_A_Byte
+              type: tinyint
+          - column:
+              name: C_A_BOOLEAN
+              type: boolean
+          - column:
+              name: C_A_Short
+              type: smallint
+          - column:
+              name: C_integer
+              type: int
+          - column:
+              name: C_A_Float
+              type: float
+          - column:
+              name: C_A_Double
+              type: double
+          - column:
+              name: C_big_Decimal
+              type: number
+          - column:
+              name: C_TIME
+              type: time
+          - column:
+              name: C_timestamp
+              type: timestamp
+          - column:
+              name: C_BLOB
+              type: blob
+          - column:
+              name: C_CLOB
+              type: clob
+          - column:
+              name: C_url
+              type: varchar(2000)
+          - column:
+              name: C_row_Id
+              type: varchar(32)
+          - column:
+              name: C_SQLXML
+              type: varchar(2000)
+          - column:
+              name: C_local_Date_Time
+              type: datetime
+          - column:
+              name: C_EXECUTE_TIME
+              type: date

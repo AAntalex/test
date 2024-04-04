@@ -9,6 +9,7 @@ import javax.persistence.Column;
 import javax.persistence.JoinColumn;
 import javax.persistence.OneToOne;
 import javax.persistence.Table;
+import java.util.Date;
 
 @Table(name = "TEST_C")
 @Data
@@ -18,4 +19,5 @@ public class TestCShardEntity extends BaseShardEntity {
     private String newValue;
     @Column(name = "C_B_REF")
     private Long b;
+    private Date executeTime;
 }

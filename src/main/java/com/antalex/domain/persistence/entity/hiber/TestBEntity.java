@@ -6,16 +6,17 @@ import lombok.Data;
 
 import javax.persistence.*;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
-@Table(name = "TEST_B", schema = "pmts_main")
+@Table(name = "TEST_B")
 @Data
 @Entity
 public class TestBEntity extends BaseShardEntity {
     @Id
     @Column(name = "ID")
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "seq_id")
-    @SequenceGenerator(name = "seq_id", sequenceName = "SEQ_ID", schema = "pmts_main")
+    @SequenceGenerator(name = "seq_id", sequenceName = "SEQ_ID")
     private Long id;
     @Column(name = "SHARD_MAP")
     private Long shardMap;
@@ -29,4 +30,6 @@ public class TestBEntity extends BaseShardEntity {
     private List<TestCEntity> cList = new ArrayList<>();
     @Column(name = "C_NEW_VALUE")
     private String newValue;
+    @Column(name = "C_EXECUTE_TIME")
+    private Date executeTime;
 }

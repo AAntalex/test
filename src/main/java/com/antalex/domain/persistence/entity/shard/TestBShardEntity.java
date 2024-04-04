@@ -7,7 +7,12 @@ import com.antalex.db.entity.abstraction.BaseShardEntity;
 import lombok.Data;
 
 import javax.persistence.*;
+import java.math.BigDecimal;
+import java.net.URL;
+import java.sql.*;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 @Table(
@@ -28,4 +33,5 @@ public class TestBShardEntity extends BaseShardEntity {
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
     @JoinColumn(name = "C_B_REF")
     private List<TestCShardEntity> cList = new ArrayList<>();
+    private Date executeTime;
 }

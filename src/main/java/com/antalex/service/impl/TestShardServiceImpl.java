@@ -1,21 +1,33 @@
 package com.antalex.service.impl;
 
+import com.antalex.db.service.ShardDataBaseManager;
 import com.antalex.db.service.ShardEntityManager;
 import com.antalex.domain.persistence.entity.shard.TestAShardEntity;
 import com.antalex.domain.persistence.entity.shard.TestBShardEntity;
 import com.antalex.domain.persistence.entity.shard.TestCShardEntity;
+import com.antalex.domain.persistence.entity.shard.TestOtherShardEntity;
 import com.antalex.profiler.service.ProfilerService;
 import com.antalex.service.TestShardService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import javax.sql.rowset.serial.SerialBlob;
+import javax.sql.rowset.serial.SerialClob;
+import java.math.BigDecimal;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.sql.*;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 @Component
 public class TestShardServiceImpl implements TestShardService {
     @Autowired
     private ShardEntityManager entityManager;
+    @Autowired
+    private ShardDataBaseManager dataBaseManager;
     @Autowired
     private TestBShardEntityRepository testBShardEntityRepository;
     @Autowired
@@ -29,8 +41,9 @@ public class TestShardServiceImpl implements TestShardService {
         List<TestAShardEntity> aList = new ArrayList<>();
         for (int i = 0; i < 10; i++) {
             TestAShardEntity a = entityManager.newEntity(TestAShardEntity.class);
-            a.setValue(prefix + "A" + i);
+            a.setValue(prefix + "A");
             a.setNewValue(prefix + "newA" + i);
+            a.setExecuteTime(new Date());
             aList.add(a);
         }
 
@@ -43,15 +56,16 @@ public class TestShardServiceImpl implements TestShardService {
 
             b.setA(aList.get(i % 10));
 
-
-            b.setValue(prefix + "B" + i);
+            b.setValue(prefix + "B");
             b.setNewValue(prefix + "newB" + i);
+            b.setExecuteTime(new Date());
 
             List<TestCShardEntity> cEntities = new ArrayList<>();
             for (int j = 0; j < cntArray; j++) {
                 TestCShardEntity c = entityManager.newEntity(TestCShardEntity.class);
-                c.setValue(prefix + "C" + (i * cntArray + j));
+                c.setValue(prefix + "C");
                 c.setNewValue(prefix + "newC" + (i * cntArray + j));
+                c.setExecuteTime(new Date());
                 cEntities.add(c);
             }
             b.getCList().addAll(cEntities);
@@ -64,6 +78,46 @@ public class TestShardServiceImpl implements TestShardService {
     @Override
     public void save(List<TestBShardEntity> testBEntities) {
         entityManager.saveAll(testBEntities);
+    }
+
+    @Override
+    public List<TestOtherShardEntity> generateOther(int cnt) {
+        List<TestOtherShardEntity> entities = new ArrayList<>();
+        for (int i = 0; i < cnt; i++) {
+            TestOtherShardEntity entity = entityManager.newEntity(TestOtherShardEntity.class);
+            entity.setABoolean(true);
+
+            entity.setAByte((byte) 1);
+            entity.setADouble(2d);
+            entity.setAFloat(3f);
+            entity.setAShort((short) 4);
+            entity.setBigDecimal(BigDecimal.valueOf(3.14));
+            entity.setInteger(7);
+            try {
+                entity.setBlob(new SerialBlob("TEST BLOB".getBytes()));
+                entity.setClob(new SerialClob("TEST CLOB".toCharArray()));
+            } catch (SQLException err) {
+                throw new RuntimeException(err);
+            }
+            entity.setExecuteTime(new Date());
+            entity.setLocalDateTime(LocalDateTime.now());
+            entity.setTime(new Time(System.currentTimeMillis()));
+            entity.setTimestamp(new Timestamp(System.currentTimeMillis()));
+
+            try {
+                entity.setUrl(new URL("https://www.baeldung.com/java-url"));
+            } catch (MalformedURLException err) {
+                throw new RuntimeException(err);
+            }
+
+            entities.add(entity);
+        }
+        return entities;
+    }
+
+    @Override
+    public void saveOther(List<TestOtherShardEntity> entities) {
+        entityManager.saveAll(entities);
     }
 
     @Override

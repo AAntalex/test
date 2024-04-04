@@ -7,17 +7,18 @@ import org.mybatis.spring.SqlSessionTemplate;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 
 import javax.sql.DataSource;
 
-@org.springframework.context.annotation.Configuration
+@Configuration
 @MapperScan("com.antalex.service.mapper")
-public class Configuration {
+public class MyBatisConfiguration {
     private ShardDataBaseManager dataBaseManager;
     private DataSource dataSource;
 
     @Autowired
-    public Configuration(ShardDataBaseManager dataBaseManager) {
+    public MyBatisConfiguration(ShardDataBaseManager dataBaseManager) {
         this.dataSource = dataBaseManager.getDataSource();
     }
 

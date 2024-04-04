@@ -8,7 +8,6 @@ import com.antalex.domain.persistence.entity.hiber.TestCEntity;
 import com.antalex.domain.persistence.repository.TestBRepository;
 import com.antalex.domain.persistence.repository.TestCRepository;
 import com.antalex.profiler.service.ProfilerService;
-import com.antalex.service.mapper.EntityCMapper;
 import com.antalex.service.mapper.EntityMapper;
 import com.antalex.service.TestService;
 import org.apache.ibatis.session.ExecutorType;
@@ -21,8 +20,10 @@ import org.springframework.transaction.annotation.Transactional;
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 @Service
@@ -60,8 +61,9 @@ public class TestServiceImpl implements TestService{
         for (int i = 0; i < 10; i++) {
             TestAEntity a = new TestAEntity();
             a.setId(databaseManager.sequenceNextVal() * 10000L);
-            a.setValue("AShard" + i);
-            a.setNewValue("newAShard" + i);
+            a.setValue(prefix + "A");
+            a.setNewValue(prefix + "newA" + i);
+            a.setExecuteTime(new Date());
             aList.add(a);
         }
 
@@ -73,15 +75,17 @@ public class TestServiceImpl implements TestService{
             }
 
             b.setShardMap(1L);
-            b.setValue(prefix + "B" + i);
+            b.setValue(prefix + "B");
             b.setNewValue(prefix + "newB" + i);
+            b.setExecuteTime(new Date());
 
             List<TestCEntity> cEntities = new ArrayList<>();
             for (int j = 0; j < cntArray; j++) {
                 TestCEntity c = new TestCEntity();
-                c.setValue(prefix + "C" + (i * cntArray + j));
+                c.setValue(prefix + "C");
                 c.setNewValue(prefix + "newC" + (i * cntArray + j));
                 c.setShardMap(1L);
+                c.setExecuteTime(new Date());
                 cEntities.add(c);
             }
             b.getCList().addAll(cEntities);
@@ -98,6 +102,7 @@ public class TestServiceImpl implements TestService{
 
     @Override
     public void saveMyBatis(List<TestBEntity> testBEntities) {
+        profiler.startTimeCounter("Prepare saveMyBatis", "AAA");
         SqlSession sqlSession = sqlSessionFactory.openSession(ExecutorType.BATCH);
         try {
             EntityMapper entityMapper = sqlSession.getMapper(EntityMapper.class);
@@ -112,19 +117,22 @@ public class TestServiceImpl implements TestService{
                     }
             );
 
-            EntityCMapper entityCMapper = sqlSession.getMapper(EntityCMapper.class);
             testBEntities.forEach(
                     entity ->
                             entity.getCList().forEach(cEntity -> {
                                 try {
                                     cEntity.setId(databaseManager.sequenceNextVal() * 10000L);
-                                    entityCMapper.insert("TEST_C", cEntity);
+                                    cEntity.setB(entity.getId());
+                                    entityMapper.insertC("TEST_C", cEntity);
                                 } catch (Exception err) {
                                     throw new RuntimeException(err);
                                 }
                             })
             );
+            profiler.fixTimeCounter();
+            profiler.startTimeCounter("commit saveMyBatis", "AAA");
             sqlSession.commit();
+            profiler.fixTimeCounter();
         } finally {
             sqlSession.close();
         }
@@ -137,11 +145,98 @@ public class TestServiceImpl implements TestService{
         saveJPA(testBEntities);
     }
 
+    @Override
+    public TestBEntity findBByIdMBatis(Long id) {
+        try {
+            SqlSession sqlSession = sqlSessionFactory.openSession();
+            EntityMapper entityMapper = sqlSession.getMapper(EntityMapper.class);
+            TestBEntity entity =  entityMapper.findById("TEST_B", id);
+            entity.setCList(findAllCMBatis(id));
+            return entity;
+        } catch (Exception err) {
+            throw new RuntimeException(err);
+        }
+    }
+
+    @Override
+    public List<TestCEntity> findAllCMBatis(Long id) {
+        try {
+            SqlSession sqlSession = sqlSessionFactory.openSession();
+            EntityMapper entityMapper = sqlSession.getMapper(EntityMapper.class);
+            return entityMapper.findAllC("TEST_C", id);
+        } catch (Exception err) {
+            throw new RuntimeException(err);
+        }
+    }
+
+    @Override
+    public List<TestBEntity> findAllB(String value) {
+        try {
+            SqlSession sqlSession = sqlSessionFactory.openSession();
+            EntityMapper entityMapper = sqlSession.getMapper(EntityMapper.class);
+            return entityMapper.findAllB("TEST_B", value);
+        } catch (Exception err) {
+            throw new RuntimeException(err);
+        }
+    }
+
+    @Override
+    public TestBEntity findBByIdStatement(Long id) {
+        try {
+            Connection connection = dataSource.getConnection();
+            PreparedStatement preparedStatement = connection.prepareStatement("SELECT x0.ID,x0.SHARD_MAP,x0.C_VALUE,x0.C_A_REF,x0.C_NEW_VALUE,x0.C_EXECUTE_TIME FROM TEST_B x0 WHERE x0.SHARD_MAP>=0 and x0.ID=?");
+
+            preparedStatement.setLong(1, id);
+
+            ResultSet result = preparedStatement.executeQuery();
+            if (result.next()) {
+                TestBEntity b = new TestBEntity();
+                b.setId(result.getLong(1));
+                b.setShardMap(result.getLong(2));
+                b.setValue(result.getString(3));
+                b.setNewValue(result.getString(5));
+                b.setExecuteTime(result.getDate(6));
+                b.setCList(findAllCStatement(b.getId()));
+                return b;
+            }
+            return null;
+        } catch (Exception err) {
+            throw new RuntimeException(err);
+        }
+    }
+
+
+    @Override
+    public List<TestCEntity> findAllCStatement(Long id) {
+        List<TestCEntity> ret = new ArrayList<>();
+        try {
+            Connection connection = dataSource.getConnection();
+            PreparedStatement preparedStatement = connection.prepareStatement("SELECT x0.ID,x0.SHARD_MAP,x0.C_VALUE,x0.C_NEW_VALUE,x0.C_B_REF,x0.C_EXECUTE_TIME FROM TEST_C x0 WHERE x0.SHARD_MAP>=0 and x0.C_B_REF=?");
+
+            preparedStatement.setLong(1, id);
+
+            ResultSet result = preparedStatement.executeQuery();
+            while (result.next()) {
+                TestCEntity c = new TestCEntity();
+                c.setId(result.getLong(1));
+                c.setShardMap(result.getLong(2));
+                c.setValue(result.getString(3));
+                c.setNewValue(result.getString(4));
+                c.setB(result.getLong(5));
+                c.setExecuteTime(result.getDate(6));
+                ret.add(c);
+            }
+            return ret;
+        } catch (Exception err) {
+            throw new RuntimeException(err);
+        }
+    }
 
 
     @Override
     public void save(List<TestBEntity> entities) {
         try {
+            profiler.startTimeCounter("prepare save", "AAA");
             Connection connection = dataSource.getConnection();
             connection.setAutoCommit(false);
             PreparedStatement preparedBStatement = connection.prepareStatement(INS_B_QUERY);
@@ -177,12 +272,17 @@ public class TestServiceImpl implements TestService{
                         }
                     }
             );
+            profiler.fixTimeCounter();
 
+            profiler.startTimeCounter("executeBatch save", "AAA");
             preparedBStatement.executeBatch();
             preparedCStatement.executeBatch();
+            profiler.fixTimeCounter();
 
-
+            profiler.startTimeCounter("commit save", "AAA");
             connection.commit();
+            profiler.fixTimeCounter();
+
 
             connection.close();
 
