@@ -4,12 +4,11 @@ import com.antalex.db.model.enums.QueryType;
 import com.antalex.db.service.abstractive.AbstractTransactionalQuery;
 import com.antalex.db.service.api.ResultQuery;
 
-import java.math.BigDecimal;
 import java.net.URL;
 import java.sql.*;
 import java.time.LocalDateTime;
 import java.util.Date;
-import java.util.Optional;
+import java.util.UUID;
 
 public class TransactionalSQLQuery extends AbstractTransactionalQuery {
     private PreparedStatement preparedStatement;
@@ -39,15 +38,23 @@ public class TransactionalSQLQuery extends AbstractTransactionalQuery {
             return;
         }
         if (o instanceof Clob) {
-            preparedStatement.setClob(idx, ((Clob) o).getCharacterStream());
+            preparedStatement.setString(idx, ((Clob) o).getSubString(1, (int) ((Clob) o).length()));
             return;
         }
         if (o instanceof URL) {
-            preparedStatement.setURL(idx, (URL) o);
+            preparedStatement.setString(idx, ((URL) o).toExternalForm());
             return;
         }
         if (o instanceof LocalDateTime) {
             preparedStatement.setTimestamp(idx, Timestamp.valueOf((LocalDateTime) o));
+            return;
+        }
+        if (o instanceof Enum) {
+            preparedStatement.setString(idx, ((Enum) o).name());
+            return;
+        }
+        if (o instanceof UUID) {
+            preparedStatement.setString(idx, o.toString());
             return;
         }
 

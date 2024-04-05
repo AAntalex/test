@@ -3,11 +3,13 @@ package com.antalex.db.service.api;
 import java.math.BigDecimal;
 import java.net.URL;
 import java.sql.*;
+import java.time.LocalDateTime;
 import java.util.Date;
 
 public interface ResultQuery {
     boolean next() throws Exception;
     Object getObject(int idx) throws Exception;
+    <T> T getObject(int idx, Class<T> clazz) throws Exception;
     Long getLong(int idx) throws Exception;
     Short getShort(int idx) throws Exception;
     Boolean getBoolean(int idx) throws Exception;
@@ -25,4 +27,5 @@ public interface ResultQuery {
     URL getURL(int idx) throws Exception;
     RowId getRowId(int idx) throws Exception;
     SQLXML getSQLXML(int idx) throws Exception;
+    LocalDateTime getLocalDateTime(int idx) throws Exception;
 }

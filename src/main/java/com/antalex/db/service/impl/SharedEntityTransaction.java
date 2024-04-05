@@ -197,7 +197,7 @@ public class SharedEntityTransaction implements EntityTransaction {
                             .bind(this.uuid.toString())
                             .bind(new Timestamp(System.currentTimeMillis()))
                             .bind(this.hasError)
-                            .bind(this.error)
+                            .bind(this.error != null && this.error.length() > 2000 ? this.error.substring(2000) : this.error)
                             .bind(this.duration);
 
                     TransactionalQuery saveDMLQuery = task.createQuery(SAVE_DML_QUERY, QueryType.DML);

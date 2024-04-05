@@ -6,6 +6,7 @@ import org.apache.commons.lang3.StringUtils;
 import java.math.BigDecimal;
 import java.net.URL;
 import java.sql.*;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.Date;
 
@@ -127,6 +128,11 @@ public class ResultParallelQuery implements ResultQuery {
         return currentResult.getURL(idx);
     }
 
+    @Override
+    public LocalDateTime getLocalDateTime(int idx) throws Exception {
+        return currentResult.getLocalDateTime(idx);
+    }
+
     private boolean uniqueKey() throws Exception {
         if (keyCount > 0) {
             String key = StringUtils.EMPTY;
@@ -139,5 +145,10 @@ public class ResultParallelQuery implements ResultQuery {
             keyValues.add(key);
         }
         return true;
+    }
+
+    @Override
+    public <T> T getObject(int idx, Class<T> clazz) throws Exception {
+        return currentResult.getObject(idx, clazz);
     }
 }

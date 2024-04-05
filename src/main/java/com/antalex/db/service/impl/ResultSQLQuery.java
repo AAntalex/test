@@ -1,11 +1,16 @@
 package com.antalex.db.service.impl;
 
 import com.antalex.db.service.api.ResultQuery;
+import org.apache.commons.lang3.StringUtils;
 
+import javax.sql.rowset.serial.SerialClob;
 import java.math.BigDecimal;
 import java.net.URL;
 import java.sql.*;
+import java.time.LocalDateTime;
 import java.util.Date;
+import java.util.Optional;
+import java.util.UUID;
 
 public class ResultSQLQuery implements ResultQuery {
     private ResultSet result;
@@ -99,7 +104,11 @@ public class ResultSQLQuery implements ResultQuery {
 
     @Override
     public Clob getClob(int idx) throws SQLException {
-        return result.getClob(idx);
+        return new SerialClob(
+                Optional.ofNullable(result.getString(idx))
+                        .orElse(StringUtils.EMPTY)
+                        .toCharArray()
+        );
     }
 
     @Override
@@ -108,12 +117,35 @@ public class ResultSQLQuery implements ResultQuery {
     }
 
     @Override
-    public URL getURL(int idx) throws SQLException {
-        return result.getURL(idx);
+    public URL getURL(int idx) throws Exception {
+        String url = result.getString(idx);
+        return url == null ? null : new URL(url);
     }
 
     @Override
     public SQLXML getSQLXML(int idx) throws SQLException {
         return result.getSQLXML(idx);
+    }
+
+    @Override
+    public <T> T getObject(int idx, Class<T> clazz) throws SQLException {
+        if (clazz.isEnum()) {
+            return (T) Optional.ofNullable(result.getString(idx))
+                    .map(name -> Enum.valueOf((Class<Enum>) clazz, name))
+                    .orElse(null);
+        }
+        if (clazz.isAssignableFrom(UUID.class)) {
+            return (T) Optional.ofNullable(result.getString(idx))
+                    .map(str -> UUID.fromString(str))
+                    .orElse(null);
+        }
+        return (T) result.getObject(idx);
+    }
+
+    @Override
+    public LocalDateTime getLocalDateTime(int idx) throws SQLException {
+        return Optional.ofNullable(result.getTimestamp(idx))
+                .map(Timestamp::toLocalDateTime)
+                .orElse(null);
     }
 }

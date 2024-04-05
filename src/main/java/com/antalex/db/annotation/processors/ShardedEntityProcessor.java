@@ -28,6 +28,7 @@ import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.ElementFilter;
 import javax.persistence.*;
+import javax.sql.rowset.serial.SerialClob;
 import javax.tools.JavaFileObject;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -35,6 +36,7 @@ import java.lang.annotation.Annotation;
 import java.math.BigDecimal;
 import java.net.URL;
 import java.sql.*;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.Date;
 import java.util.stream.Collectors;
@@ -414,7 +416,8 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                                             Arrays.class.getCanonicalName(),
                                             Map.class.getCanonicalName(),
                                             HashMap.class.getCanonicalName(),
-                                            ShardInstance.class.getCanonicalName()
+                                            ShardInstance.class.getCanonicalName(),
+                                            SerialClob.class.getCanonicalName()
                                     )
                             )
                     )
@@ -846,58 +849,58 @@ public class ShardedEntityProcessor extends AbstractProcessor {
         Class<?> clazz = getClassByType(field.getElement().asType());
         if (clazz != null) {
             if (clazz.isAssignableFrom(String.class)) {
-                return "result.getString";
+                return "result.getString(++index)";
             }
             if (clazz.isAssignableFrom(Byte.class)) {
-                return "result.getByte";
+                return "result.getByte(++index)";
             }
             if (clazz.isAssignableFrom(Boolean.class)) {
-                return "result.getBoolean";
+                return "result.getBoolean(++index)";
             }
             if (clazz.isAssignableFrom(Short.class)) {
-                return "result.getShort";
+                return "result.getShort(++index)";
             }
             if (clazz.isAssignableFrom(Integer.class)) {
-                return "result.getInteger";
+                return "result.getInteger(++index)";
             }
             if (clazz.isAssignableFrom(Long.class)) {
-                return "result.getLong";
+                return "result.getLong(++index)";
             }
             if (clazz.isAssignableFrom(Float.class)) {
-                return "result.getFloat";
+                return "result.getFloat(++index)";
             }
             if (clazz.isAssignableFrom(Double.class)) {
-                return "result.getDouble";
+                return "result.getDouble(++index)";
             }
             if (clazz.isAssignableFrom(BigDecimal.class)) {
-                return "result.getBigDecimal";
+                return "result.getBigDecimal(++index)";
             }
             if (clazz.isAssignableFrom(Date.class)) {
-                return "result.getDate";
+                return "result.getDate(++index)";
             }
             if (clazz.isAssignableFrom(Time.class)) {
-                return "result.getTime";
+                return "result.getTime(++index)";
             }
             if (clazz.isAssignableFrom(Timestamp.class)) {
-                return "result.getTimestamp";
+                return "result.getTimestamp(++index)";
             }
             if (clazz.isAssignableFrom(Blob.class)) {
-                return "result.getBlob";
+                return "result.getBlob(++index)";
             }
             if (clazz.isAssignableFrom(Clob.class)) {
-                return "result.getClob";
+                return "result.getClob(++index)";
             }
             if (clazz.isAssignableFrom(URL.class)) {
-                return "result.getURL";
-            }
-            if (clazz.isAssignableFrom(RowId.class)) {
-                return "result.getRowId";
+                return "result.getURL(++index)";
             }
             if (clazz.isAssignableFrom(SQLXML.class)) {
-                return "result.getSQLXML";
+                return "result.getSQLXML(++index)";
+            }
+            if (clazz.isAssignableFrom(LocalDateTime.class)) {
+                return "result.getLocalDateTime(++index)";
             }
         }
-        return "(" + getTypeField(field) + ") result.getObject";
+        return "result.getObject(++index, " + getTypeField(field) + ".class)";
     }
 
     private static String getExtractValuesCode(ClassDto classDto) {
@@ -910,7 +913,7 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                                         isAnnotationPresentByType(field, ShardEntity.class) ?
                                                 "(entityManager.newEntity(" + getTypeField(field) +
                                                         ".class, result.getLong(++index)), false);\n" :
-                                        "(" + getResultObjectCode(field) + "(++index), false);\n"
+                                        "(" + getResultObjectCode(field) + ", false);\n"
                                 )
                 )
                 .reduce(

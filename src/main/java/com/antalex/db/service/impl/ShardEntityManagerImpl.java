@@ -160,7 +160,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
                                                         .map(shard -> {
                                                             storage.setShardMap(
                                                                     ShardUtils.addShardMap(
-                                                                            ShardUtils.getShardMap(shard.getId()),
+                                                                            storage.getShardMap(),
                                                                             entityStorage.getShardMap()
                                                                     )
                                                             );
