@@ -132,31 +132,31 @@ databaseChangeLog:
               name: SHARD_MAP
               type: bigint
           - column:
-              name: C_A_Byte
+              name: C_A_BYTE
               type: tinyint
           - column:
               name: C_A_BOOLEAN
               type: boolean
           - column:
-              name: C_A_Short
+              name: C_A_SHORT
               type: smallint
           - column:
-              name: C_integer
+              name: C_INTEGER
               type: int
           - column:
-              name: C_A_Float
+              name: C_A_FLOAT
               type: float
           - column:
-              name: C_A_Double
+              name: C_A_DOUBLE
               type: double
           - column:
-              name: C_big_Decimal
+              name: C_BIG_DECIMAL
               type: number
           - column:
               name: C_TIME
               type: time
           - column:
-              name: C_timestamp
+              name: C_TIMESTAMP
               type: timestamp
           - column:
               name: C_BLOB
@@ -165,17 +165,23 @@ databaseChangeLog:
               name: C_CLOB
               type: clob
           - column:
-              name: C_url
+              name: C_URL
               type: varchar(2000)
           - column:
-              name: C_row_Id
+              name: C_ROW_ID
               type: varchar(32)
           - column:
               name: C_SQLXML
               type: varchar(2000)
           - column:
-              name: C_local_Date_Time
+              name: C_LOCAL_DATE_TIME
               type: datetime
           - column:
               name: C_EXECUTE_TIME
               type: date
+          - column:
+              name: C_STATUS
+              type: varchar(128)
+          - column:
+              name: C_UID
+              type: VARCHAR(40)

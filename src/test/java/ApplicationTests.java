@@ -7,9 +7,7 @@ import com.antalex.domain.persistence.entity.AdditionalParameterEntity;
 import com.antalex.domain.persistence.entity.hiber.TestAEntity;
 import com.antalex.domain.persistence.entity.hiber.TestBEntity;
 import com.antalex.domain.persistence.entity.hiber.TestCEntity;
-import com.antalex.domain.persistence.entity.shard.TestAShardEntity;
-import com.antalex.domain.persistence.entity.shard.TestBShardEntity;
-import com.antalex.domain.persistence.entity.shard.TestCShardEntity;
+import com.antalex.domain.persistence.entity.shard.*;
 import com.antalex.domain.persistence.repository.AdditionalParameterRepository;
 import com.antalex.domain.persistence.repository.TestARepository;
 import com.antalex.domain.persistence.repository.TestBRepository;
@@ -234,10 +232,23 @@ public class ApplicationTests {
 
 	@Test
 	public void saveOther() {
-		testShardService.saveOther(testShardService.generateOther(100));
+		profiler.start("saveOther");
+		entityManager.saveAll(testShardService.generateOther(100));
+		profiler.stop();
+		System.out.println(profiler.printTimeCounter());
 	}
 
-//	@Test
+	@Test
+	public void findAllOther() {
+		profiler.start("findAllOther");
+		List<TestOtherShardEntity> entities = entityManager.findAll(TestOtherShardEntity.class);
+		System.out.println("entities.size() = " + entities.size());
+		profiler.stop();
+		System.out.println(profiler.printTimeCounter());
+	}
+
+
+	//	@Test
 	public void saveJPA() {
         databaseManager.sequenceNextVal();
 /*
@@ -316,23 +327,49 @@ public class ApplicationTests {
 		System.out.println(profiler.printTimeCounter());
 
 		profiler.start("testShardService.save");
-		testShardService.save(testBEntities2);
+
+		entityManager.updateAll(testBEntities2);
+
 		profiler.stop();
 		System.out.println(profiler.printTimeCounter());
 
 		System.out.println("testBEntities2.size = " + testBEntities2.size());
 
-		TestBShardEntity b = testBEntities2.get(0);
-		b.setNewValue("ShardNewVal_B!!!");
-		System.out.println("AAA!!!!!!!!!!!!!!");
-		TestCShardEntity c = b.getCList().get(10);
-		c.setNewValue("ShardNewVal_C!!!");
 
+		TestBShardEntity b = testBEntities2.get(0);
+		TestAShardEntity a = b.getA();
+		b.setNewValue("ShardNewVal_B!!!");
+		System.out.println("AAA!!!!!!!!!!!!!! b = " + b.getId());
+		TestCShardEntity c = b.getCList().get(10);
+		c.setNewValue("ShardNewVal_C!!! c = " + c.getId());
+
+		b = testBEntities2.get(7);
+		b.setValue(b.getValue());
+		System.out.println("AAA!!!!!!!!!!!!!! b = " + b.getId());
+
+		b = testBEntities2.get(9);
+		System.out.println("AAA!!!!!!!!!!!!!! BEFORE b = " + b.getId() +
+				" shardMap = " + b.getStorageContext().getShardMap() +
+				" a.ID = " + a.getId() +
+				" a.shardMap = " + a.getStorageContext().getShardMap() +
+				" b.shard = " + b.getStorageContext().getShard().getName()
+		);
+		b.setA(a);
 
 		profiler.start("ADD testShardService.save");
-		testShardService.update(testBEntities2);
+
+		entityManager.updateAll(testBEntities2);
+
 		profiler.stop();
 		System.out.println(profiler.printTimeCounter());
+
+		System.out.println("AAA!!!!!!!!!!!!!! AFTER b = " + b.getId() +
+				" shardMap = " + b.getStorageContext().getShardMap() +
+				" a.ID = " + a.getId() +
+				" a.shardMap = " + a.getStorageContext().getShardMap() +
+				" b.shard = " + b.getStorageContext().getShard().getName()
+		);
+
 		System.out.println("STOP");
 	}
 

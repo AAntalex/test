@@ -2,10 +2,7 @@ package com.antalex.service.impl;
 
 import com.antalex.db.service.ShardDataBaseManager;
 import com.antalex.db.service.ShardEntityManager;
-import com.antalex.domain.persistence.entity.shard.TestAShardEntity;
-import com.antalex.domain.persistence.entity.shard.TestBShardEntity;
-import com.antalex.domain.persistence.entity.shard.TestCShardEntity;
-import com.antalex.domain.persistence.entity.shard.TestOtherShardEntity;
+import com.antalex.domain.persistence.entity.shard.*;
 import com.antalex.profiler.service.ProfilerService;
 import com.antalex.service.TestShardService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,6 +18,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.UUID;
 
 @Component
 public class TestShardServiceImpl implements TestShardService {
@@ -85,6 +83,7 @@ public class TestShardServiceImpl implements TestShardService {
         List<TestOtherShardEntity> entities = new ArrayList<>();
         for (int i = 0; i < cnt; i++) {
             TestOtherShardEntity entity = entityManager.newEntity(TestOtherShardEntity.class);
+
             entity.setABoolean(true);
 
             entity.setAByte((byte) 1);
@@ -104,11 +103,13 @@ public class TestShardServiceImpl implements TestShardService {
             entity.setTime(new Time(System.currentTimeMillis()));
             entity.setTimestamp(new Timestamp(System.currentTimeMillis()));
 
+            entity.setStatus(TestStatus.PROCESS);
             try {
                 entity.setUrl(new URL("https://www.baeldung.com/java-url"));
             } catch (MalformedURLException err) {
                 throw new RuntimeException(err);
             }
+            entity.setUid(UUID.randomUUID());
 
             entities.add(entity);
         }

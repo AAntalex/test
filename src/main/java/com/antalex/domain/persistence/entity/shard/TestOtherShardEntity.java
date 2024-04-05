@@ -11,6 +11,7 @@ import java.net.URL;
 import java.sql.*;
 import java.time.LocalDateTime;
 import java.util.Date;
+import java.util.UUID;
 
 @Table(name = "TEST_OTHER")
 @Data
@@ -32,4 +33,6 @@ public class TestOtherShardEntity extends BaseShardEntity {
     private RowId rowId;
     private SQLXML sqlxml;
     private LocalDateTime localDateTime;
+    private TestStatus status;
+    private UUID uid;
 }

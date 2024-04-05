@@ -4,6 +4,7 @@ package com.antalex.domain.persistence.entity.shard;
 import com.antalex.db.annotation.ParentShard;
 import com.antalex.db.annotation.ShardEntity;
 import com.antalex.db.entity.abstraction.BaseShardEntity;
+import com.antalex.db.model.enums.ShardType;
 import lombok.Data;
 
 import javax.persistence.*;
@@ -21,7 +22,7 @@ import java.util.List;
                 @Index(name = "IDX_TEST_B_VALUE", columnList = "newValue,value", unique = true)
         })
 @Data
-@ShardEntity
+@ShardEntity(type = ShardType.MULTI_SHARDABLE)
 public class TestBShardEntity extends BaseShardEntity {
     private String value;
     @ParentShard

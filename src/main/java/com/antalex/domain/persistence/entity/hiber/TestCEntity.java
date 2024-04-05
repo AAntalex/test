@@ -7,14 +7,14 @@ import lombok.Data;
 import javax.persistence.*;
 import java.util.Date;
 
-@Table(name = "TEST_C")
+@Table(name = "TEST_C", schema = "pmts_main")
 @Data
 @Entity
 public class TestCEntity extends BaseShardEntity {
     @Id
     @Column(name = "ID")
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "seq_id")
-    @SequenceGenerator(name = "seq_id", sequenceName = "SEQ_ID")
+    @SequenceGenerator(name = "seq_id", sequenceName = "SEQ_ID", schema = "pmts_main")
     private Long id;
     @Column(name = "SHARD_MAP")
     private Long shardMap;

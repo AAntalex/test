@@ -2,7 +2,7 @@
 #dialect: org.hibernate.dialect.Oracle10gDialect
 
 hibernate:
-  dialect: org.hibernate.dialect.Oracle10gDialect
+  dialect: org.hibernate.dialect.PostgreSQL82Dialect
   jdbc:
     batch_size: 1000000
   order_inserts: true
