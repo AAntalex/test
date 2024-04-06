@@ -16,6 +16,7 @@ import com.antalex.profiler.service.ProfilerService;
 import com.antalex.service.AdditionalParameterService;
 import com.antalex.service.TestService;
 import com.antalex.service.TestShardService;
+import com.antalex.service.impl.TestBShardEntityRepositoryTest;
 import org.hibernate.dialect.Dialect;
 import org.hibernate.engine.jdbc.dialect.internal.StandardDialectResolver;
 import org.hibernate.engine.jdbc.dialect.spi.DatabaseMetaDataDialectResolutionInfoAdapter;
@@ -57,6 +58,8 @@ public class ApplicationTests {
 	private TestShardService testShardService;
 	@Autowired
 	private EntityManagerFactory entityManagerFactory;
+	@Autowired
+	private TestBShardEntityRepositoryTest testBShardEntityRepositoryTest;
 
 //	@Test
 	public void dialect() {
@@ -162,10 +165,11 @@ public class ApplicationTests {
 		TestBEntity b = testBRepository.findById(768795301L).orElse(null);
 		System.out.println("FIND B");
 
+		/*
 		TestAEntity a = b.getA();
-
 		System.out.println("FIND A");
 		System.out.println("FIND A value " + a.getValue());
+*/
 
 		TestBEntity b2 = testBRepository.findById(769431601L).orElse(null);
 		TestBEntity b3 = testBRepository.findById(770067901L).orElse(null);
@@ -185,6 +189,71 @@ public class ApplicationTests {
 		profiler.stop();
 		System.out.println(profiler.printTimeCounter());
 	}
+
+	@Test
+	public void findAllJPA() {
+		profiler.start("findAllJPA");
+		List<TestBEntity> bList = testBRepository.findAllByValueLike("JPA%");
+		System.out.println("FIND B bList.size() = " + bList.size());
+/*
+		bList.forEach(b -> {
+			int cSize = b.getCList().size();
+		});
+		System.out.println("b.getCList().size() = " + bList.get(0).getCList().size());
+*/
+		profiler.stop();
+		System.out.println(profiler.printTimeCounter());
+	}
+
+	@Test
+	public void findAllShard() {
+		profiler.start("findAllShard");
+		List<TestBShardEntity> bList = entityManager.findAll(
+				TestBShardEntity.class,
+				"x0.C_VALUE like ?",
+				"Shard%");
+		System.out.println("FIND B bList.size() = " + bList.size());
+/*
+		bList.forEach(b -> {
+			int cSize = b.getCList().size();
+		});
+		System.out.println("b.getCList().size() = " + bList.get(0).getCList().size());
+*/
+		profiler.stop();
+		System.out.println(profiler.printTimeCounter());
+	}
+
+	@Test
+	public void findAllMBatis() {
+		profiler.start("findAllMBatis");
+		List<TestBEntity> bList = testService.findAllByValueLikeMBatis("MyBatis%");
+		System.out.println("FIND B bList.size() = " + bList.size());
+
+		/*
+		bList.forEach(b -> {
+			int cSize = b.getCList().size();
+		});
+		System.out.println("b.getCList().size() = " + bList.get(0).getCList().size());
+*/
+		profiler.stop();
+		System.out.println(profiler.printTimeCounter());
+	}
+
+	@Test
+	public void findAllStatement() {
+		profiler.start("findAllStatement");
+		List<TestBEntity> bList = testService.findAllBByValueLikeStatement("Statement%");
+		System.out.println("FIND B bList.size() = " + bList.size());
+/*
+		bList.forEach(b -> {
+			int cSize = b.getCList().size();
+		});
+		System.out.println("b.getCList().size() = " + bList.get(0).getCList().size());
+*/
+		profiler.stop();
+		System.out.println(profiler.printTimeCounter());
+	}
+
 
 	//	@Test
 	public void sequence() {
@@ -230,7 +299,7 @@ public class ApplicationTests {
 */
 	}
 
-	@Test
+//	@Test
 	public void saveOther() {
 		profiler.start("saveOther");
 		entityManager.saveAll(testShardService.generateOther(100));
@@ -238,7 +307,7 @@ public class ApplicationTests {
 		System.out.println(profiler.printTimeCounter());
 	}
 
-	@Test
+//	@Test
 	public void findAllOther() {
 		profiler.start("findAllOther");
 		List<TestOtherShardEntity> entities = entityManager.findAll(TestOtherShardEntity.class);
@@ -248,20 +317,9 @@ public class ApplicationTests {
 	}
 
 
-	//	@Test
+//	@Test
 	public void saveJPA() {
         databaseManager.sequenceNextVal();
-/*
-		profiler.start("testService.generate");
-		List<TestBEntity> testBEntities = testService.generate(100, 10, null);
-		profiler.stop();
-		System.out.println(profiler.printTimeCounter());
-
-		profiler.start("testService.saveJPA");
-		testService.saveJPA(testBEntities);
-		profiler.stop();
-		System.out.println(profiler.printTimeCounter());
-*/
 		profiler.start("testService.generate");
 		List<TestBEntity> testBEntities = testService.generate(1000, 100, null, "JPA5");
 		profiler.stop();
@@ -273,19 +331,6 @@ public class ApplicationTests {
 		System.out.println(profiler.printTimeCounter());
 
 		System.out.println("testBEntities.size = " + testBEntities.size());
-		/*
-		TestBEntity b = testBEntities.get(0);
-		b.setNewValue("JPAnewVal_B!!!");
-		System.out.println("AAA!!!!!!!!!!!!!!");
-		TestCEntity c = b.getCList().get(10);
-		c.setNewValue("JPAnewVal_C!!!");
-
-
-		profiler.start("ADD testService.saveTransactionalJPA");
-		testService.saveTransactionalJPA(testBEntities);
-		profiler.stop();
-		System.out.println(profiler.printTimeCounter());
-*/
 	}
 
 //	@Test

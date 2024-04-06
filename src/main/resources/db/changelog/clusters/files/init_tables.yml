@@ -76,6 +76,12 @@ databaseChangeLog:
           - column:
               name: C_EXECUTE_TIME
               type: date
+      - createIndex:
+          columns:
+          - column:
+              name:  C_VALUE
+          indexName:  IDX_TEST_B_VALUE
+          tableName:  TEST_B
       - createTable:
           tableName: TEST_C
           columns:

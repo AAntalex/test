@@ -4,7 +4,10 @@ package com.antalex.service;
 import com.antalex.domain.persistence.entity.hiber.TestAEntity;
 import com.antalex.domain.persistence.entity.hiber.TestBEntity;
 import com.antalex.domain.persistence.entity.hiber.TestCEntity;
+import com.antalex.service.mapper.EntityMapper;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.util.List;
 
 public interface TestService {
@@ -14,8 +17,10 @@ public interface TestService {
     void saveTransactionalJPA(List<TestBEntity> testBEntities);
     void save(List<TestBEntity> entities);
     TestBEntity findBByIdMBatis(Long id);
-    List<TestCEntity> findAllCMBatis(Long id);
-    List<TestBEntity> findAllB(String value);
+    List<TestBEntity> findAllByValueLikeMBatis(String value);
+    List<TestCEntity> findAllCMBatis(Long id, EntityMapper entityMapper);
+    List<TestBEntity> findAllB(String value, EntityMapper entityMapper);
     TestBEntity findBByIdStatement(Long id);
-    List<TestCEntity> findAllCStatement(Long id);
+    List<TestBEntity> findAllBByValueLikeStatement(String value);
+    List<TestCEntity> findAllCStatement(Long id, PreparedStatement preparedStatement);
 }

@@ -61,6 +61,18 @@ public interface EntityMapper {
                                @Param("idEntity") Long id) throws Exception;
 
     @Select("select * from ${tablename} " +
+            "where C_VALUE like '${value}'")
+    @Results({
+            @Result(property = "id", column = "id"),
+            @Result(property = "shardMap", column = "SHARD_MAP"),
+            @Result(property = "value", column = "C_VALUE"),
+            @Result(property = "newValue", column = "C_NEW_VALUE"),
+            @Result(property = "executeTime", column = "C_EXECUTE_TIME")
+    })
+    List<TestBEntity> findAllByValueLike(@Param("tablename") String tableName,
+                         @Param("value") String value) throws Exception;
+
+    @Select("select * from ${tablename} " +
             "where C_B_REF = ${idEntity}")
     @Results({
             @Result(property = "id", column = "id"),
@@ -74,7 +86,7 @@ public interface EntityMapper {
                                       @Param("idEntity") Long id) throws Exception;
 
     @Select("select * from ${tablename} " +
-            "where C_VALUE = ${value}")
+            "where C_VALUE = '${value}'")
     @Results({
             @Result(property = "id", column = "id"),
             @Result(property = "shardMap", column = "SHARD_MAP"),

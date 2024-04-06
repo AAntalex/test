@@ -147,22 +147,37 @@ public class TestServiceImpl implements TestService{
 
     @Override
     public TestBEntity findBByIdMBatis(Long id) {
+        SqlSession sqlSession = sqlSessionFactory.openSession();
         try {
-            SqlSession sqlSession = sqlSessionFactory.openSession();
             EntityMapper entityMapper = sqlSession.getMapper(EntityMapper.class);
             TestBEntity entity =  entityMapper.findById("TEST_B", id);
-            entity.setCList(findAllCMBatis(id));
+            entity.setCList(findAllCMBatis(id, entityMapper));
             return entity;
         } catch (Exception err) {
             throw new RuntimeException(err);
+        } finally {
+            sqlSession.close();
         }
     }
 
     @Override
-    public List<TestCEntity> findAllCMBatis(Long id) {
+    public List<TestBEntity> findAllByValueLikeMBatis(String value) {
+        SqlSession sqlSession = sqlSessionFactory.openSession();
         try {
-            SqlSession sqlSession = sqlSessionFactory.openSession();
             EntityMapper entityMapper = sqlSession.getMapper(EntityMapper.class);
+            List<TestBEntity> entities =  entityMapper.findAllByValueLike("TEST_B", value);
+//            entities.forEach(b -> b.setCList(findAllCMBatis(b.getId(), entityMapper)));
+            return entities;
+        } catch (Exception err) {
+            throw new RuntimeException(err);
+        } finally {
+            sqlSession.close();
+        }
+    }
+
+    @Override
+    public List<TestCEntity> findAllCMBatis(Long id, EntityMapper entityMapper) {
+        try {
             return entityMapper.findAllC("TEST_C", id);
         } catch (Exception err) {
             throw new RuntimeException(err);
@@ -170,10 +185,12 @@ public class TestServiceImpl implements TestService{
     }
 
     @Override
-    public List<TestBEntity> findAllB(String value) {
+    public List<TestBEntity> findAllB(String value, EntityMapper entityMapper) {
         try {
-            SqlSession sqlSession = sqlSessionFactory.openSession();
-            EntityMapper entityMapper = sqlSession.getMapper(EntityMapper.class);
+            if (entityMapper == null) {
+                SqlSession sqlSession = sqlSessionFactory.openSession();
+                entityMapper = sqlSession.getMapper(EntityMapper.class);
+            }
             return entityMapper.findAllB("TEST_B", value);
         } catch (Exception err) {
             throw new RuntimeException(err);
@@ -185,19 +202,24 @@ public class TestServiceImpl implements TestService{
         try {
             Connection connection = dataSource.getConnection();
             PreparedStatement preparedStatement = connection.prepareStatement("SELECT x0.ID,x0.SHARD_MAP,x0.C_VALUE,x0.C_A_REF,x0.C_NEW_VALUE,x0.C_EXECUTE_TIME FROM TEST_B x0 WHERE x0.SHARD_MAP>=0 and x0.ID=?");
+            PreparedStatement preparedStatementC = connection.prepareStatement("SELECT x0.ID,x0.SHARD_MAP,x0.C_VALUE,x0.C_NEW_VALUE,x0.C_B_REF,x0.C_EXECUTE_TIME FROM TEST_C x0 WHERE x0.SHARD_MAP>=0 and x0.C_B_REF=?");
 
             preparedStatement.setLong(1, id);
 
             ResultSet result = preparedStatement.executeQuery();
-            if (result.next()) {
-                TestBEntity b = new TestBEntity();
-                b.setId(result.getLong(1));
-                b.setShardMap(result.getLong(2));
-                b.setValue(result.getString(3));
-                b.setNewValue(result.getString(5));
-                b.setExecuteTime(result.getDate(6));
-                b.setCList(findAllCStatement(b.getId()));
-                return b;
+            try {
+                if (result.next()) {
+                    TestBEntity b = new TestBEntity();
+                    b.setId(result.getLong(1));
+                    b.setShardMap(result.getLong(2));
+                    b.setValue(result.getString(3));
+                    b.setNewValue(result.getString(5));
+                    b.setExecuteTime(result.getDate(6));
+                    b.setCList(findAllCStatement(b.getId(), preparedStatementC));
+                    return b;
+                }
+            } finally {
+                connection.close();
             }
             return null;
         } catch (Exception err) {
@@ -205,14 +227,48 @@ public class TestServiceImpl implements TestService{
         }
     }
 
-
     @Override
-    public List<TestCEntity> findAllCStatement(Long id) {
-        List<TestCEntity> ret = new ArrayList<>();
+    public List<TestBEntity> findAllBByValueLikeStatement(String value) {
         try {
             Connection connection = dataSource.getConnection();
-            PreparedStatement preparedStatement = connection.prepareStatement("SELECT x0.ID,x0.SHARD_MAP,x0.C_VALUE,x0.C_NEW_VALUE,x0.C_B_REF,x0.C_EXECUTE_TIME FROM TEST_C x0 WHERE x0.SHARD_MAP>=0 and x0.C_B_REF=?");
+            PreparedStatement preparedStatement = connection.prepareStatement("SELECT x0.ID,x0.SHARD_MAP,x0.C_VALUE,x0.C_A_REF,x0.C_NEW_VALUE,x0.C_EXECUTE_TIME FROM TEST_B x0 WHERE x0.SHARD_MAP>=0 and x0.C_VALUE like ?");
+            PreparedStatement preparedStatementC = connection.prepareStatement("SELECT x0.ID,x0.SHARD_MAP,x0.C_VALUE,x0.C_NEW_VALUE,x0.C_B_REF,x0.C_EXECUTE_TIME FROM TEST_C x0 WHERE x0.SHARD_MAP>=0 and x0.C_B_REF=?");
 
+            System.out.println("preparedStatement.getFetchSize() = " + preparedStatement.getFetchSize());
+
+
+            preparedStatement.setString(1, value);
+
+            List<TestBEntity> entities = new ArrayList<>();
+            ResultSet result = preparedStatement.executeQuery();
+            while (result.next()) {
+                TestBEntity b = new TestBEntity();
+                b.setId(result.getLong(1));
+                b.setShardMap(result.getLong(2));
+                b.setValue(result.getString(3));
+                b.setNewValue(result.getString(5));
+                b.setExecuteTime(result.getDate(6));
+/*
+                b.setCList(
+                        findAllCStatement(
+                                b.getId(),
+                                preparedStatementC
+                        )
+                );
+*/
+                entities.add(b);
+            }
+            connection.close();
+            return entities;
+        } catch (Exception err) {
+            throw new RuntimeException(err);
+        }
+    }
+
+    @Override
+    public List<TestCEntity> findAllCStatement(Long id, PreparedStatement preparedStatement) {
+        List<TestCEntity> ret = new ArrayList<>();
+        try {
             preparedStatement.setLong(1, id);
 
             ResultSet result = preparedStatement.executeQuery();
