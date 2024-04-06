@@ -30,9 +30,12 @@ public class ResultParallelQuery implements ResultQuery {
         if (currentIndex >= results.size()) {
             return false;
         }
-        this.currentResult = results.get(currentIndex);
+        if (this.currentResult == null) {
+            this.currentResult = results.get(currentIndex);
+        }
         if (!currentResult.next() || !uniqueKey()) {
             this.currentIndex++;
+            this.currentResult = null;
             return next();
         }
         return true;

@@ -1,5 +1,6 @@
 package com.antalex.db.service.impl;
 
+import com.antalex.db.exception.ShardDataBaseException;
 import com.antalex.db.model.enums.QueryType;
 import com.antalex.db.service.abstractive.AbstractTransactionalQuery;
 import com.antalex.db.service.api.ResultQuery;
@@ -12,6 +13,7 @@ import java.util.UUID;
 
 public class TransactionalSQLQuery extends AbstractTransactionalQuery {
     private PreparedStatement preparedStatement;
+    private static final int FETCH_SIZE = 100000;
 
     TransactionalSQLQuery(String query, QueryType queryType, PreparedStatement preparedStatement) {
         this.preparedStatement = preparedStatement;
@@ -78,6 +80,7 @@ public class TransactionalSQLQuery extends AbstractTransactionalQuery {
 
     @Override
     public ResultQuery executeQuery() throws SQLException {
+        this.preparedStatement.setFetchSize(FETCH_SIZE);
         this.result = new ResultSQLQuery(this.preparedStatement.executeQuery());
         return result;
     }
