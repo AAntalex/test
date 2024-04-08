@@ -515,21 +515,36 @@ public class ApplicationTests {
 		List<TestBEntity> testBEntities = testService.generate(2, 10, null, "Json");
 
 		try {
-			String jSonText = objectMapper.writeValueAsString(testBEntities.get(0));
-			System.out.println("jSonText = " + jSonText);
+            String jSonText;
+            TestAEntity a = new TestAEntity();
+            a.setId(2345L);
+            a.setValue("AValue");
 
+            TestBEntity b = testBEntities.get(0);
+
+            ObjectNode root = objectMapper.createObjectNode();
+
+            root.putPOJO("id", 1111L);
+            root.putPOJO("executeTime", b.getExecuteTime());
+
+            root.putPOJO("a", a);
+            jSonText = root.toString();
+
+            System.out.println("jSonText 0 = " + jSonText);
+
+/*
+			jSonText = objectMapper.writeValueAsString(testBEntities.get(0));
+			System.out.println("jSonText 1 = " + jSonText);
+*/
 
             testBEntities.get(0).setId(123L);
 
 
 //            List<TestBEntity> bList = Arrays.asList(objectMapper.readValue(jSonText, TestBEntity[].class));
-            TestBEntity b = objectMapper.readValue(jSonText, TestBEntity.class);
+            b = objectMapper.readValue(jSonText, TestBEntity.class);
 
-            ObjectNode root = (ObjectNode) objectMapper.readTree(jSonText);
+            root = (ObjectNode) objectMapper.readTree(jSonText);
 
-            TestAEntity a = new TestAEntity();
-            a.setId(2345L);
-            a.setValue("AValue");
             root.put("a", objectMapper.writeValueAsString(a));
             jSonText = root.asText();
             System.out.println("jSonText = " + jSonText);
