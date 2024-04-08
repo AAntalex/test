@@ -17,6 +17,11 @@ import com.antalex.service.AdditionalParameterService;
 import com.antalex.service.TestService;
 import com.antalex.service.TestShardService;
 import com.antalex.service.impl.TestBShardEntityRepositoryTest;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.hibernate.dialect.Dialect;
 import org.hibernate.engine.jdbc.dialect.internal.StandardDialectResolver;
 import org.hibernate.engine.jdbc.dialect.spi.DatabaseMetaDataDialectResolutionInfoAdapter;
@@ -30,6 +35,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import java.sql.Connection;
+import java.util.Arrays;
 import java.util.List;
 
 @RunWith(SpringRunner.class)
@@ -60,6 +66,8 @@ public class ApplicationTests {
 	private EntityManagerFactory entityManagerFactory;
 	@Autowired
 	private TestBShardEntityRepositoryTest testBShardEntityRepositoryTest;
+	@Autowired
+	private ObjectMapper objectMapper;
 
 //	@Test
 	public void dialect() {
@@ -190,7 +198,7 @@ public class ApplicationTests {
 		System.out.println(profiler.printTimeCounter());
 	}
 
-	@Test
+//	@Test
 	public void findAllJPA() {
 		profiler.start("findAllJPA");
 		List<TestBEntity> bList = testBRepository.findAllByValueLike("JPA%");
@@ -205,7 +213,7 @@ public class ApplicationTests {
 		System.out.println(profiler.printTimeCounter());
 	}
 
-	@Test
+//	@Test
 	public void findAllShard() {
 		profiler.start("findAllShard");
 		List<TestBShardEntity> bList = entityManager.findAll(
@@ -223,7 +231,7 @@ public class ApplicationTests {
 		System.out.println(profiler.printTimeCounter());
 	}
 
-	@Test
+//	@Test
 	public void findAllMBatis() {
 		profiler.start("findAllMBatis");
 		List<TestBEntity> bList = testService.findAllByValueLikeMBatis("MyBatis%");
@@ -239,7 +247,7 @@ public class ApplicationTests {
 		System.out.println(profiler.printTimeCounter());
 	}
 
-	@Test
+//	@Test
 	public void findAllStatement() {
 		profiler.start("findAllStatement");
 		List<TestBEntity> bList = testService.findAllBByValueLikeStatement("Statement%");
@@ -498,6 +506,43 @@ public class ApplicationTests {
 
 //		String hexStr = Integer.toString(63,32);
 
+		System.out.println(profiler.printTimeCounter());
+	}
+
+	@Test
+	public void testJson() {
+		profiler.start("testJson");
+		List<TestBEntity> testBEntities = testService.generate(2, 10, null, "Json");
+
+		try {
+			String jSonText = objectMapper.writeValueAsString(testBEntities.get(0));
+			System.out.println("jSonText = " + jSonText);
+
+
+            testBEntities.get(0).setId(123L);
+
+
+//            List<TestBEntity> bList = Arrays.asList(objectMapper.readValue(jSonText, TestBEntity[].class));
+            TestBEntity b = objectMapper.readValue(jSonText, TestBEntity.class);
+
+            ObjectNode root = (ObjectNode) objectMapper.readTree(jSonText);
+
+            TestAEntity a = new TestAEntity();
+            a.setId(2345L);
+            a.setValue("AValue");
+            root.put("a", objectMapper.writeValueAsString(a));
+            jSonText = root.asText();
+            System.out.println("jSonText = " + jSonText);
+
+
+
+
+
+		} catch (JsonProcessingException err) {
+			throw new RuntimeException(err);
+		}
+
+		profiler.stop();
 		System.out.println(profiler.printTimeCounter());
 	}
 

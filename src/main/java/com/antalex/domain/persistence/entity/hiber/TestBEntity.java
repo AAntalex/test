@@ -22,7 +22,7 @@ public class TestBEntity extends BaseShardEntity {
     private Long shardMap;
     @Column(name = "C_VALUE")
     private String value;
-    @OneToOne
+    @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "C_A_REF")
     private TestAEntity a;
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
