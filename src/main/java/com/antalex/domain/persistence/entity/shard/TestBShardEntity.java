@@ -17,10 +17,10 @@ import java.util.Date;
 import java.util.List;
 
 @Table(
-        name = "TEST_B"/*,
+        name = "TEST_B",
         indexes = {
                 @Index(name = "IDX_TEST_B_VALUE", columnList = "newValue,value", unique = true)
-        }*/)
+        })
 @Data
 @ShardEntity(type = ShardType.MULTI_SHARDABLE)
 public class TestBShardEntity extends BaseShardEntity {
