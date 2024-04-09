@@ -777,6 +777,9 @@ public class ShardedEntityProcessor extends AbstractProcessor {
         return  "    @Override\n" +
                 "    public List<" + classDto.getTargetClassName() +
                 "> findAll(ShardInstance parent, String condition, Object... binds) {\n" +
+                "        if (parent.getStorageContext().getCluster() != this.cluster) {\n" +
+                "            return findAll(condition, binds);\n" +
+                "        }\n" +
                 "        return findAll(\n" +
                 "                entityManager\n" +
                 "                        .createQuery(\n" +
