@@ -61,11 +61,11 @@ public class TestBShardEntityRepositoryTest {
                 TestBShardEntityInterceptor$ entityInterceptor = (TestBShardEntityInterceptor$) entity;
                 entity.setShardMap(result.getLong(++index));
                 entityInterceptor.setValue(result.getString(++index), false);
-                entityInterceptor.setA(entityManager.newEntity(TestAShardEntity.class, result.getLong(++index)), false);
+                entityInterceptor.setA(entityManager.getEntity(TestAShardEntity.class, result.getLong(++index)), false);
                 entityInterceptor.setNewValue(result.getString(++index), false);
                 entityInterceptor.setExecuteTime(result.getDate(++index), false);
                 entity.getStorageContext().setLazy(false);
-                entityInterceptor.setLazyLists();
+                entityInterceptor.init();
             }
         } catch (Exception err) {
             throw new RuntimeException(err);
@@ -93,7 +93,7 @@ public class TestBShardEntityRepositoryTest {
         try {
             while (result.next()) {
                 profiler.startTimeCounter("while", "AAA");
-                TestBShardEntity entity = entityManager.newEntity(TestBShardEntity.class, result.getLong(1));
+                TestBShardEntity entity = entityManager.getEntity(TestBShardEntity.class, result.getLong(1));
                 int index = 0;
                 profiler.startTimeCounter("extractValues", "AAA");
                 extractValues(entity, result, index);
