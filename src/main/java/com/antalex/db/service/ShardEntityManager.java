@@ -29,7 +29,7 @@ public interface ShardEntityManager {
     <T extends ShardInstance> void setStorage(T entity, ShardInstance parent);
     <T extends ShardInstance> void setAllStorage(Iterable<T> entities, ShardInstance parent);
     <T extends ShardInstance> T newEntity(Class<T> clazz);
-    <T extends ShardInstance> T newEntity(Class<T> clazz, Long id);
+    <T extends ShardInstance> T getEntity(Class<T> clazz, Long id);
     <T extends ShardInstance> TransactionalQuery createQuery(
             T entity,
             String query,

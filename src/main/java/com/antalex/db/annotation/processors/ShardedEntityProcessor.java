@@ -532,7 +532,7 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                     "        this.entityManager = entityManager;\n" +
                     "    }\n");
             out.println(getLazyFlagsCode(classDto));
-            out.println(getSetLazyListsCode(classDto));
+            out.println(getInitCode(classDto));
             out.println(getGettersCode(classDto));
             out.println(getSettersCode(classDto));
             out.println("}");
@@ -591,17 +591,28 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                 .reduce(StringUtils.EMPTY, String::concat);
     }
 
-    private static String getSetLazyListsCode(ClassDto classDto) {
+    private static String getInitCode(ClassDto classDto) {
         return classDto.getFields()
                 .stream()
                 .filter(field ->
                         field.getIsLinked() &&
                                 Objects.nonNull(field.getGetter()) &&
-                                !isAnnotationPresent(field.getElement(), Transient.class) &&
-                                isLazyList(field)
+                                !isAnnotationPresent(field.getElement(), Transient.class)
                 )
-                .map(field -> "\n        this." + field.getFieldName() + "Lazy = true;")
-                .reduce("    public void setLazyLists() {", String::concat) + "    }" ;
+                .map(field ->
+                        isLazyList(field) ? "\n        this." + field.getFieldName() + "Lazy = true;" :
+                                "\n        this." + field.getSetter() + "(entityManager.findAll(" + getFinalType(field) +
+                                        ".class, " +
+                                        (
+                                                isAnnotationPresent(
+                                                        field.getElement(),
+                                                        ParentShard.class
+                                                ) ?
+                                                        "this, " :
+                                                        StringUtils.EMPTY
+                                        ) + "\"x0." + field.getColumnName() + "=?\", this.id));"
+                )
+                .reduce("    public void init() {", String::concat) + "\n    }" ;
     }
 
     private static String getGettersCode(ClassDto classDto) {
@@ -718,14 +729,14 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                 "    }\n" +
                 "\n" +
                 "    @Override\n" +
-                "    public " + classDto.getTargetClassName() + " newEntity(Long id, StorageContext" +
+                "    public " + classDto.getTargetClassName() + " getEntity(Long id, StorageContext" +
                 " storageContext) {\n" +
                 "        " + classDto.getTargetClassName() + CLASS_INTERCEPT_POSTFIX +" entity = new " +
                 classDto.getTargetClassName() + CLASS_INTERCEPT_POSTFIX + "();\n" +
                 "        entity.setId(id);\n" +
                 "        entity.setStorageContext(storageContext);\n" +
                 "        entity.setEntityManager(entityManager);\n" +
-                "        entity.setLazyLists();\n" +
+                "        entity.init();\n" +
                 "        return entity;\n" +
                 "    }";
     }
@@ -802,7 +813,7 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                 "        try {\n" +
                 "            while (result.next()) {\n" +
                 "                " + classDto.getTargetClassName() +
-                " entity = entityManager.newEntity(" + classDto.getTargetClassName() + ".class, result.getLong(1));\n" +
+                " entity = entityManager.getEntity(" + classDto.getTargetClassName() + ".class, result.getLong(1));\n" +
                 getProcessResultCode(classDto) +
                 "                entities.add(entity);\n" +
                 "            }\n" +
@@ -914,7 +925,7 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                         "                entityInterceptor." + field.getSetter() +
                                 (
                                         isAnnotationPresentByType(field, ShardEntity.class) ?
-                                                "(entityManager.newEntity(" + getTypeField(field) +
+                                                "(entityManager.getEntity(" + getTypeField(field) +
                                                         ".class, result.getLong(++index)), false);\n" :
                                         "(" + getResultObjectCode(field) + ", false);\n"
                                 )
@@ -932,7 +943,7 @@ public class ShardedEntityProcessor extends AbstractProcessor {
                         String::concat
                 ) +
                 "                entity.getStorageContext().setLazy(false);\n" +
-                "                entityInterceptor.setLazyLists();\n" +
+                "                entityInterceptor.init();\n" +
                 "            }\n" +
                 "        } catch (Exception err) {\n" +
                 "            throw new RuntimeException(err);\n" +

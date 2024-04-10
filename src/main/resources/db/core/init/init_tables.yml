@@ -94,3 +94,43 @@ databaseChangeLog:
           - column:
               name: ROWS_PROCESSED
               type: int
+      - createTable:
+          tableName: APP_DOMAIN_STORAGE
+          columns:
+          - column:
+              name: ID
+              type: bigint
+              constraints:
+                primaryKey: true
+                nullable: false
+                primaryKeyName: PK_DOMAIN_STORAGE_ID
+          - column:
+              name: SN
+              type: int
+          - column:
+              name: ST
+              type: VARCHAR(40)
+          - column:
+              name: SHARD_MAP
+              type: bigint
+          - column:
+              name: C_ENTITY_ID
+              type: bigint
+          - column:
+              name: C_STORAGE_NAME
+              type: VARCHAR(128)
+          - column:
+              name: C_DATA
+              type: clob
+          - column:
+              name: C_DATA_FORMAT
+              type: VARCHAR(40)
+      - createIndex:
+          columns:
+          - column:
+              name: C_ENTITY_ID
+          - column:
+              name: C_STORAGE_NAME
+          indexName: IDX_DOMAIN_STORAGE_MAIN
+          tableName: APP_DOMAIN_STORAGE
+          unuque: true

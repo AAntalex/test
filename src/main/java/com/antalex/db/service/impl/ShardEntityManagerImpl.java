@@ -383,14 +383,14 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
     }
 
     @Override
-    public <T extends ShardInstance> T newEntity(Class<T> clazz, Long id) {
+    public <T extends ShardInstance> T getEntity(Class<T> clazz, Long id) {
         if (Optional.ofNullable(id).map(it -> it.equals(0L)).orElse(true)) {
             return null;
         }
         T entity = getEntity(id);
         if (Objects.isNull(entity)) {
             ShardEntityRepository<T> repository = getEntityRepository(clazz);
-            entity = repository.newEntity(id, dataBaseManager.getStorageContext(id));
+            entity = repository.getEntity(id, dataBaseManager.getStorageContext(id));
             addEntity(id, entity);
         }
         return entity;
@@ -398,7 +398,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
 
     @Override
     public <T extends ShardInstance> T find(Class<T> clazz, Long id) {
-        return find(newEntity(clazz, id));
+        return find(getEntity(clazz, id));
     }
 
     @Override
@@ -474,6 +474,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
         }
     }
 
+    @SuppressWarnings("unchecked")
     private <T extends ShardInstance> T getEntity(Long id) {
         if (id == null) {
             return null;
