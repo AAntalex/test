@@ -60,20 +60,6 @@ public abstract class BaseShardEntity implements ShardInstance {
     }
 
     @Override
-    public boolean isChanged(int index) {
-        return Optional.ofNullable(this.storageContext)
-                .map(it -> it.isChanged(index))
-                .orElse(false);
-    }
-
-    @Override
-    public Long getChanges() {
-        return Optional.ofNullable(this.storageContext)
-                .map(StorageContext::getChanges)
-                .orElse(null);
-    }
-
-    @Override
     public Boolean isStored() {
         return Optional.ofNullable(this.storageContext)
                 .map(StorageContext::isStored)
@@ -81,30 +67,9 @@ public abstract class BaseShardEntity implements ShardInstance {
     }
 
     @Override
-    public void setChanges(int index) {
-        if (this.storageContext != null) {
-            this.storageContext.setChanges(index);
-        }
-    }
-
-    @Override
     public boolean hasNewShards() {
         return Optional.ofNullable(this.storageContext)
                 .map(StorageContext::hasNewShards)
-                .orElse(false);
-    }
-
-    @Override
-    public boolean hasMainShard() {
-        return Optional.ofNullable(this.storageContext)
-                .map(StorageContext::hasMainShard)
-                .orElse(false);
-    }
-
-    @Override
-    public boolean isLazy() {
-        return Optional.ofNullable(this.storageContext)
-                .map(StorageContext::isLazy)
                 .orElse(false);
     }
 
@@ -123,11 +88,40 @@ public abstract class BaseShardEntity implements ShardInstance {
                 this.storageContext.setTransactionalContext((SharedEntityTransaction) transaction);
     }
 
-    @Override
+    public boolean hasMainShard() {
+        return Optional.ofNullable(this.storageContext)
+                .map(StorageContext::hasMainShard)
+                .orElse(false);
+    }
+
     public void setShardMap(Long shardMap) {
         if (this.storageContext != null) {
             this.storageContext.setShardMap(Math.abs(shardMap));
             this.storageContext.setOriginalShardMap(this.storageContext.getShardMap());
+        }
+    }
+
+    public boolean isChanged(int index) {
+        return Optional.ofNullable(this.storageContext)
+                .map(it -> it.isChanged(index))
+                .orElse(false);
+    }
+
+    public Long getChanges() {
+        return Optional.ofNullable(this.storageContext)
+                .map(StorageContext::getChanges)
+                .orElse(null);
+    }
+
+    public boolean isLazy() {
+        return Optional.ofNullable(this.storageContext)
+                .map(StorageContext::isLazy)
+                .orElse(false);
+    }
+
+    protected void setChanges(int index) {
+        if (this.storageContext != null) {
+            this.storageContext.setChanges(index);
         }
     }
 }

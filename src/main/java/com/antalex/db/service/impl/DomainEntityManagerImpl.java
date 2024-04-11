@@ -61,17 +61,18 @@ public class DomainEntityManagerImpl implements DomainEntityManager {
 
     @Override
     public <T extends Domain> T find(Class<T> clazz, Long id) {
-        return getDomain(clazz, (ShardInstance) entityManager.find(getMapper(clazz).entityClass, id));
+        return map(clazz, (ShardInstance) entityManager.find(getMapper(clazz).entityClass, id));
     }
 
     @Override
     public <T extends Domain> T newDomain(Class<T> clazz) {
-        return (T) getMapper(clazz).domainEntityMapper.newDomain();
+        Mapper mapper = getMapper(clazz);
+        return (T) mapper.domainEntityMapper.newDomain(entityManager.newEntity(mapper.entityClass));
     }
 
     @Override
-    public <T extends Domain> T getDomain(Class<T> clazz, ShardInstance entity) {
-        return (T) getMapper(clazz).domainEntityMapper.getDomain(clazz, entity);
+    public <T extends Domain, M extends ShardInstance> T map(Class<T> clazz, M entity) {
+        return (T) getMapper(clazz).domainEntityMapper.map(entity);
     }
 
     @AllArgsConstructor

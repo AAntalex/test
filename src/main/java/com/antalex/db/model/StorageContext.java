@@ -2,6 +2,7 @@ package com.antalex.db.model;
 
 import com.antalex.db.service.impl.SharedEntityTransaction;
 import com.antalex.db.utils.ShardUtils;
+import com.antalex.db.utils.Utils;
 import lombok.Builder;
 
 import java.util.Objects;
@@ -62,15 +63,10 @@ public class StorageContext {
         }
     }
 
-    private Long addChanges(int index, Long changes) {
-        return Optional.ofNullable(changes).orElse(0L) |
-                (index > Long.SIZE ? 0L : (1L << (index - 1)));
-    }
-
     public void setChanges(int index) {
-        this.changes = addChanges(index, this.changes);
+        this.changes = Utils.addChanges(index, this.changes);
         if (this.transactionalContext != null) {
-            this.transactionalContext.changes = addChanges(index, this.transactionalContext.changes);
+            this.transactionalContext.changes = Utils.addChanges(index, this.transactionalContext.changes);
         }
     }
 
@@ -92,8 +88,8 @@ public class StorageContext {
     public Boolean isChanged(int index) {
         return Optional.ofNullable(this.transactionalContext)
                 .filter(it -> !it.transaction.hasError())
-                .map(it -> isChanged(index, it.changes))
-                .orElse(isChanged(index, this.changes));
+                .map(it -> Utils.isChanged(index, it.changes))
+                .orElse(Utils.isChanged(index, this.changes));
     }
 
     public Boolean isStored() {
@@ -155,12 +151,6 @@ public class StorageContext {
 
     public boolean isLazy() {
         return isLazy;
-    }
-
-    private Boolean isChanged(int index, Long changes) {
-        return Optional.ofNullable(changes)
-                .map(it -> index > Long.SIZE || (it & (1L << (index - 1))) > 0L)
-                .orElse(false);
     }
 
     private class TransactionalContext {

@@ -7,13 +7,11 @@ import javax.lang.model.element.Element;
 
 @Data
 @Builder
-public class FieldDto {
+public class DomainFieldDto {
     private String fieldName;
     private Element element;
-    private String columnName;
-    private int columnIndex;
+    private int fieldIndex;
     private String getter;
     private String setter;
-    private Boolean isLinked;
-    private boolean isUnique;
+    private EntityFieldDto entityField;
 }
