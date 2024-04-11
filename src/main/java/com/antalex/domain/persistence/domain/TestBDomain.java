@@ -5,7 +5,6 @@ import com.antalex.db.annotation.DomainEntity;
 import com.antalex.db.annotation.Storage;
 import com.antalex.db.domain.abstraction.BaseDomain;
 import com.antalex.db.model.enums.MappingType;
-import com.antalex.domain.persistence.entity.shard.TestAShardEntity;
 import com.antalex.domain.persistence.entity.shard.TestBShardEntity;
 import lombok.Data;
 
