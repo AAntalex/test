@@ -9,7 +9,6 @@ import lombok.Data;
 @Builder
 public class StorageDto {
     private String name;
-    private Class clazz;
     private String cluster;
     private ShardType shardType;
     private DataFormat dataFormat;

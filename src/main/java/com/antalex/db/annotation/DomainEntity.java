@@ -9,6 +9,6 @@ import java.lang.annotation.*;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface DomainEntity {
     Class<? extends ShardInstance> value();
-    Storage storage() default @Storage;
-    Storage[] storages() default {};
+    Storage storage() default @Storage("<DEFAULT>");
+    Storage[] additionalStorage() default {};
 }

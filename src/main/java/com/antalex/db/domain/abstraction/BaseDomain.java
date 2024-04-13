@@ -52,4 +52,8 @@ public abstract class BaseDomain implements Domain {
     public Boolean isChanged() {
         return Objects.nonNull(this.changes);
     }
+
+    public void dropChanges() {
+        this.changes = null;
+    }
 }

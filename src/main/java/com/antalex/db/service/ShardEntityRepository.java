@@ -7,7 +7,6 @@ import com.antalex.db.model.enums.ShardType;
 import com.antalex.db.service.api.ResultQuery;
 
 import java.util.List;
-import java.util.Objects;
 
 public interface ShardEntityRepository<T extends ShardInstance> {
     ShardType getShardType();

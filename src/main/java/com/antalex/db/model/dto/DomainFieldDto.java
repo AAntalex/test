@@ -14,4 +14,5 @@ public class DomainFieldDto {
     private String getter;
     private String setter;
     private EntityFieldDto entityField;
+    private StorageDto storage;
 }

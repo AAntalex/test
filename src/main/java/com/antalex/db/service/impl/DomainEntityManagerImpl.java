@@ -11,6 +11,7 @@ import org.springframework.core.GenericTypeResolver;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Component
 @Primary
@@ -71,13 +72,83 @@ public class DomainEntityManagerImpl implements DomainEntityManager {
     }
 
     @Override
-    public <T extends Domain, M extends ShardInstance> T map(Class<T> clazz, M entity) {
+    public <T extends Domain, M extends ShardInstance> T map(final Class<T> clazz, M entity) {
         return (T) getMapper(clazz).domainEntityMapper.map(entity);
+    }
+
+    @Override
+    public <T extends Domain, M extends ShardInstance> M map(final Class<T> clazz, T domain) {
+        return (M) getMapper(clazz).domainEntityMapper.map(domain);
+    }
+
+    @Override
+    public <T extends Domain, M extends ShardInstance> List<M> mapAllToEntities(
+            Class<T> clazz,
+            List<T> domains)
+    {
+        Mapper mapper = getMapper(clazz);
+        return (List) domains.stream()
+                .map(mapper.domainEntityMapper::map)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public <T extends Domain, M extends ShardInstance> List<T> mapAllToDomains(Class<T> clazz, List<M> entities) {
+        Mapper mapper = getMapper(clazz);
+        return (List) entities.stream()
+                .map(mapper.domainEntityMapper::map)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public <T extends Domain> T save(T domain) {
+        if (domain == null) {
+            return null;
+        }
+        Mapper mapper = getMapper(domain.getClass());
+        entityManager.save(mapper.domainEntityMapper.map(domain));
+        return domain;
+    }
+
+    @Override
+    public <T extends Domain> T update(T domain) {
+        if (domain == null) {
+            return null;
+        }
+        Mapper mapper = getMapper(domain.getClass());
+        entityManager.update(mapper.domainEntityMapper.map(domain));
+        return domain;
+    }
+
+    @Override
+    public <T extends Domain> List<T> updateAll(List<T> domains) {
+        return saveAll(domains, true);
+    }
+
+    @Override
+    public <T extends Domain> List<T> saveAll(List<T> domains) {
+        return saveAll(domains, false);
     }
 
     @AllArgsConstructor
     private class Mapper {
         DomainEntityMapper domainEntityMapper;
         Class entityClass;
+    }
+
+    private <T extends Domain> List<T> saveAll(List<T> domains, boolean isUpdate) {
+        if (domains == null) {
+            return null;
+        }
+        Class clazz = domains.stream().map(Object::getClass).findAny().orElse(null);
+        if (clazz == null) {
+            return domains;
+        }
+        if (isUpdate) {
+            entityManager.updateAll(mapAllToEntities(clazz, domains));
+        } else {
+            entityManager.saveAll(mapAllToEntities(clazz, domains));
+        }
+        return domains;
     }
 }
