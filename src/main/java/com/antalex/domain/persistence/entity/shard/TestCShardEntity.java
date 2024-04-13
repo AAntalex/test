@@ -6,10 +6,8 @@ import com.antalex.db.entity.abstraction.BaseShardEntity;
 import lombok.Data;
 
 import javax.persistence.Column;
-import javax.persistence.JoinColumn;
-import javax.persistence.OneToOne;
 import javax.persistence.Table;
-import java.util.Date;
+import java.time.LocalDateTime;
 
 @Table(name = "TEST_C")
 @Data
@@ -19,5 +17,5 @@ public class TestCShardEntity extends BaseShardEntity {
     private String newValue;
     @Column(name = "C_B_REF")
     private Long b;
-    private Date executeTime;
+    private LocalDateTime executeTime;
 }

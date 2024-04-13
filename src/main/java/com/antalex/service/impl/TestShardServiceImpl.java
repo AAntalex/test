@@ -41,7 +41,7 @@ public class TestShardServiceImpl implements TestShardService {
             TestAShardEntity a = entityManager.newEntity(TestAShardEntity.class);
             a.setValue(prefix + "A");
             a.setNewValue(prefix + "newA" + i);
-            a.setExecuteTime(new Date());
+            a.setExecuteTime(LocalDateTime.now());
             aList.add(a);
         }
 
@@ -56,14 +56,14 @@ public class TestShardServiceImpl implements TestShardService {
 
             b.setValue(prefix + "B");
             b.setNewValue(prefix + "newB" + i);
-            b.setExecuteTime(new Date());
+            b.setExecuteTime(LocalDateTime.now());
 
             List<TestCShardEntity> cEntities = new ArrayList<>();
             for (int j = 0; j < cntArray; j++) {
                 TestCShardEntity c = entityManager.newEntity(TestCShardEntity.class);
                 c.setValue(prefix + "C");
                 c.setNewValue(prefix + "newC" + (i * cntArray + j));
-                c.setExecuteTime(new Date());
+                c.setExecuteTime(LocalDateTime.now());
                 cEntities.add(c);
             }
             b.getCList().addAll(cEntities);

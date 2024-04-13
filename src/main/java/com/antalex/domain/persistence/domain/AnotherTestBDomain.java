@@ -14,10 +14,11 @@ import java.util.Date;
 
 @DomainEntity(
         value = TestBShardEntity.class,
-        storages = {
-                @Storage(value = TestBDomain.class, cluster = "RAW", name = "TestBDomain"),
-                @Storage(cluster = "RAW", name = "routingSection"),
-                @Storage(cluster = "RAW", name = "accountingSection"),
+        storage = @Storage("MyStorage"),
+        additionalStorage = {
+                @Storage(value = "TestBDomain", cluster = "RAW"),
+                @Storage(cluster = "RAW", value = "routingSection"),
+                @Storage(cluster = "RAW", value = "accountingSection"),
         })
 @Data
 public class AnotherTestBDomain extends BaseDomain {

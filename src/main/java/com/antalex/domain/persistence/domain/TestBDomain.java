@@ -10,13 +10,15 @@ import lombok.Data;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 @DomainEntity(
         value = TestBShardEntity.class,
-        storages = {
-                @Storage(cluster = "RAW", name = "routingSection"),
-                @Storage(cluster = "RAW", name = "accountingSection"),
+        additionalStorage = {
+                @Storage(value = "routingSection", cluster = "RAW"),
+                @Storage(value = "accountingSection", cluster = "RAW"),
         })
 @Data
 public class TestBDomain extends BaseDomain {
@@ -25,9 +27,11 @@ public class TestBDomain extends BaseDomain {
     @Attribute
     private String newValue;
     @Attribute
-    private Date executeTime;
+    private LocalDateTime executeTime;
     @Attribute(name = "a")
     private TestADomain TestA;
+    @Attribute(name = "cList")
+    private List<TestCDomain> testList = new ArrayList<>();
 
     @Attribute(mappingType = MappingType.STORAGE)
     private String note;
@@ -37,7 +41,7 @@ public class TestBDomain extends BaseDomain {
     @Attribute(name = "amount", storage = "accountingSection", mappingType = MappingType.STORAGE)
     private BigDecimal sum;
     @Attribute(storage = "accountingSection", mappingType = MappingType.STORAGE)
-    private BigDecimal numDoc;
+    private Integer numDoc;
     @Attribute(storage = "accountingSection", mappingType = MappingType.STORAGE)
     private Date dateDoc;
 

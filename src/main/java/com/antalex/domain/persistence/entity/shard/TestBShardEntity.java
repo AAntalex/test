@@ -8,18 +8,15 @@ import com.antalex.db.model.enums.ShardType;
 import lombok.Data;
 
 import javax.persistence.*;
-import java.math.BigDecimal;
-import java.net.URL;
-import java.sql.*;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Date;
+
 import java.util.List;
 
 @Table(
         name = "TEST_B",
         indexes = {
-                @Index(name = "IDX_TEST_B_VALUE", columnList = "newValue,value", unique = true)
+                @Index(name = "IDX_TEST_B_VALUE", columnList = "value", unique = true)
         })
 @Data
 @ShardEntity(type = ShardType.MULTI_SHARDABLE)
@@ -34,5 +31,5 @@ public class TestBShardEntity extends BaseShardEntity {
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
     @JoinColumn(name = "C_B_REF")
     private List<TestCShardEntity> cList = new ArrayList<>();
-    private Date executeTime;
+    private LocalDateTime executeTime;
 }

@@ -6,13 +6,13 @@ import com.antalex.db.entity.abstraction.BaseShardEntity;
 import lombok.Data;
 
 import javax.persistence.*;
-import java.util.Date;
+import java.time.LocalDateTime;
 
 @Table(name = "TEST_A")
 @Data
-@ShardEntity
+@ShardEntity(cluster = "RAW")
 public class TestAShardEntity extends BaseShardEntity {
     private String value;
     private String newValue;
-    private Date executeTime;
+    private LocalDateTime executeTime;
 }

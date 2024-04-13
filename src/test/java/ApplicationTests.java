@@ -1,8 +1,11 @@
-import com.antalex.db.model.enums.QueryStrategy;
 import com.antalex.db.model.enums.QueryType;
+import com.antalex.db.service.DomainEntityManager;
 import com.antalex.db.service.ShardDataBaseManager;
 import com.antalex.db.service.ShardEntityManager;
 import com.antalex.db.utils.ShardUtils;
+import com.antalex.domain.persistence.domain.TestADomain;
+import com.antalex.domain.persistence.domain.TestBDomain;
+import com.antalex.domain.persistence.domain.TestCDomain;
 import com.antalex.domain.persistence.entity.AdditionalParameterEntity;
 import com.antalex.domain.persistence.entity.hiber.TestAEntity;
 import com.antalex.domain.persistence.entity.hiber.TestBEntity;
@@ -14,12 +17,10 @@ import com.antalex.domain.persistence.repository.TestBRepository;
 import com.antalex.optimizer.OptimizerApplication;
 import com.antalex.profiler.service.ProfilerService;
 import com.antalex.service.AdditionalParameterService;
+import com.antalex.service.TestDomainService;
 import com.antalex.service.TestService;
 import com.antalex.service.TestShardService;
-import com.antalex.service.impl.TestBShardEntityRepositoryTest;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.hibernate.dialect.Dialect;
@@ -32,10 +33,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import java.sql.Connection;
-import java.util.Arrays;
 import java.util.List;
 
 @RunWith(SpringRunner.class)
@@ -65,9 +64,11 @@ public class ApplicationTests {
 	@Autowired
 	private EntityManagerFactory entityManagerFactory;
 	@Autowired
-	private TestBShardEntityRepositoryTest testBShardEntityRepositoryTest;
-	@Autowired
 	private ObjectMapper objectMapper;
+	@Autowired
+	private TestDomainService domainService;
+	@Autowired
+	private DomainEntityManager domainEntityManager;
 
 //	@Test
 	public void dialect() {
@@ -325,7 +326,7 @@ public class ApplicationTests {
 	}
 
 
-//	@Test
+	@Test
 	public void saveJPA() {
         databaseManager.sequenceNextVal();
 		profiler.start("testService.generate");
@@ -341,7 +342,7 @@ public class ApplicationTests {
 		System.out.println("testBEntities.size = " + testBEntities.size());
 	}
 
-//	@Test
+	@Test
 	public void saveMyBatis() {
         databaseManager.sequenceNextVal();
 		profiler.start("testService.generate");
@@ -356,7 +357,7 @@ public class ApplicationTests {
 		System.out.println("testBEntities.size = " + testBEntities.size());
 	}
 
-//	@Test
+	@Test
 	public void saveStatement() {
         databaseManager.sequenceNextVal();
 		profiler.start("testService.generate");
@@ -371,8 +372,8 @@ public class ApplicationTests {
 		System.out.println("testBEntities.size = " + testBEntities.size());
 	}
 
-//	@Test
-	public void saveShard() {
+	@Test
+	public void save0Shard() {
         databaseManager.sequenceNextVal();
 		profiler.start("testShardService.generate");
 		List<TestBShardEntity>  testBEntities2 = testShardService.generate(1000, 100, "Shard5");
@@ -388,11 +389,12 @@ public class ApplicationTests {
 
 		System.out.println("testBEntities2.size = " + testBEntities2.size());
 
-
+/*
 		TestBShardEntity b = testBEntities2.get(0);
 		TestAShardEntity a = b.getA();
 		b.setNewValue("ShardNewVal_B!!!");
 		System.out.println("AAA!!!!!!!!!!!!!! b = " + b.getId());
+		System.out.println("AAA!!!!!!!!!!!!!! a.getValue = " + a.getValue());
 		TestCShardEntity c = b.getCList().get(10);
 		c.setNewValue("ShardNewVal_C!!! c = " + c.getId());
 
@@ -424,7 +426,63 @@ public class ApplicationTests {
 		);
 
 		System.out.println("STOP");
+		*/
 	}
+
+	@Test
+	public void saveDomain() {
+		databaseManager.sequenceNextVal();
+		profiler.start("saveDomain.generate");
+		List<TestBDomain> testBDomains = domainService.generate(1000, 100, "Domain");
+		profiler.stop();
+		System.out.println(profiler.printTimeCounter());
+
+		profiler.start("saveDomain.save");
+
+		domainEntityManager.updateAll(testBDomains);
+
+		profiler.stop();
+		System.out.println(profiler.printTimeCounter());
+
+		System.out.println("testBDomains.size = " + testBDomains.size());
+
+/*
+		TestBDomain b = testBDomains.get(0);
+		TestADomain a = b.getTestA();
+
+		b.setNewValue("DomainNewVal_B!!!");
+		b.setValue("DomainVal_B!!!");
+		System.out.println("AAA!!!!!!!!!!!!!! b = " + b.getEntity().getId());
+		System.out.println("AAA!!!!!!!!!!!!!! a.getValue = " + a.getValue());
+		TestCDomain c = b.getTestList().get(10);
+		c.setValue("DomainNewVal_C!!! c = " + c.getEntity().getId());
+
+		b = testBDomains.get(7);
+		b.setValue(b.getValue());
+		System.out.println("AAA!!!!!!!!!!!!!! b = " + b.getEntity().getId());
+
+		b = testBDomains.get(9);
+		System.out.println("AAA!!!!!!!!!!!!!! BEFORE b = " + b.getEntity().getId() +
+				" a.ID = " + a.getEntity().getId()
+		);
+		b.setTestA(a);
+		a.setValue("DomainVal_A!!!");
+
+		profiler.start("ADD testShardService.save");
+
+		domainEntityManager.updateAll(testBDomains);
+
+		profiler.stop();
+		System.out.println(profiler.printTimeCounter());
+
+		System.out.println("AAA!!!!!!!!!!!!!! AFTER b = " + b.getEntity().getId() +
+				" a.ID = " + a.getEntity().getId()
+		);
+
+		System.out.println("STOP");
+		*/
+	}
+
 
 //	@Test
 	public void bind() {
@@ -509,7 +567,7 @@ public class ApplicationTests {
 		System.out.println(profiler.printTimeCounter());
 	}
 
-	@Test
+//	@Test
 	public void testJson() {
 		profiler.start("testJson");
 		List<TestBEntity> testBEntities = testService.generate(2, 10, null, "Json");
@@ -529,6 +587,7 @@ public class ApplicationTests {
 
             root.putPOJO("a", a);
             jSonText = root.toString();
+
 
             System.out.println("jSonText 0 = " + jSonText);
 
