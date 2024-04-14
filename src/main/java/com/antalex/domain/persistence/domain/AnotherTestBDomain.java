@@ -27,7 +27,7 @@ public class AnotherTestBDomain extends BaseDomain {
     @Attribute
     private String newValue;
     @Attribute
-    private Date executeTime;
+    private LocalDateTime executeTime;
     @Attribute(mappingType = MappingType.STORAGE)
     private String note;
     @Attribute(name = "a")
