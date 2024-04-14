@@ -1,16 +1,20 @@
 package com.antalex.db.domain.abstraction;
 
 import com.antalex.db.annotation.DomainEntity;
+import com.antalex.db.entity.AttributeStorage;
 import com.antalex.db.entity.abstraction.ShardInstance;
 import com.antalex.db.exception.ShardDataBaseException;
 import com.antalex.db.utils.Utils;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 
 public abstract class BaseDomain implements Domain {
     protected ShardInstance entity;
     protected boolean isLazy;
     private Long changes;
+    private Map<String, AttributeStorage> storageMap = new HashMap<>();
 
     public BaseDomain () {
         if (this.getClass().isAnnotationPresent(DomainEntity.class)) {
@@ -55,5 +59,9 @@ public abstract class BaseDomain implements Domain {
 
     public void dropChanges() {
         this.changes = null;
+    }
+
+    public Map<String, AttributeStorage> getStorageMap() {
+        return storageMap;
     }
 }

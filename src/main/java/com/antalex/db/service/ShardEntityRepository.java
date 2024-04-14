@@ -9,6 +9,8 @@ import com.antalex.db.service.api.ResultQuery;
 import java.util.List;
 
 public interface ShardEntityRepository<T extends ShardInstance> {
+    ShardType getShardType(T entity);
+    Cluster getCluster(T entity);
     ShardType getShardType();
     Cluster getCluster();
     void generateDependentId(T entity);

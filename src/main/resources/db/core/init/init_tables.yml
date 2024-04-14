@@ -95,7 +95,7 @@ databaseChangeLog:
               name: ROWS_PROCESSED
               type: int
       - createTable:
-          tableName: APP_DOMAIN_STORAGE
+          tableName: APP_ATTRIBUTE_STORAGE
           columns:
           - column:
               name: ID
@@ -103,7 +103,7 @@ databaseChangeLog:
               constraints:
                 primaryKey: true
                 nullable: false
-                primaryKeyName: PK_DOMAIN_STORAGE_ID
+                primaryKeyName: PK_ATTRIBUTE_STORAGE_ID
           - column:
               name: SN
               type: int
@@ -131,6 +131,6 @@ databaseChangeLog:
               name: C_ENTITY_ID
           - column:
               name: C_STORAGE_NAME
-          indexName: IDX_DOMAIN_STORAGE_MAIN
-          tableName: APP_DOMAIN_STORAGE
+          indexName: IDX_ATTRIBUTE_STORAGE_MAIN
+          tableName: APP_ATTRIBUTE_STORAGE
           unuque: true

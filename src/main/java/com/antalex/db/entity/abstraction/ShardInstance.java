@@ -1,9 +1,11 @@
 package com.antalex.db.entity.abstraction;
 
+import com.antalex.db.entity.AttributeStorage;
 import com.antalex.db.model.Shard;
 import com.antalex.db.model.StorageContext;
 
 import javax.persistence.EntityTransaction;
+import java.util.Map;
 
 public interface ShardInstance {
     Long getId();
@@ -16,4 +18,5 @@ public interface ShardInstance {
     boolean hasNewShards();
     boolean isOurShard(Shard shard);
     boolean setTransactionalContext(EntityTransaction transaction);
+    Map<String, AttributeStorage> getStorageMap();
 }

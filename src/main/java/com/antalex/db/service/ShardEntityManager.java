@@ -14,6 +14,8 @@ import java.util.List;
 public interface ShardEntityManager {
     <T extends ShardInstance> ShardType getShardType(T entity);
     <T extends ShardInstance> Cluster getCluster(T entity);
+    <T extends ShardInstance> ShardType getShardType(Class<T> clazz);
+    <T extends ShardInstance> Cluster getCluster(Class<T> clazz);
     <T extends ShardInstance> T save(T entity);
     <T extends ShardInstance> Iterable<T> saveAll(Iterable<T> entities);
     <T extends ShardInstance> T update(T entity);

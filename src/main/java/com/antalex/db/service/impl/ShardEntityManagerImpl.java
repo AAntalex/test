@@ -76,7 +76,12 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
         if (entity == null) {
             return null;
         }
-        return getEntityRepository(entity.getClass()).getShardType();
+        return getEntityRepository(entity.getClass()).getShardType(entity);
+    }
+
+    @Override
+    public <T extends ShardInstance> ShardType getShardType(Class<T> clazz) {
+        return getEntityRepository(clazz).getShardType();
     }
 
     @Override
@@ -84,7 +89,12 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
         if (entity == null) {
             return null;
         }
-        return getEntityRepository(entity.getClass()).getCluster();
+        return getEntityRepository(entity.getClass()).getCluster(entity);
+    }
+
+    @Override
+    public <T extends ShardInstance> Cluster getCluster(Class<T> clazz) {
+        return getEntityRepository(clazz).getCluster();
     }
 
     @Override
@@ -464,7 +474,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
         }
         if (entity.setTransactionalContext(getTransaction())) {
             ShardEntityRepository<T> repository = getEntityRepository(entity.getClass());
-            checkShardMap(entity, repository.getShardType());
+            checkShardMap(entity, repository.getShardType(entity));
             if (force || !entity.isStored() || entity.isChanged() || entity.hasNewShards())
             {
                 repository.persist(entity, onlyChanged);

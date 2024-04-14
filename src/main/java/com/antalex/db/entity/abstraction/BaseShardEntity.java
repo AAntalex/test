@@ -1,6 +1,7 @@
 package com.antalex.db.entity.abstraction;
 
 import com.antalex.db.annotation.ShardEntity;
+import com.antalex.db.entity.AttributeStorage;
 import com.antalex.db.exception.ShardDataBaseException;
 import com.antalex.db.model.Shard;
 import com.antalex.db.model.StorageContext;
@@ -8,11 +9,14 @@ import com.antalex.db.service.impl.SharedEntityTransaction;
 import com.antalex.db.utils.ShardUtils;
 
 import javax.persistence.EntityTransaction;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
 public abstract class BaseShardEntity implements ShardInstance {
     protected Long id;
     private StorageContext storageContext;
+    private Map<String, AttributeStorage> storageMap = new HashMap<>();
 
     public BaseShardEntity () {
         if (this.getClass().isAnnotationPresent(ShardEntity.class)) {
@@ -86,6 +90,11 @@ public abstract class BaseShardEntity implements ShardInstance {
     public boolean setTransactionalContext(EntityTransaction transaction) {
         return this.storageContext != null &&
                 this.storageContext.setTransactionalContext((SharedEntityTransaction) transaction);
+    }
+
+    @Override
+    public Map<String, AttributeStorage> getStorageMap() {
+        return storageMap;
     }
 
     public boolean hasMainShard() {

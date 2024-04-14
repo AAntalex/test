@@ -379,9 +379,9 @@ public class EntityClassBuilder {
             out.println();
             out.println(getNewEntityCode(entityClassDto));
             out.println();
-            out.println(getShardTypeCode());
+            out.println(getShardTypeCode(entityClassDto));
             out.println();
-            out.println(getClusterCode());
+            out.println(getClusterCode(entityClassDto));
             out.println();
             out.println(getSetDependentStorageCode(entityClassDto));
             out.println();
@@ -1022,16 +1022,24 @@ public class EntityClassBuilder {
                 .concat("    }");
     }
 
-    private static String getClusterCode() {
+    private static String getClusterCode(EntityClassDto entityClassDto) {
         return "    @Override\n" +
                 "    public Cluster getCluster() {\n" +
+                "        return cluster;\n" +
+                "    }\n\n" +
+                "    @Override\n" +
+                "    public Cluster getCluster(" + entityClassDto.getTargetClassName() + " entity) {\n" +
                 "        return cluster;\n" +
                 "    }";
     }
 
-    private static String getShardTypeCode() {
+    private static String getShardTypeCode(EntityClassDto entityClassDto) {
         return "    @Override\n" +
                 "    public ShardType getShardType() {\n" +
+                "        return SHARD_TYPE;\n" +
+                "    }\n\n" +
+                "    @Override\n" +
+                "    public ShardType getShardType(" + entityClassDto.getTargetClassName() + " entity) {\n" +
                 "        return SHARD_TYPE;\n" +
                 "    }";
     }
