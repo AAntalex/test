@@ -6,11 +6,13 @@ import com.antalex.db.model.enums.DataFormat;
 import com.antalex.db.model.enums.ShardType;
 import com.antalex.db.service.ShardDataBaseManager;
 import com.antalex.db.service.ShardEntityManager;
+import com.antalex.db.service.api.DataWrapperFactory;
 import com.antalex.domain.persistence.domain.*;
 import com.antalex.db.domain.abstraction.Domain;
 import com.antalex.db.entity.abstraction.ShardInstance;
 import com.antalex.db.service.DomainEntityManager;
 import com.antalex.db.service.DomainEntityMapper;
+import com.antalex.domain.persistence.domain.TestBDomain$Interceptor;
 import com.antalex.domain.persistence.entity.shard.TestBShardEntity;
 
 import java.util.*;
@@ -22,7 +24,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
-public class TestBDomainMapperTEST {/*implements DomainEntityMapper<TestBDomain, TestBShardEntity> {
+public class TestBDomainMapperTEST {/*  implements DomainEntityMapper<TestBDomain, TestBShardEntity> {
     @Autowired
     private DomainEntityManager domainManager;
 
@@ -30,16 +32,18 @@ public class TestBDomainMapperTEST {/*implements DomainEntityMapper<TestBDomain,
     private ShardEntityManager entityManager;
 
     @Autowired
+    private DataWrapperFactory dataWrapperFactory;
+
+    @Autowired
     private ObjectMapper objectMapper;
 
     private final ThreadLocal<Map<Long, Domain>> domains = ThreadLocal.withInitial(HashMap::new);
-    private final Map<String, Storage> storegeMap = new HashMap<>();
-
+    private final Map<String, Storage> storageMap = new HashMap<>();
 
     @Autowired
-    TestBDomain$MapperImpl (ShardDataBaseManager dataBaseManager)
+    TestBDomainMapperTEST (ShardDataBaseManager dataBaseManager)
     {
-        storegeMap.put(
+        storageMap.put(
                 "TestBDomain",
                 Storage
                         .builder()
@@ -50,7 +54,7 @@ public class TestBDomainMapperTEST {/*implements DomainEntityMapper<TestBDomain,
                         .dataFormat(DataFormat.JSON)
                         .build());
 
-        storegeMap.put(
+        storageMap.put(
                 "routingSection",
                 Storage
                         .builder()
@@ -69,16 +73,24 @@ public class TestBDomainMapperTEST {/*implements DomainEntityMapper<TestBDomain,
     }
 
     @Override
-    public AttributeStorage mapStorage(TestBDomain domain) {
-        TestBShardEntity entity = domain.getEntity();
+    public Storage getDeclaredStorage(String storageName) {
+        return storageMap.get(storageName);
+    }
 
-        if (domain.storeIsChanged("TestBDomain")) {
+    @Override
+    public AttributeStorage mapStorage(TestBDomain domain, String storageName) {
+
+        if (domain.isChanged(storageName)) {
+
+            TestBShardEntity entity = domain.getEntity();
             AttributeStorage attributeStorage = entity.getStorageMap().get(storageName);
             if (attributeStorage == null) {
+                Storage storage = storageMap.get(storageName);
                 attributeStorage = entityManager.newEntity(AttributeStorage.class);
-
-                attributeStorage.setCluster();
-
+                attributeStorage.setStorageName(storageName);
+                attributeStorage.setDataWrapper(dataWrapperFactory.createDataWraper(attributeStorage.getDataFormat()));
+                attributeStorage.setCluster(storage.getCluster());
+                attributeStorage.setShardType(storage.getShardType());
                 entity.getStorageMap().put(storageName, attributeStorage);
             }
 
@@ -130,5 +142,5 @@ public class TestBDomainMapperTEST {/*implements DomainEntityMapper<TestBDomain,
         domain.setLazy(true);
         return domain;
     }
-    */
+*/
 }
