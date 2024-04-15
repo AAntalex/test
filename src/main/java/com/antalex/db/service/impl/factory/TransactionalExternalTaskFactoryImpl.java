@@ -1,4 +1,4 @@
-package com.antalex.db.service.impl;
+package com.antalex.db.service.impl.factory;
 
 import com.antalex.db.model.Shard;
 import com.antalex.db.service.api.TransactionalExternalTaskFactory;

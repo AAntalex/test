@@ -1,4 +1,4 @@
-package com.antalex.db.service.impl;
+package com.antalex.db.service.impl.managers;
 
 import com.antalex.db.entity.abstraction.ShardInstance;
 import com.antalex.db.exception.ShardDataBaseException;
@@ -14,6 +14,7 @@ import com.antalex.db.service.ShardEntityRepository;
 import com.antalex.db.service.SharedTransactionManager;
 import com.antalex.db.service.api.ResultQuery;
 import com.antalex.db.service.api.TransactionalQuery;
+import com.antalex.db.service.impl.SharedEntityTransaction;
 import com.antalex.db.utils.ShardUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Primary;

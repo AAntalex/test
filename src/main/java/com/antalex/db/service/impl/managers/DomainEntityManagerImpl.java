@@ -1,4 +1,4 @@
-package com.antalex.db.service.impl;
+package com.antalex.db.service.impl.managers;
 
 import com.antalex.db.domain.abstraction.Domain;
 import com.antalex.db.entity.abstraction.ShardInstance;

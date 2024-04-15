@@ -1,6 +1,7 @@
-package com.antalex.db.service.impl;
+package com.antalex.db.service.impl.managers;
 
 import com.antalex.db.service.SharedTransactionManager;
+import com.antalex.db.service.impl.SharedEntityTransaction;
 import org.springframework.stereotype.Component;
 
 import javax.persistence.EntityTransaction;

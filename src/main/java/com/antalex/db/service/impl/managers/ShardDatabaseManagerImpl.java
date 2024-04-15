@@ -1,4 +1,4 @@
-package com.antalex.db.service.impl;
+package com.antalex.db.service.impl.managers;
 
 import com.antalex.db.config.*;
 import com.antalex.db.entity.abstraction.ShardInstance;
@@ -8,6 +8,7 @@ import com.antalex.db.model.enums.QueryType;
 import com.antalex.db.service.ShardDataBaseManager;
 import com.antalex.db.service.SharedTransactionManager;
 import com.antalex.db.service.api.*;
+import com.antalex.db.service.impl.*;
 import com.antalex.db.utils.ShardUtils;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;

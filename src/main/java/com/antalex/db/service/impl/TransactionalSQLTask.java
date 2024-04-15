@@ -17,7 +17,7 @@ import java.util.concurrent.ExecutorService;
 public class TransactionalSQLTask extends AbstractTransactionalTask {
     private Connection connection;
 
-    TransactionalSQLTask(Shard shard, Connection connection, ExecutorService executorService) {
+    public TransactionalSQLTask(Shard shard, Connection connection, ExecutorService executorService) {
         this.connection = connection;
         this.executorService = executorService;
         this.shard = shard;

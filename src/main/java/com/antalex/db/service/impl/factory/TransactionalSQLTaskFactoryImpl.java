@@ -1,8 +1,9 @@
-package com.antalex.db.service.impl;
+package com.antalex.db.service.impl.factory;
 
 import com.antalex.db.model.Shard;
 import com.antalex.db.service.api.TransactionalSQLTaskFactory;
 import com.antalex.db.service.api.TransactionalTask;
+import com.antalex.db.service.impl.TransactionalSQLTask;
 import org.springframework.stereotype.Component;
 
 import java.sql.Connection;

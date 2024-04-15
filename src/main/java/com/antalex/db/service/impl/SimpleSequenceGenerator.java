@@ -3,7 +3,7 @@ package com.antalex.db.service.impl;
 import com.antalex.db.service.abstractive.AbstractSequenceGenerator;
 
 public class SimpleSequenceGenerator extends AbstractSequenceGenerator {
-    SimpleSequenceGenerator(Long minValue, Long maxValue) {
+    public SimpleSequenceGenerator(Long minValue, Long maxValue) {
         this.minValue = minValue;
         this.maxValue = maxValue;
     }

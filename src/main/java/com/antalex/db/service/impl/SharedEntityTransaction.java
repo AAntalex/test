@@ -37,7 +37,7 @@ public class SharedEntityTransaction implements EntityTransaction {
     private Map<Integer, TransactionalTask> currentTasks = new HashMap<>();
     private Map<Integer, Bucket> buckets = new HashMap<>();
 
-    SharedEntityTransaction(Boolean parallelRun) {
+    public SharedEntityTransaction(Boolean parallelRun) {
         this.parallelRun = parallelRun;
     }
 

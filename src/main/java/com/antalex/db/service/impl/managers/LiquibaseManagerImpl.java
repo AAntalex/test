@@ -1,4 +1,4 @@
-package com.antalex.db.service.impl;
+package com.antalex.db.service.impl.managers;
 
 import com.antalex.db.exception.ShardDataBaseException;
 import com.antalex.db.service.api.LiquibaseManager;

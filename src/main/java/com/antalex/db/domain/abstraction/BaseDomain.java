@@ -9,11 +9,13 @@ import com.antalex.db.utils.Utils;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 public abstract class BaseDomain implements Domain {
     protected ShardInstance entity;
     protected boolean isLazy;
     private Long changes;
+    private Map<String, Boolean> changedStore = new HashMap<>();
     private Map<String, AttributeStorage> storageMap = new HashMap<>();
 
     public BaseDomain () {
@@ -49,8 +51,16 @@ public abstract class BaseDomain implements Domain {
         this.changes = Utils.addChanges(index, this.changes);
     }
 
+    public void setChanges(String storeName) {
+        this.changedStore.put(storeName, true);
+    }
+
     public Boolean isChanged(int index) {
         return Utils.isChanged(index, this.changes);
+    }
+
+    public Boolean isChanged(String storeName) {
+        return Optional.ofNullable(changedStore.get(storeName)).orElse(false);
     }
 
     public Boolean isChanged() {
