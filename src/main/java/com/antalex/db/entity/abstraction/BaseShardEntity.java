@@ -9,14 +9,12 @@ import com.antalex.db.service.impl.SharedEntityTransaction;
 import com.antalex.db.utils.ShardUtils;
 
 import javax.persistence.EntityTransaction;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 public abstract class BaseShardEntity implements ShardInstance {
     protected Long id;
     private StorageContext storageContext;
-    private Map<String, AttributeStorage> storageMap = new HashMap<>();
+    private List<AttributeStorage> attributeStorage = new ArrayList<>();
 
     public BaseShardEntity () {
         if (this.getClass().isAnnotationPresent(ShardEntity.class)) {
@@ -93,8 +91,13 @@ public abstract class BaseShardEntity implements ShardInstance {
     }
 
     @Override
-    public Map<String, AttributeStorage> getStorageMap() {
-        return storageMap;
+    public List<AttributeStorage> getAttributeStorage() {
+        return attributeStorage;
+    }
+
+    @Override
+    public void setAttributeStorage(List<AttributeStorage> attributeStorage) {
+        this.attributeStorage = attributeStorage;
     }
 
     public boolean hasMainShard() {

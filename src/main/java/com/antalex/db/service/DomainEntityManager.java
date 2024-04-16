@@ -1,9 +1,10 @@
 package com.antalex.db.service;
 
 import com.antalex.db.domain.abstraction.Domain;
+import com.antalex.db.entity.AttributeStorage;
 import com.antalex.db.entity.abstraction.ShardInstance;
+import com.antalex.db.model.Storage;
 
-import javax.persistence.EntityTransaction;
 import java.util.List;
 
 public interface DomainEntityManager {
@@ -21,11 +22,12 @@ public interface DomainEntityManager {
     <T extends Domain, M extends ShardInstance> List<T> mapAllToDomains(final Class<T> clazz, List<M> entities);
     <T extends Domain, M extends ShardInstance> List<M> mapAllToEntities(final Class<T> clazz, List<T> domains);
     <T extends Domain> T find(Class<T> clazz, Long id);
-
     <T extends Domain> T save(T domain);
     <T extends Domain> List<T> saveAll(List<T> domains);
     <T extends Domain> T update(T domain);
     <T extends Domain> List<T> updateAll(List<T> domains);
+    AttributeStorage getAttributeStorage(Domain domain, Storage storage);
+
 
 
 

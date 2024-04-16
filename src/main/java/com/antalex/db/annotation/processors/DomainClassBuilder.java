@@ -242,8 +242,10 @@ public class DomainClassBuilder {
                             "    @Autowired\n" +
                             "    private DomainEntityManager domainManager;\n\n" +
                             "    private ThreadLocal<Map<Long, Domain>> domains = " +
-                            "ThreadLocal.withInitial(HashMap::new);\n\n" +
-                            "    @Override\n" +
+                            "ThreadLocal.withInitial(HashMap::new);\n" +
+                            "    private final Map<String, Storage> storageMap = new HashMap<>()\n\n" +
+                            getCunstructorMapperCode(domainClassDto, className) +
+                            "\n\n    @Override\n" +
                             "    public " + domainClassDto.getTargetClassName() + " newDomain(" +
                             domainClassDto.getEntityClass().getTargetClassName() + " entity) {\n" +
                             "        return new " + domainClassDto.getTargetClassName() +
@@ -451,6 +453,34 @@ public class DomainClassBuilder {
                         String::concat
                 ) +
                 "\n        domain.dropChanges();\n" +
+                "        entity.setAttributeStorage(mapStorage(domain));\n" +
+                "        return entity;\n" +
+                "    }";
+    }
+
+    private static String getMapStorageToEntityCode(DomainClassDto classDto) {
+        return classDto.getFields()
+                .stream()
+                .filter(field ->
+                        Objects.nonNull(field.getStorage()) &&
+                                Objects.nonNull(field.getGetter())
+                )
+                .map(field ->
+                        "\n        if (domain.isChanged(\"" + field.getStorage().getName() + "\")) {\n" +
+                                "            AttributeStorage attributeStorage = domainManager.getAttributeStorage" +
+                                "(domain, storageMap.get(\"" + field.getStorage().getName() + "\"));\n" +
+                                "            DataWrapper dataWrapper  = attributeStorage.getDataWrapper();\n" +
+                                "            dataWrapper.put(\"" + field.getFieldName() + "\", domain." +
+                                field.getGetter() + "());"
+                )
+                .reduce(
+                        "    private List<AttributeStorage> mapStorage(" + classDto.getTargetClassName() +
+                                " domain) {\n" +
+                                "        List<AttributeStorage> storage = new ArrayList<>();"
+                        String::concat
+                ) +
+                "\n        domain.dropChanges();\n" +
+                "        mapStorage(domain);\n" +
                 "        return entity;\n" +
                 "    }";
     }
@@ -481,5 +511,35 @@ public class DomainClassBuilder {
                 ) +
                 "        super.setLazy(lazy);\n" +
                 "    }";
+    }
+
+
+    private static String getCunstructorMapperCode(DomainClassDto classDto, String className) {
+        return classDto.getStorageMap()
+                .entrySet()
+                .stream()
+                .map(entry ->
+                        "\n        storageMap.put(\n" +
+                                "                \"" + entry.getKey() + "\",\n" +
+                                "                Storage\n" +
+                                "                        .builder()\n" +
+                                "                        .name(\"" + entry.getKey() + "\")\n" +
+                                (
+                                        entry.getValue().getCluster().isEmpty() ?
+                                                StringUtils.EMPTY :
+                                                "                        .cluster(dataBaseManager.getCluster(\"" +
+                                                        entry.getValue().getCluster() + "\"))\n" +
+                                ) +
+                                "                        .shardType(ShardType." +
+                                entry.getValue().getShardType().name() + ")\n" +
+                                "                        .dataFormat(DataFormat." +
+                                entry.getValue().getDataFormat().name() + ")\n" +
+                                "                        .build());"
+                )
+                .reduce(
+                        "    @Autowired\n" +
+                                "    TestBDomainMapperTEST (ShardDataBaseManager dataBaseManager) {",
+                        String::concat) +
+                "\n    }";
     }
 }

@@ -16,7 +16,7 @@ public abstract class BaseDomain implements Domain {
     protected boolean isLazy;
     private Long changes;
     private Map<String, Boolean> changedStore = new HashMap<>();
-    private Map<String, AttributeStorage> storageMap = new HashMap<>();
+    private Map<String, AttributeStorage> storage = new HashMap<>();
 
     public BaseDomain () {
         if (this.getClass().isAnnotationPresent(DomainEntity.class)) {
@@ -35,6 +35,11 @@ public abstract class BaseDomain implements Domain {
         return (T) entity;
     }
 
+    @Override
+    public Map<String, AttributeStorage> getStorage() {
+        return storage;
+    }
+
     public void readEntity() {
 
     }
@@ -51,16 +56,16 @@ public abstract class BaseDomain implements Domain {
         this.changes = Utils.addChanges(index, this.changes);
     }
 
-    public void setChanges(String storeName) {
-        this.changedStore.put(storeName, true);
+    public void setChanges(String storageName) {
+        this.changedStore.put(storageName, true);
     }
 
     public Boolean isChanged(int index) {
         return Utils.isChanged(index, this.changes);
     }
 
-    public Boolean isChanged(String storeName) {
-        return Optional.ofNullable(changedStore.get(storeName)).orElse(false);
+    public Boolean isChanged(String storageName) {
+        return Optional.ofNullable(changedStore.get(storageName)).orElse(false);
     }
 
     public Boolean isChanged() {
@@ -71,7 +76,7 @@ public abstract class BaseDomain implements Domain {
         this.changes = null;
     }
 
-    public Map<String, AttributeStorage> getStorageMap() {
-        return storageMap;
+    public void dropChanges(String storageName) {
+        this.changedStore.put(storageName, false);
     }
 }

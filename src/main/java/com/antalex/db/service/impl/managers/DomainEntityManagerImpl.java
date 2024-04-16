@@ -1,9 +1,13 @@
 package com.antalex.db.service.impl.managers;
 
 import com.antalex.db.domain.abstraction.Domain;
+import com.antalex.db.entity.AttributeStorage;
 import com.antalex.db.entity.abstraction.ShardInstance;
 import com.antalex.db.exception.ShardDataBaseException;
+import com.antalex.db.model.Storage;
 import com.antalex.db.service.*;
+import com.antalex.db.service.api.DataWrapper;
+import com.antalex.db.service.api.DataWrapperFactory;
 import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Primary;
@@ -24,6 +28,9 @@ public class DomainEntityManagerImpl implements DomainEntityManager {
 
     @Autowired
     private ShardEntityManager entityManager;
+
+    @Autowired
+    private DataWrapperFactory dataWrapperFactory;
 
     @Autowired
     public void setDomainMappers(
@@ -128,6 +135,27 @@ public class DomainEntityManagerImpl implements DomainEntityManager {
     @Override
     public <T extends Domain> List<T> saveAll(List<T> domains) {
         return saveAll(domains, false);
+    }
+
+    @Override
+    public AttributeStorage getAttributeStorage(Domain domain, Storage storage) {
+        AttributeStorage attributeStorage = domain.getStorage().get(storage.getName());
+        if (attributeStorage == null) {
+            attributeStorage = entityManager.newEntity(AttributeStorage.class);
+            attributeStorage.setStorageName(storage.getName());
+            attributeStorage.setDataFormat(storage.getDataFormat());
+            DataWrapper dataWrapper = dataWrapperFactory.createDataWrapper(attributeStorage.getDataFormat());
+            try {
+                dataWrapper.init(null);
+            } catch (Exception err) {
+                throw new ShardDataBaseException(err);
+            }
+            attributeStorage.setDataWrapper(dataWrapper);
+            attributeStorage.setCluster(storage.getCluster());
+            attributeStorage.setShardType(storage.getShardType());
+            domain.getStorage().put(storage.getName(), attributeStorage);
+        }
+        return attributeStorage;
     }
 
     @AllArgsConstructor

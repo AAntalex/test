@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
 public class DataWrapperFactoryImpl implements DataWrapperFactory {
 
     @Override
-    public DataWrapper createDataWraper(DataFormat dataFormat) {
+    public DataWrapper createDataWrapper(DataFormat dataFormat) {
         if (dataFormat == DataFormat.JSON) {
             return new JSonWrapper();
         }

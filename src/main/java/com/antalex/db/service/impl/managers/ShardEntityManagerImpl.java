@@ -451,6 +451,18 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
         generateId(entity, true);
         boolean isAurTransaction = startTransaction();
         persist(entity, onlyChanged, true);
+        entity.getAttributeStorage()
+                .forEach(attributeStorage -> {
+                    if (Objects.isNull(attributeStorage.getCluster())) {
+                        attributeStorage.setCluster(entity.getStorageContext().getCluster());
+                        setStorage(attributeStorage, entity);
+                    } else {
+                        setStorage(attributeStorage, null);
+                    }
+                    generateId(attributeStorage);
+                    attributeStorage.setEntityId(entity.getId());
+                    persist(attributeStorage, onlyChanged);
+                });
         if (isAurTransaction) {
             flush();
         }

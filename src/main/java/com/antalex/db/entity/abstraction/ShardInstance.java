@@ -5,6 +5,7 @@ import com.antalex.db.model.Shard;
 import com.antalex.db.model.StorageContext;
 
 import javax.persistence.EntityTransaction;
+import java.util.List;
 import java.util.Map;
 
 public interface ShardInstance {
@@ -18,5 +19,6 @@ public interface ShardInstance {
     boolean hasNewShards();
     boolean isOurShard(Shard shard);
     boolean setTransactionalContext(EntityTransaction transaction);
-    Map<String, AttributeStorage> getStorageMap();
+    List<AttributeStorage> getAttributeStorage();
+    void setAttributeStorage(List<AttributeStorage> attributeStorage);
 }
