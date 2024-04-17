@@ -40,6 +40,7 @@ public class TestDomainServiceImpl implements TestDomainService {
             b.setValue(prefix + "B");
             b.setNewValue(prefix + "newB" + i);
             b.setExecuteTime(LocalDateTime.now());
+
             b.setDateDoc(new Date());
             b.setNote(prefix + "B_NOTE");
             b.setNumDoc(1234);

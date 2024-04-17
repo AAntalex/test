@@ -373,7 +373,7 @@ public class ApplicationTests {
 	}
 
 	@Test
-	public void save0Shard() {
+	public void saveShard() {
         databaseManager.sequenceNextVal();
 		profiler.start("testShardService.generate");
 		List<TestBShardEntity>  testBEntities2 = testShardService.generate(1000, 100, "Shard5");
