@@ -1,6 +1,7 @@
 package com.antalex.db.service.impl.wrapers;
 
 import com.antalex.db.service.api.DataWrapper;
+import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -13,8 +14,8 @@ public class JSonWrapper implements DataWrapper {
     private ObjectNode root;
     private ObjectMapper objectMapper;
 
-    public JSonWrapper() {
-        this.objectMapper = new ObjectMapper();
+    public JSonWrapper(ObjectMapper objectMapper) {
+        this.objectMapper = objectMapper;
     }
 
     @Override

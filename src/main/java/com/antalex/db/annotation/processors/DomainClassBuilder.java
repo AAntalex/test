@@ -2,12 +2,18 @@ package com.antalex.db.annotation.processors;
 
 import com.antalex.db.annotation.*;
 import com.antalex.db.domain.abstraction.Domain;
+import com.antalex.db.entity.AttributeStorage;
 import com.antalex.db.entity.abstraction.ShardInstance;
+import com.antalex.db.model.DataStorage;
 import com.antalex.db.model.dto.*;
+import com.antalex.db.model.enums.DataFormat;
 import com.antalex.db.model.enums.MappingType;
+import com.antalex.db.model.enums.ShardType;
 import com.antalex.db.service.DomainEntityManager;
 import com.antalex.db.service.DomainEntityMapper;
+import com.antalex.db.service.ShardDataBaseManager;
 import com.antalex.db.service.ShardEntityManager;
+import com.antalex.db.service.api.DataWrapper;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -17,7 +23,6 @@ import javax.lang.model.element.Element;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.MirroredTypeException;
 import javax.lang.model.util.ElementFilter;
-import javax.persistence.Transient;
 import javax.tools.JavaFileObject;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -229,7 +234,13 @@ public class DomainClassBuilder {
                                             Autowired.class.getCanonicalName(),
                                             DomainEntityMapper.class.getCanonicalName(),
                                             DomainEntityManager.class.getCanonicalName(),
-                                            Component.class.getCanonicalName()
+                                            Component.class.getCanonicalName(),
+                                            AttributeStorage.class.getCanonicalName(),
+                                            DataStorage.class.getCanonicalName(),
+                                            DataFormat.class.getCanonicalName(),
+                                            ShardType.class.getCanonicalName(),
+                                            ShardDataBaseManager.class.getCanonicalName(),
+                                            DataWrapper.class.getCanonicalName()
                                     )
                             )
                     )
@@ -243,8 +254,8 @@ public class DomainClassBuilder {
                             "    private DomainEntityManager domainManager;\n\n" +
                             "    private ThreadLocal<Map<Long, Domain>> domains = " +
                             "ThreadLocal.withInitial(HashMap::new);\n" +
-                            "    private final Map<String, Storage> storageMap = new HashMap<>()\n\n" +
-                            getCunstructorMapperCode(domainClassDto, className) +
+                            "    private final Map<String, DataStorage> storageMap = new HashMap<>();\n\n" +
+                            getConstructorMapperCode(domainClassDto, className) +
                             "\n\n    @Override\n" +
                             "    public " + domainClassDto.getTargetClassName() + " newDomain(" +
                             domainClassDto.getEntityClass().getTargetClassName() + " entity) {\n" +
@@ -255,6 +266,8 @@ public class DomainClassBuilder {
             out.println(getMapToEntityCode(domainClassDto));
             out.println();
             out.println(getMapToDomainCode(domainClassDto));
+            out.println();
+            out.println(getMapStorageToEntityCode(domainClassDto));
             out.println("}");
         }
     }
@@ -337,7 +350,25 @@ public class DomainClassBuilder {
                         "\n    public void " + field.getSetter() +
                                 "(" + ProcessorUtils.getTypeField(field.getElement()) +
                                 " value, boolean change) {\n" +
+
+                                "        if (this.isLazy(" +
                                 (
+                                        Objects.nonNull(field.getEntityField()) ?
+                                                StringUtils.EMPTY :
+                                                "\"" + field.getStorage().getName() + "\""
+                                ) + ")) {\n" +
+                                "            readEntity();\n" +
+                                "        }\n" +
+                                "        if (change) {\n" +
+                                "            this.setChanges(" +
+                                (
+                                        Objects.nonNull(field.getEntityField()) ?
+                                                field.getFieldIndex() :
+                                                "\"" + field.getStorage().getName() + "\""
+                                ) + ");\n" +
+                                "        }\n" +
+
+        (
                                         Objects.nonNull(field.getEntityField()) ?
                                                 "        if (this.isLazy()) {\n" +
                                                         "            readEntity();\n" +
@@ -459,30 +490,44 @@ public class DomainClassBuilder {
     }
 
     private static String getMapStorageToEntityCode(DomainClassDto classDto) {
-        return classDto.getFields()
+        return classDto.getStorageMap()
+                .entrySet()
                 .stream()
-                .filter(field ->
-                        Objects.nonNull(field.getStorage()) &&
-                                Objects.nonNull(field.getGetter())
-                )
-                .map(field ->
-                        "\n        if (domain.isChanged(\"" + field.getStorage().getName() + "\")) {\n" +
-                                "            AttributeStorage attributeStorage = domainManager.getAttributeStorage" +
-                                "(domain, storageMap.get(\"" + field.getStorage().getName() + "\"));\n" +
-                                "            DataWrapper dataWrapper  = attributeStorage.getDataWrapper();\n" +
-                                "            dataWrapper.put(\"" + field.getFieldName() + "\", domain." +
-                                field.getGetter() + "());"
+                .map(entry ->
+                        getMapStorageCode(classDto, entry.getKey())
                 )
                 .reduce(
                         "    private List<AttributeStorage> mapStorage(" + classDto.getTargetClassName() +
                                 " domain) {\n" +
-                                "        List<AttributeStorage> storage = new ArrayList<>();"
+                                "        List<AttributeStorage> storage = new ArrayList<>();",
                         String::concat
                 ) +
-                "\n        domain.dropChanges();\n" +
-                "        mapStorage(domain);\n" +
-                "        return entity;\n" +
+                "\n        return storage;\n" +
                 "    }";
+    }
+
+    private static String getMapStorageCode(DomainClassDto classDto, String storageName) {
+        return classDto.getFields()
+                .stream()
+                .filter(field ->
+                        Objects.nonNull(field.getStorage()) &&
+                                storageName.equals(field.getStorage().getName())
+                )
+                .map(field ->
+                                "\n            dataWrapper.put(\"" + field.getFieldName() + "\", domain." +
+                                field.getGetter() + "());"
+                )
+                .reduce(
+                        "\n        if (domain.isChanged(\"" + storageName + "\")) {\n" +
+                                "            AttributeStorage attributeStorage = domainManager.getAttributeStorage" +
+                                "(domain, storageMap.get(\"" + storageName + "\"));\n" +
+                                "            DataWrapper dataWrapper  = attributeStorage.getDataWrapper();",
+                        String::concat
+                ) +
+                "\n            attributeStorage.setData(dataWrapper.getContent());\n" +
+                "            domain.dropChanges(\"" + storageName + "\");\n" +
+                "            storage.add(attributeStorage);\n" +
+                "        }";
     }
 
     private static String getLazyFlagsCode(DomainClassDto classDto) {
@@ -514,21 +559,21 @@ public class DomainClassBuilder {
     }
 
 
-    private static String getCunstructorMapperCode(DomainClassDto classDto, String className) {
+    private static String getConstructorMapperCode(DomainClassDto classDto, String className) {
         return classDto.getStorageMap()
                 .entrySet()
                 .stream()
                 .map(entry ->
                         "\n        storageMap.put(\n" +
                                 "                \"" + entry.getKey() + "\",\n" +
-                                "                Storage\n" +
+                                "                DataStorage\n" +
                                 "                        .builder()\n" +
                                 "                        .name(\"" + entry.getKey() + "\")\n" +
                                 (
                                         entry.getValue().getCluster().isEmpty() ?
                                                 StringUtils.EMPTY :
                                                 "                        .cluster(dataBaseManager.getCluster(\"" +
-                                                        entry.getValue().getCluster() + "\"))\n" +
+                                                        entry.getValue().getCluster() + "\"))\n"
                                 ) +
                                 "                        .shardType(ShardType." +
                                 entry.getValue().getShardType().name() + ")\n" +
@@ -538,7 +583,7 @@ public class DomainClassBuilder {
                 )
                 .reduce(
                         "    @Autowired\n" +
-                                "    TestBDomainMapperTEST (ShardDataBaseManager dataBaseManager) {",
+                                "    " + className + " (ShardDataBaseManager dataBaseManager) {",
                         String::concat) +
                 "\n    }";
     }

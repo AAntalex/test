@@ -3,7 +3,7 @@ package com.antalex.db.service;
 import com.antalex.db.domain.abstraction.Domain;
 import com.antalex.db.entity.AttributeStorage;
 import com.antalex.db.entity.abstraction.ShardInstance;
-import com.antalex.db.model.Storage;
+import com.antalex.db.model.DataStorage;
 
 import java.util.List;
 
@@ -26,7 +26,7 @@ public interface DomainEntityManager {
     <T extends Domain> List<T> saveAll(List<T> domains);
     <T extends Domain> T update(T domain);
     <T extends Domain> List<T> updateAll(List<T> domains);
-    AttributeStorage getAttributeStorage(Domain domain, Storage storage);
+    AttributeStorage getAttributeStorage(Domain domain, DataStorage dataStorage);
 
 
 

@@ -7,7 +7,7 @@ import lombok.Data;
 
 @Data
 @Builder
-public class Storage {
+public class DataStorage {
     private String name;
     private Cluster cluster;
     private ShardType shardType;

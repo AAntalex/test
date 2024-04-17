@@ -15,6 +15,7 @@ public abstract class BaseDomain implements Domain {
     protected ShardInstance entity;
     protected boolean isLazy;
     private Long changes;
+    private Map<String, Boolean> lazyStore = new HashMap<>();
     private Map<String, Boolean> changedStore = new HashMap<>();
     private Map<String, AttributeStorage> storage = new HashMap<>();
 
@@ -46,6 +47,10 @@ public abstract class BaseDomain implements Domain {
 
     public boolean isLazy() {
         return isLazy;
+    }
+
+    public boolean isLazy(String storageName) {
+        return Optional.ofNullable(lazyStore.get(storageName)).orElse(false);
     }
 
     public void setLazy(boolean lazy) {

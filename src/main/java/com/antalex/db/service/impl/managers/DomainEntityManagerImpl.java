@@ -4,7 +4,7 @@ import com.antalex.db.domain.abstraction.Domain;
 import com.antalex.db.entity.AttributeStorage;
 import com.antalex.db.entity.abstraction.ShardInstance;
 import com.antalex.db.exception.ShardDataBaseException;
-import com.antalex.db.model.Storage;
+import com.antalex.db.model.DataStorage;
 import com.antalex.db.service.*;
 import com.antalex.db.service.api.DataWrapper;
 import com.antalex.db.service.api.DataWrapperFactory;
@@ -138,12 +138,12 @@ public class DomainEntityManagerImpl implements DomainEntityManager {
     }
 
     @Override
-    public AttributeStorage getAttributeStorage(Domain domain, Storage storage) {
-        AttributeStorage attributeStorage = domain.getStorage().get(storage.getName());
+    public AttributeStorage getAttributeStorage(Domain domain, DataStorage dataStorage) {
+        AttributeStorage attributeStorage = domain.getStorage().get(dataStorage.getName());
         if (attributeStorage == null) {
             attributeStorage = entityManager.newEntity(AttributeStorage.class);
-            attributeStorage.setStorageName(storage.getName());
-            attributeStorage.setDataFormat(storage.getDataFormat());
+            attributeStorage.setStorageName(dataStorage.getName());
+            attributeStorage.setDataFormat(dataStorage.getDataFormat());
             DataWrapper dataWrapper = dataWrapperFactory.createDataWrapper(attributeStorage.getDataFormat());
             try {
                 dataWrapper.init(null);
@@ -151,9 +151,9 @@ public class DomainEntityManagerImpl implements DomainEntityManager {
                 throw new ShardDataBaseException(err);
             }
             attributeStorage.setDataWrapper(dataWrapper);
-            attributeStorage.setCluster(storage.getCluster());
-            attributeStorage.setShardType(storage.getShardType());
-            domain.getStorage().put(storage.getName(), attributeStorage);
+            attributeStorage.setCluster(dataStorage.getCluster());
+            attributeStorage.setShardType(dataStorage.getShardType());
+            domain.getStorage().put(dataStorage.getName(), attributeStorage);
         }
         return attributeStorage;
     }
