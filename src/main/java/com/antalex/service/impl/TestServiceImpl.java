@@ -42,12 +42,11 @@ public class TestServiceImpl implements TestService{
     @Autowired
     private TestCRepository testCRepository;
 
-    TestServiceImpl(SpringJdbcConfig springJdbcConfig,
-                    ShardDataBaseManager databaseManager,
+    TestServiceImpl(ShardDataBaseManager databaseManager,
                     TestBRepository testBRepository,
                     SqlSessionFactory sqlSessionFactory)
     {
-        this.dataSource = springJdbcConfig.getDataSource();
+        this.dataSource = databaseManager.getDataSource();
         this.databaseManager = databaseManager;
         this.testBRepository = testBRepository;
         this.sqlSessionFactory = sqlSessionFactory;

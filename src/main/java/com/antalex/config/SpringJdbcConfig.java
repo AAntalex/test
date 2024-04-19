@@ -41,11 +41,6 @@ public class SpringJdbcConfig {
         return adapter;
     }
 
-    @Bean(name="externalTaskFactory")
-    public TransactionalExternalTaskFactory getExternalTaskFactory() {
-        return new TestTaskFactoryImpl();
-    }
-
     @Bean
     public DataSource getDataSource() {
         return dataBaseManager.getDataSource();

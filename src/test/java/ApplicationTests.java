@@ -3,9 +3,7 @@ import com.antalex.db.service.DomainEntityManager;
 import com.antalex.db.service.ShardDataBaseManager;
 import com.antalex.db.service.ShardEntityManager;
 import com.antalex.db.utils.ShardUtils;
-import com.antalex.domain.persistence.domain.TestADomain;
 import com.antalex.domain.persistence.domain.TestBDomain;
-import com.antalex.domain.persistence.domain.TestCDomain;
 import com.antalex.domain.persistence.entity.AdditionalParameterEntity;
 import com.antalex.domain.persistence.entity.hiber.TestAEntity;
 import com.antalex.domain.persistence.entity.hiber.TestBEntity;
@@ -16,7 +14,6 @@ import com.antalex.domain.persistence.repository.TestARepository;
 import com.antalex.domain.persistence.repository.TestBRepository;
 import com.antalex.optimizer.OptimizerApplication;
 import com.antalex.profiler.service.ProfilerService;
-import com.antalex.service.AdditionalParameterService;
 import com.antalex.service.TestDomainService;
 import com.antalex.service.TestService;
 import com.antalex.service.TestShardService;
@@ -42,9 +39,6 @@ import java.util.List;
 public class ApplicationTests {
 	@Autowired
 	private ProfilerService profiler;
-
-	@Autowired
-	private AdditionalParameterService additionalParameterService;
 
 	@Autowired
 	private AdditionalParameterRepository additionalParameterRepository;
@@ -326,7 +320,7 @@ public class ApplicationTests {
 	}
 
 
-	@Test
+//	@Test
 	public void saveJPA() {
         databaseManager.sequenceNextVal();
 		profiler.start("testService.generate");
@@ -342,7 +336,7 @@ public class ApplicationTests {
 		System.out.println("testBEntities.size = " + testBEntities.size());
 	}
 
-	@Test
+//	@Test
 	public void saveMyBatis() {
         databaseManager.sequenceNextVal();
 		profiler.start("testService.generate");
@@ -357,7 +351,7 @@ public class ApplicationTests {
 		System.out.println("testBEntities.size = " + testBEntities.size());
 	}
 
-	@Test
+//	@Test
 	public void saveStatement() {
         databaseManager.sequenceNextVal();
 		profiler.start("testService.generate");
@@ -372,7 +366,7 @@ public class ApplicationTests {
 		System.out.println("testBEntities.size = " + testBEntities.size());
 	}
 
-	@Test
+//	@Test
 	public void saveShard() {
         databaseManager.sequenceNextVal();
 		profiler.start("testShardService.generate");
@@ -515,55 +509,6 @@ public class ApplicationTests {
 					);
 		}
 		profiler.stop();
-		System.out.println(profiler.printTimeCounter());
-	}
-
-//	@Test
-	public void ins() {
-
-		/*
-		TestAEntity a = new TestAEntity();
-		a.setValue("A1");
-		a.setValue("A2");
-		TestBEntity b = new TestBEntity();
-		b.setA(a);
-		testARepository.save(a);
-		b.setShardMap(1L);
-		b.setValue("B2");
-		b.setNewValue("B2");
-		testBRepository.save(b);
-
-		b.setNewValue("B3");
-		testBRepository.save(b);
-
-		testBRepository.save(b);
-*/
-
-
-		profiler.start("Тест");
-
-
-		List<AdditionalParameterEntity> additionalParameterEntities
-				= additionalParameterService.generate(10000, "TEST", "С_CODE2", "VALUE2");
-
-        AdditionalParameterEntity entity = additionalParameterEntities.get(2);
-
-        System.out.println("AAA ID 0 = " + entity.getId());
-
-        additionalParameterService.saveJPA(additionalParameterEntities);
-
-        System.out.println("AAA ID 2 = " + entity.getId());
-
-		entity.setValue("VAL_TEST");
-
-		additionalParameterRepository.save(entity);
-
-//		entityManager.save(additionalParameterEntities);
-
-		profiler.stop();
-
-//		String hexStr = Integer.toString(63,32);
-
 		System.out.println(profiler.printTimeCounter());
 	}
 
