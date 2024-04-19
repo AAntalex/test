@@ -7,4 +7,5 @@ public interface DomainEntityMapper<T extends Domain, M extends ShardInstance> {
     T newDomain(M entity);
     T map(M entity);
     M map(T domain);
+    void setDomainManager(DomainEntityManager domainManager);
 }

@@ -250,13 +250,16 @@ public class DomainClassBuilder {
                     "public class " + className + " implements DomainEntityMapper<" +
                             domainClassDto.getTargetClassName() + ", " +
                             domainClassDto.getEntityClass().getTargetClassName() + "> {\n" +
-                            "    @Autowired\n" +
                             "    private DomainEntityManager domainManager;\n\n" +
                             "    private ThreadLocal<Map<Long, Domain>> domains = " +
                             "ThreadLocal.withInitial(HashMap::new);\n" +
                             "    private final Map<String, DataStorage> storageMap = new HashMap<>();\n\n" +
                             getConstructorMapperCode(domainClassDto, className) +
                             "\n\n    @Override\n" +
+                            "    public void setDomainManager(DomainEntityManager domainManager) {\n" +
+                            "        this.domainManager = domainManager;\n" +
+                            "    }\n" +
+                            "    @Override\n" +
                             "    public " + domainClassDto.getTargetClassName() + " newDomain(" +
                             domainClassDto.getEntityClass().getTargetClassName() + " entity) {\n" +
                             "        return new " + domainClassDto.getTargetClassName() +

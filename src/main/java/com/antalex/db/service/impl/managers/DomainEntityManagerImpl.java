@@ -39,7 +39,8 @@ public class DomainEntityManagerImpl implements DomainEntityManager {
         for (DomainEntityMapper<?, ?> domainEntityMapper : domainEntityMappers) {
             Class<?>[] classes = GenericTypeResolver
                     .resolveTypeArguments(domainEntityMapper.getClass(), DomainEntityMapper.class);
-            if (Objects.nonNull(classes) && classes.length > 0) {
+            if (Objects.nonNull(classes) && classes.length > 0 && !MAPPERS.containsKey(classes[0])) {
+                domainEntityMapper.setDomainManager(this);
                 MAPPERS.put(classes[0], new Mapper(domainEntityMapper, classes[1]));
             }
         }
@@ -56,7 +57,7 @@ public class DomainEntityManagerImpl implements DomainEntityManager {
         if (mapper == null) {
             throw new ShardDataBaseException(
                     String.format(
-                            "Can't find shard DomainEntityMapper for class %s or superclass %s",
+                            "Can't find DomainEntityMapper for class %s or superclass %s",
                             clazz.getName(),
                             clazz.getSuperclass().getName()
                     )

@@ -23,4 +23,5 @@ public interface ShardEntityRepository<T extends ShardInstance> {
     List<T> findAll(String condition, Object... binds);
     List<T> findAll(ShardInstance parent, String condition, Object... binds);
     void extractValues(T entity, ResultQuery result, int index);
+    void setEntityManager(ShardEntityManager entityManager);
 }

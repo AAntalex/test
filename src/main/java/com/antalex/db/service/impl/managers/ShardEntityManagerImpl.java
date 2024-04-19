@@ -44,8 +44,9 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
         for (ShardEntityRepository<?> shardEntityRepository : entityRepositories) {
             Class<?>[] classes = GenericTypeResolver
                     .resolveTypeArguments(shardEntityRepository.getClass(), ShardEntityRepository.class);
-            if (Objects.nonNull(classes) && classes.length > 0) {
-                REPOSITORIES.putIfAbsent(classes[0], shardEntityRepository);
+            if (Objects.nonNull(classes) && classes.length > 0 && !REPOSITORIES.containsKey(classes[0])) {
+                shardEntityRepository.setEntityManager(this);
+                REPOSITORIES.put(classes[0], shardEntityRepository);
             }
         }
     }
@@ -61,7 +62,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
         if (repository == null) {
             throw new ShardDataBaseException(
                     String.format(
-                            "Can't find shard entity repository for class %s or superclass %s",
+                            "Can't find ShardEntityRepository for class %s or superclass %s",
                             clazz.getName(),
                             clazz.getSuperclass().getName()
                     )

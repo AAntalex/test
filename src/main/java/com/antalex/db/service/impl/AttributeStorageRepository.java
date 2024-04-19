@@ -36,8 +36,12 @@ public class AttributeStorageRepository implements ShardEntityRepository<Attribu
     );
     private Map<Long, String> updateQueries = new HashMap<>();
 
-    @Autowired
     private ShardEntityManager entityManager;
+
+    @Override
+    public void setEntityManager(ShardEntityManager entityManager) {
+        this.entityManager = entityManager;
+    }
 
     @Override
     public AttributeStorage newEntity() {

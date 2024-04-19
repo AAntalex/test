@@ -12,7 +12,14 @@ import com.antalex.db.service.impl.*;
 import com.antalex.db.utils.ShardUtils;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import liquibase.Contexts;
+import liquibase.LabelExpression;
+import liquibase.Liquibase;
+import liquibase.database.Database;
+import liquibase.database.DatabaseFactory;
+import liquibase.database.jvm.JdbcConnection;
 import liquibase.exception.LiquibaseException;
+import liquibase.resource.ClassLoaderResourceAccessor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.ImmutablePair;
@@ -64,7 +71,6 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     private Map<String, SequenceGenerator> shardSequences = new HashMap<>();
     private Map<String, Map<Integer, SequenceGenerator>> sequences = new HashMap<>();
     private List<ImmutablePair<Cluster, Shard>> newShards = new ArrayList<>();
-    private LiquibaseManager liquibaseManager = new LiquibaseManagerImpl();
 
     private String changLogPath;
     private String changLogName;
@@ -878,14 +884,33 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
             task.setName("Changelog on shard " + shard.getName());
             task.addStep(() -> {
                 try {
-                    liquibaseManager.run(
-                            task.getConnection(),
-                            changeLog.startsWith(CLASSPATH) ? changeLog.substring(CLASSPATH.length()) : changeLog,
-                            shard.getOwner()
+                    Database database = DatabaseFactory.getInstance().findCorrectDatabaseImplementation(
+                            new JdbcConnection(task.getConnection())
                     );
+                    database.setDefaultCatalogName(shard.getOwner());
+                    database.setDefaultSchemaName(shard.getOwner());
+
+                    Liquibase liquibase = new Liquibase(
+                            changeLog.startsWith(CLASSPATH) ? changeLog.substring(CLASSPATH.length()) : changeLog,
+                            new ClassLoaderResourceAccessor(),
+                            database
+
+                    );
+                    liquibase.update(new Contexts(), new LabelExpression());
+
+/*
+                    new CommandScope(UpdateCommandStep.COMMAND_NAME)
+                            .addArgumentValue(DbUrlConnectionCommandStep.DATABASE_ARG, database)
+                            .addArgumentValue(
+                                    UpdateCommandStep.CHANGELOG_FILE_ARG,
+                                    changeLog.startsWith(CLASSPATH) ?
+                                            changeLog.substring(CLASSPATH.length()) :
+                                            changeLog
+                            )
+                            .execute();
+
+ */
                 } catch (LiquibaseException err) {
-
-
                     throw new ShardDataBaseException(err);
                 }
             }, changeLog);

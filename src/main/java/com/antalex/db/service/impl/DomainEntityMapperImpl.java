@@ -2,6 +2,7 @@ package com.antalex.db.service.impl;
 
 import com.antalex.db.domain.abstraction.Domain;
 import com.antalex.db.entity.abstraction.ShardInstance;
+import com.antalex.db.service.DomainEntityManager;
 import com.antalex.db.service.DomainEntityMapper;
 import org.springframework.stereotype.Component;
 
@@ -20,5 +21,10 @@ public class DomainEntityMapperImpl<T extends Domain, M extends ShardInstance> i
     @Override
     public T map(M entity) {
         return null;
+    }
+
+    @Override
+    public void setDomainManager(DomainEntityManager domainManager) {
+
     }
 }
