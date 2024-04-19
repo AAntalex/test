@@ -370,12 +370,13 @@ public class EntityClassBuilder {
 
 
             out.println();
-            out.println("    @Autowired");
             out.println("    private ShardEntityManager entityManager;");
             out.println("    private final Cluster cluster;");
 
             out.println();
             out.println(getConstructorCode(entityClassDto, className));
+            out.println();
+            out.println(getSetEntityManagerCode(entityClassDto));
             out.println();
             out.println(getNewEntityCode(entityClassDto));
             out.println();
@@ -1030,6 +1031,13 @@ public class EntityClassBuilder {
                 "    @Override\n" +
                 "    public Cluster getCluster(" + entityClassDto.getTargetClassName() + " entity) {\n" +
                 "        return cluster;\n" +
+                "    }";
+    }
+
+    private static String getSetEntityManagerCode(EntityClassDto entityClassDto) {
+        return "    @Override\n" +
+                "    public void setEntityManager(ShardEntityManager entityManager) {\n" +
+                "        this.entityManager = entityManager;\n" +
                 "    }";
     }
 
