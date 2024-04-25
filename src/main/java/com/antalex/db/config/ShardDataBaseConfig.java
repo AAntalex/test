@@ -19,6 +19,7 @@ public class ShardDataBaseConfig {
     private HikariSettings hikari;
     private ThreadPoolConfig threadPool;
     private SharedTransactionConfig transactionConfig;
+    private ChecksConfig checks;
     private Integer sequenceCacheSize;
 }
 

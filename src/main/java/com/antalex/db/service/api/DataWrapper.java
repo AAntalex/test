@@ -1,8 +1,10 @@
 package com.antalex.db.service.api;
 
+import java.io.IOException;
+
 public interface DataWrapper {
-    void init(String content) throws Exception;
-    void put(String attribute, Object o);
-    <T> T get(String attribute, Class<T> clazz) throws Exception;
+    void init(String content) throws IOException;
+    void put(String attribute, Object o) throws IOException;
+    <T> T get(String attribute, Class<T> clazz) throws IOException;
     String getContent();
 }

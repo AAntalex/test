@@ -30,7 +30,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class DomainClassBuilder {
-    private static Map<Element, DomainClassDto> domainClasses = new HashMap<>();
+    private static final Map<Element, DomainClassDto> domainClasses = new HashMap<>();
 
     public static DomainClassDto getClassDtoByElement(Element classElement) {
         DomainEntity domainEntity = classElement.getAnnotation(DomainEntity.class);
@@ -278,8 +278,8 @@ public class DomainClassBuilder {
     private static String getImportedTypes(DomainClassDto domainClassDto, List<String> importedTypes) {
         domainClassDto.getFields()
                 .stream()
-                .filter(field -> ProcessorUtils.isAnnotationPresent(field.getElement(), Attribute.class))
                 .map(DomainFieldDto::getElement)
+                .filter(element -> ProcessorUtils.isAnnotationPresent(element, Attribute.class))
                 .map(ProcessorUtils::getDeclaredType)
                 .forEach(type -> {
                     importedTypes.add(type.asElement().toString());
@@ -327,9 +327,11 @@ public class DomainClassBuilder {
                                                                         ") entity)." +
                                                                         field.getEntityField().getGetter() + "()));\n" +
                                                                         "        }\n" :
-                                                                "        if (isLazy) {\n" +
-                                                                        "            readEntity();\n" +
-                                                                        "        }\n"
+                                                                """
+                                                                                if (isLazy) {
+                                                                                    readEntity();
+                                                                                }
+                                                                        """
                                                 ) :
                                                 StringUtils.EMPTY
                                         ) +
@@ -494,18 +496,21 @@ public class DomainClassBuilder {
 
     private static String getMapStorageToEntityCode(DomainClassDto classDto) {
         return classDto.getStorageMap()
-                .entrySet()
+                .keySet()
                 .stream()
-                .map(entry ->
-                        getMapStorageCode(classDto, entry.getKey())
+                .map(storageDto -> getMapStorageCode(classDto, storageDto)
                 )
                 .reduce(
                         "    private List<AttributeStorage> mapStorage(" + classDto.getTargetClassName() +
                                 " domain) {\n" +
-                                "        List<AttributeStorage> storage = new ArrayList<>();",
+                                "        List<AttributeStorage> storage = new ArrayList<>();\n" +
+                                "        try {",
                         String::concat
                 ) +
-                "\n        return storage;\n" +
+                "\n        } catch (Exception err) {\n" +
+                "            throw new RuntimeException(err);\n" +
+                "        }\n" +
+                "        return storage;\n" +
                 "    }";
     }
 
@@ -517,20 +522,21 @@ public class DomainClassBuilder {
                                 storageName.equals(field.getStorage().getName())
                 )
                 .map(field ->
-                                "\n            dataWrapper.put(\"" + field.getFieldName() + "\", domain." +
+                                "\n                dataWrapper.put(\"" + field.getFieldName() + "\", domain." +
                                 field.getGetter() + "());"
                 )
                 .reduce(
-                        "\n        if (domain.isChanged(\"" + storageName + "\")) {\n" +
-                                "            AttributeStorage attributeStorage = domainManager.getAttributeStorage" +
-                                "(domain, storageMap.get(\"" + storageName + "\"));\n" +
-                                "            DataWrapper dataWrapper  = attributeStorage.getDataWrapper();",
+                        "\n            if (domain.isChanged(\"" + storageName + "\")) {\n" +
+                                "                AttributeStorage attributeStorage = " +
+                                "domainManager.getAttributeStorage(domain, storageMap.get(\"" +
+                                storageName + "\"));\n" +
+                                "                DataWrapper dataWrapper  = attributeStorage.getDataWrapper();",
                         String::concat
                 ) +
-                "\n            attributeStorage.setData(dataWrapper.getContent());\n" +
-                "            domain.dropChanges(\"" + storageName + "\");\n" +
-                "            storage.add(attributeStorage);\n" +
-                "        }";
+                "\n                attributeStorage.setData(dataWrapper.getContent());\n" +
+                "                domain.dropChanges(\"" + storageName + "\");\n" +
+                "                storage.add(attributeStorage);\n" +
+                "            }";
     }
 
     private static String getLazyFlagsCode(DomainClassDto classDto) {
@@ -553,8 +559,10 @@ public class DomainClassBuilder {
                 )
                 .map(field -> "        this." + field.getFieldName() + "Lazy = lazy;\n")
                 .reduce(
-                        "    @Override\n" +
-                                "    public void setLazy(boolean lazy) {\n",
+                        """
+                                    @Override
+                                    public void setLazy(boolean lazy) {
+                                """,
                         String::concat
                 ) +
                 "        super.setLazy(lazy);\n" +

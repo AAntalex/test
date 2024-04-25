@@ -6,4 +6,5 @@ import lombok.Data;
 public class LiquibaseConfig {
     private String changeLogSrc;
     private String changeLogName;
+    private Boolean enabled;
 }

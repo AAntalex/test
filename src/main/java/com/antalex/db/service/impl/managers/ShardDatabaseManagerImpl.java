@@ -12,14 +12,13 @@ import com.antalex.db.service.impl.*;
 import com.antalex.db.utils.ShardUtils;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
-import liquibase.Contexts;
-import liquibase.LabelExpression;
-import liquibase.Liquibase;
+import liquibase.command.CommandScope;
+import liquibase.command.core.UpdateCommandStep;
+import liquibase.command.core.helpers.DbUrlConnectionArgumentsCommandStep;
 import liquibase.database.Database;
 import liquibase.database.DatabaseFactory;
 import liquibase.database.jvm.JdbcConnection;
 import liquibase.exception.LiquibaseException;
-import liquibase.resource.ClassLoaderResourceAccessor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.ImmutablePair;
@@ -66,18 +65,19 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     private final TransactionalExternalTaskFactory externalTaskFactory;
 
     private Cluster defaultCluster;
-    private Map<String, Cluster> clusters = new HashMap<>();
-    private Map<Short, Cluster> clusterIds = new HashMap<>();
-    private Map<String, SequenceGenerator> shardSequences = new HashMap<>();
-    private Map<String, Map<Integer, SequenceGenerator>> sequences = new HashMap<>();
-    private List<ImmutablePair<Cluster, Shard>> newShards = new ArrayList<>();
+    private final Map<String, Cluster> clusters = new HashMap<>();
+    private final Map<Short, Cluster> clusterIds = new HashMap<>();
+    private final Map<String, SequenceGenerator> shardSequences = new HashMap<>();
+    private final Map<String, Map<Integer, SequenceGenerator>> sequences = new HashMap<>();
+    private final List<ImmutablePair<Cluster, Shard>> newShards = new ArrayList<>();
 
     private String changLogPath;
     private String changLogName;
+    private Boolean liquibaseEnable;
     private String segment;
     private int parallelLimit;
     private int timeOut;
-    private ExecutorService executorService;
+    private final ExecutorService executorService;
 
     ShardDatabaseManagerImpl(
             ResourceLoader resourceLoader,
@@ -317,7 +317,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                 .stream()
                 .filter(shard ->
                         !onlyNew && shardMap.equals(0L) ||
-                                Long.compare(ShardUtils.getShardMap(shard.getId()) & shardMap, 0L) > 0
+                                (ShardUtils.getShardMap(shard.getId()) & shardMap) > 0L
                 );
     }
 
@@ -343,7 +343,11 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
             this.addShardToCluster(cluster, shard);
         } else {
             Assert.isTrue(
-                    shard.getId().equals(shardId),
+                    !Optional
+                            .ofNullable(shardDataBaseConfig.getChecks())
+                            .map(ChecksConfig::getCheckShardID)
+                            .orElse(true) ||
+                            shard.getId().equals(shardId),
                     String.format(
                             "Идентификатор шарды в настройках '%s.clusters.shards.id' = '%d' " +
                                     "кластера '%s' " +
@@ -356,7 +360,11 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
 
     private void checkMainShard(Cluster cluster, Shard shard, boolean mainShard) {
         Assert.isTrue(
-                shard.getId().equals(cluster.getMainShard().getId()) == mainShard,
+                !Optional
+                        .ofNullable(shardDataBaseConfig.getChecks())
+                        .map(ChecksConfig::getCheckMainShard)
+                        .orElse(true) ||
+                        shard.getId().equals(cluster.getMainShard().getId()) == mainShard,
                 String.format(
                         "Шарда с ID = '%d'%s должна быть основной в Кластере '%s'" ,
                         shard.getId(),
@@ -372,7 +380,11 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
             this.addCluster(cluster.getId(), cluster);
         } else {
             Assert.isTrue(
-                    cluster.getId().equals(clusterId),
+                    !Optional
+                            .ofNullable(shardDataBaseConfig.getChecks())
+                            .map(ChecksConfig::getCheckClusterID)
+                            .orElse(true) ||
+                            cluster.getId().equals(clusterId),
                     String.format(
                             "Идентификатор кластера '%s' в настройках '%s.clusters.id' = '%d' " +
                                     "не соответсвует идентификатору в БД = '%d'.",
@@ -384,7 +396,11 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
 
     private void checkClusterName(Cluster cluster, String clusterName) {
         Assert.isTrue(
-                cluster.getName().equals(clusterName),
+                !Optional
+                        .ofNullable(shardDataBaseConfig.getChecks())
+                        .map(ChecksConfig::getCheckClusterName)
+                        .orElse(true) ||
+                        cluster.getName().equals(clusterName),
                 String.format(
                         "Наименование кластера '%s' в настройках '%s.clusters.name' = '%s' " +
                                 "не соответсвует наименованию в БД = '%s'.",
@@ -395,7 +411,11 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
 
     private void checkClusterDefault(Cluster cluster, boolean clusterDefault) {
         Assert.isTrue(
-                cluster.getName().equals(getDefaultCluster().getName()) == clusterDefault,
+                !Optional
+                        .ofNullable(shardDataBaseConfig.getChecks())
+                        .map(ChecksConfig::getCheckClusterDefault)
+                        .orElse(true) ||
+                        cluster.getName().equals(getDefaultCluster().getName()) == clusterDefault,
                 String.format(
                         "Кластер '%s'%s должен быть основным" ,
                         cluster.getName(),
@@ -443,9 +463,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     }
 
     private void checkDataBaseInfo() {
-        clusters.entrySet()
-                .stream()
-                .map(Map.Entry::getValue)
+        clusters.values()
                 .forEach(this::checkDataBaseInfo);
     }
 
@@ -517,9 +535,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
 
     private void getDataBaseInfo() {
         sharedTransactionManager.getTransaction().begin();
-        clusters.entrySet()
-                .stream()
-                .map(Map.Entry::getValue)
+        clusters.values()
                 .forEach(this::getDataBaseInfo);
         sharedTransactionManager.getTransaction().commit();
     }
@@ -686,6 +702,10 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                 .ofNullable(shardDataBaseConfig.getLiquibase())
                 .map(LiquibaseConfig::getChangeLogName)
                 .orElse(DEFAULT_CHANGE_LOG_NAME);
+        this.liquibaseEnable = Optional
+                .ofNullable(shardDataBaseConfig.getLiquibase())
+                .map(LiquibaseConfig::getEnabled)
+                .orElse(true);
     }
 
     private void processThreadPoolConfig() {
@@ -772,8 +792,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                                 .orElse(
                                         Optional.ofNullable(clusterConfig.getSequenceCacheSize())
                                                 .orElse(
-                                                        Optional.ofNullable(shardDataBaseConfig.getSequenceCacheSize())
-                                                                .orElse(null)
+                                                        shardDataBaseConfig.getSequenceCacheSize()
                                                 )
                                 )
                 );
@@ -889,18 +908,8 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                     );
                     database.setDefaultCatalogName(shard.getOwner());
                     database.setDefaultSchemaName(shard.getOwner());
-
-                    Liquibase liquibase = new Liquibase(
-                            changeLog.startsWith(CLASSPATH) ? changeLog.substring(CLASSPATH.length()) : changeLog,
-                            new ClassLoaderResourceAccessor(),
-                            database
-
-                    );
-                    liquibase.update(new Contexts(), new LabelExpression());
-
-/*
                     new CommandScope(UpdateCommandStep.COMMAND_NAME)
-                            .addArgumentValue(DbUrlConnectionCommandStep.DATABASE_ARG, database)
+                            .addArgumentValue(DbUrlConnectionArgumentsCommandStep.DATABASE_ARG, database)
                             .addArgumentValue(
                                     UpdateCommandStep.CHANGELOG_FILE_ARG,
                                     changeLog.startsWith(CLASSPATH) ?
@@ -908,8 +917,6 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                                             changeLog
                             )
                             .execute();
-
- */
                 } catch (LiquibaseException err) {
                     throw new ShardDataBaseException(err);
                 }
@@ -924,13 +931,14 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     }
 
     private void runLiquibase(String changeLog) {
-        clusters.entrySet()
-                .stream()
-                .map(Map.Entry::getValue)
+        clusters.values()
                 .forEach(cluster -> runLiquibase(cluster, changeLog));
     }
 
     private void runInitLiquibase() {
+        if (!this.liquibaseEnable) {
+            return;
+        }
         sharedTransactionManager.getTransaction().begin();
         runLiquibase(INIT_CHANGE_LOG);
         sharedTransactionManager.getTransaction().commit();
@@ -955,6 +963,9 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     }
 
     private void runLiquibase() {
+        if (!this.liquibaseEnable) {
+            return;
+        }
         sharedTransactionManager.getTransaction().begin();
         Optional.ofNullable(this.changLogPath)
                 .filter(src -> resourceLoader.getResource(src).exists())

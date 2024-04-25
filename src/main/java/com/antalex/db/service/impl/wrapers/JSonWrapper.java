@@ -1,7 +1,6 @@
 package com.antalex.db.service.impl.wrapers;
 
 import com.antalex.db.service.api.DataWrapper;
-import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -12,7 +11,7 @@ import java.util.Optional;
 
 public class JSonWrapper implements DataWrapper {
     private ObjectNode root;
-    private ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper;
 
     public JSonWrapper(ObjectMapper objectMapper) {
         this.objectMapper = objectMapper;
@@ -26,8 +25,8 @@ public class JSonWrapper implements DataWrapper {
     }
 
     @Override
-    public void put(String attribute, Object o) {
-        this.root.putPOJO(attribute, o);
+    public void put(String attribute, Object o) throws JsonProcessingException {
+        this.root.put(attribute, objectMapper.writeValueAsString(o));
     }
 
     @Override
