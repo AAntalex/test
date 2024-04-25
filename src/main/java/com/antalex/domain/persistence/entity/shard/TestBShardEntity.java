@@ -27,6 +27,7 @@ public class TestBShardEntity extends BaseShardEntity {
     @JoinColumn(name = "C_A_REF")
     private TestAShardEntity a;
     private String newValue;
+    @ParentShard
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
     @JoinColumn(name = "C_B_REF")
     private List<TestCShardEntity> cList = new ArrayList<>();

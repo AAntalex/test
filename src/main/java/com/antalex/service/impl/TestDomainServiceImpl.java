@@ -51,6 +51,8 @@ public class TestDomainServiceImpl implements TestDomainService {
             for (int j = 0; j < cntArray; j++) {
                 TestCDomain c = domainEntityManager.newDomain(TestCDomain.class);
                 c.setValue(prefix + "C");
+                c.setNewValue(prefix + "newC" + (i * cntArray + j));
+                c.setExecuteTime(LocalDateTime.now());
                 cEntities.add(c);
             }
             b.getTestList().addAll(cEntities);

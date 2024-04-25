@@ -5,6 +5,7 @@ import com.antalex.db.entity.abstraction.BaseShardEntity;
 import lombok.Data;
 
 import javax.persistence.*;
+import java.time.LocalDateTime;
 import java.util.Date;
 
 @Table(name = "TEST_A", schema = "pmts_main")
@@ -23,5 +24,5 @@ public class TestAEntity extends BaseShardEntity {
     @Column(name = "C_NEW_VALUE")
     private String newValue;
     @Column(name = "C_EXECUTE_TIME")
-    private Date executeTime;
+    private LocalDateTime executeTime;
 }

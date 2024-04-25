@@ -36,9 +36,16 @@ shardDbConfig:
   liquibase:
     changeLogSrc: classpath:db/changelog
     changeLogName: db.changelog-master.yaml
+    enabled: true
   hikari:
     minimumIdle: 3
     maximumPoolSize: 20
+  checks:
+    checkShardID: true
+    checkClusterID: true
+    checkClusterName: true
+    checkMainShard: false
+    checkClusterDefault: false
   clusters:
     - name: MAIN
       defaultCluster: true

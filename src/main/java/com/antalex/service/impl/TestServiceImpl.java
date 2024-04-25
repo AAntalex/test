@@ -22,6 +22,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -62,7 +63,7 @@ public class TestServiceImpl implements TestService{
             a.setId(databaseManager.sequenceNextVal() * 10000L);
             a.setValue(prefix + "A");
             a.setNewValue(prefix + "newA" + i);
-            a.setExecuteTime(new Date());
+            a.setExecuteTime(LocalDateTime.now());
             aList.add(a);
         }
 

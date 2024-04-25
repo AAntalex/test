@@ -3,7 +3,9 @@ import com.antalex.db.service.DomainEntityManager;
 import com.antalex.db.service.ShardDataBaseManager;
 import com.antalex.db.service.ShardEntityManager;
 import com.antalex.db.utils.ShardUtils;
+import com.antalex.domain.persistence.domain.TestADomain;
 import com.antalex.domain.persistence.domain.TestBDomain;
+import com.antalex.domain.persistence.domain.TestCDomain;
 import com.antalex.domain.persistence.entity.AdditionalParameterEntity;
 import com.antalex.domain.persistence.entity.hiber.TestAEntity;
 import com.antalex.domain.persistence.entity.hiber.TestBEntity;
@@ -32,6 +34,8 @@ import org.springframework.test.context.junit4.SpringRunner;
 
 import javax.persistence.EntityManagerFactory;
 import java.sql.Connection;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.List;
 
 @RunWith(SpringRunner.class)
@@ -320,7 +324,7 @@ public class ApplicationTests {
 	}
 
 
-//	@Test
+	@Test
 	public void saveJPA() {
         databaseManager.sequenceNextVal();
 		profiler.start("testService.generate");
@@ -336,7 +340,7 @@ public class ApplicationTests {
 		System.out.println("testBEntities.size = " + testBEntities.size());
 	}
 
-//	@Test
+	@Test
 	public void saveMyBatis() {
         databaseManager.sequenceNextVal();
 		profiler.start("testService.generate");
@@ -351,7 +355,7 @@ public class ApplicationTests {
 		System.out.println("testBEntities.size = " + testBEntities.size());
 	}
 
-//	@Test
+	@Test
 	public void saveStatement() {
         databaseManager.sequenceNextVal();
 		profiler.start("testService.generate");
@@ -366,7 +370,7 @@ public class ApplicationTests {
 		System.out.println("testBEntities.size = " + testBEntities.size());
 	}
 
-//	@Test
+	@Test
 	public void saveShard() {
         databaseManager.sequenceNextVal();
 		profiler.start("testShardService.generate");
@@ -472,7 +476,6 @@ public class ApplicationTests {
 		System.out.println("AAA!!!!!!!!!!!!!! AFTER b = " + b.getEntity().getId() +
 				" a.ID = " + a.getEntity().getId()
 		);
-
 		System.out.println("STOP");
 		*/
 	}
@@ -558,6 +561,36 @@ public class ApplicationTests {
 
 
 		} catch (JsonProcessingException err) {
+			throw new RuntimeException(err);
+		}
+
+		profiler.stop();
+		System.out.println(profiler.printTimeCounter());
+	}
+
+//	@Test
+	public void testJson2() {
+		profiler.start("testJson2");
+
+		try {
+			ObjectNode root = objectMapper.createObjectNode();
+
+			root.putPOJO("note", "AAA");
+//			root.putPOJO("executeTime", OffsetDateTime.now());
+
+			root.put("executeTime", objectMapper.writeValueAsString(OffsetDateTime.now()));
+
+			/*
+			TestAEntity a = new TestAEntity();
+			a.setId(2345L);
+			a.setValue("AValue");
+			a.setExecuteTime(LocalDateTime.now());
+
+			root.putPOJO("a", a);
+			*/
+
+			System.out.println("jSonText 0 = " + root.toString());
+		} catch (Exception err) {
 			throw new RuntimeException(err);
 		}
 
