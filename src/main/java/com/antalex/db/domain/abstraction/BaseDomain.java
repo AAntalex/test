@@ -41,10 +41,6 @@ public abstract class BaseDomain implements Domain {
         return storage;
     }
 
-    public void readEntity() {
-
-    }
-
     public boolean isLazy() {
         return isLazy;
     }
@@ -55,6 +51,10 @@ public abstract class BaseDomain implements Domain {
 
     public void setLazy(boolean lazy) {
         isLazy = lazy;
+    }
+
+    public void setLazy(String storageName, boolean lazy) {
+        lazyStore.put(storageName, lazy);
     }
 
     public void setChanges(int index) {

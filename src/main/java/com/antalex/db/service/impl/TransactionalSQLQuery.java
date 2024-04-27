@@ -1,6 +1,5 @@
 package com.antalex.db.service.impl;
 
-import com.antalex.db.exception.ShardDataBaseException;
 import com.antalex.db.model.enums.QueryType;
 import com.antalex.db.service.abstractive.AbstractTransactionalQuery;
 import com.antalex.db.service.api.ResultQuery;
@@ -12,7 +11,7 @@ import java.util.Date;
 import java.util.UUID;
 
 public class TransactionalSQLQuery extends AbstractTransactionalQuery {
-    private PreparedStatement preparedStatement;
+    private final PreparedStatement preparedStatement;
     private static final int FETCH_SIZE = 100000;
 
     TransactionalSQLQuery(String query, QueryType queryType, PreparedStatement preparedStatement) {
@@ -52,7 +51,7 @@ public class TransactionalSQLQuery extends AbstractTransactionalQuery {
             return;
         }
         if (o instanceof Enum) {
-            preparedStatement.setString(idx, ((Enum) o).name());
+            preparedStatement.setString(idx, ((Enum<?>) o).name());
             return;
         }
         if (o instanceof UUID) {

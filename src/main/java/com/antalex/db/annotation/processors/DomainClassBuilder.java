@@ -23,6 +23,7 @@ import javax.lang.model.element.Element;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.MirroredTypeException;
 import javax.lang.model.util.ElementFilter;
+import javax.persistence.FetchType;
 import javax.tools.JavaFileObject;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -96,6 +97,7 @@ public class DomainClassBuilder {
                 .dataFormat(storage.dataFormat())
                 .cluster(storage.cluster())
                 .shardType(storage.shardType())
+                .fetchType(storage.fetchType())
                 .build();
     }
 
@@ -240,7 +242,8 @@ public class DomainClassBuilder {
                                             DataFormat.class.getCanonicalName(),
                                             ShardType.class.getCanonicalName(),
                                             ShardDataBaseManager.class.getCanonicalName(),
-                                            DataWrapper.class.getCanonicalName()
+                                            DataWrapper.class.getCanonicalName(),
+                                            FetchType.class.getCanonicalName()
                                     )
                             )
                     )
@@ -572,24 +575,26 @@ public class DomainClassBuilder {
 
     private static String getConstructorMapperCode(DomainClassDto classDto, String className) {
         return classDto.getStorageMap()
-                .entrySet()
+                .values()
                 .stream()
-                .map(entry ->
+                .map(storageDto ->
                         "\n        storageMap.put(\n" +
-                                "                \"" + entry.getKey() + "\",\n" +
+                                "                \"" + storageDto.getName() + "\",\n" +
                                 "                DataStorage\n" +
                                 "                        .builder()\n" +
-                                "                        .name(\"" + entry.getKey() + "\")\n" +
+                                "                        .name(\"" + storageDto.getName() + "\")\n" +
                                 (
-                                        entry.getValue().getCluster().isEmpty() ?
+                                        storageDto.getCluster().isEmpty() ?
                                                 StringUtils.EMPTY :
                                                 "                        .cluster(dataBaseManager.getCluster(\"" +
-                                                        entry.getValue().getCluster() + "\"))\n"
+                                                        storageDto.getCluster() + "\"))\n"
                                 ) +
                                 "                        .shardType(ShardType." +
-                                entry.getValue().getShardType().name() + ")\n" +
+                                storageDto.getShardType().name() + ")\n" +
                                 "                        .dataFormat(DataFormat." +
-                                entry.getValue().getDataFormat().name() + ")\n" +
+                                storageDto.getDataFormat().name() + ")\n" +
+                                "                        .fetchType(FetchType." +
+                                storageDto.getFetchType().name() + ")\n" +
                                 "                        .build());"
                 )
                 .reduce(

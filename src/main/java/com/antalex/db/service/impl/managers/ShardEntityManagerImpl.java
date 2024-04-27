@@ -164,7 +164,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
                                                 it != entityStorage &&
                                                         shardType != ShardType.REPLICABLE &&
                                                         Objects.nonNull(entityStorage.getShard()) &&
-                                                        cluster.getId().equals(it.getCluster().getId()) &&
+                                                        cluster == it.getCluster() &&
                                                         dataBaseManager.isEnabled(it.getShard())
                                         )
                                         .map(storage ->
@@ -200,8 +200,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
                                     Optional.ofNullable(parent)
                                             .map(ShardInstance::getStorageContext)
                                             .filter(it ->
-                                                    cluster.getId()
-                                                            .equals(it.getCluster().getId()) &&
+                                                    cluster == it.getCluster() &&
                                                             shardType != ShardType.REPLICABLE &&
                                                             dataBaseManager.isEnabled(it.getShard())
                                             )
@@ -456,10 +455,8 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
                 .forEach(attributeStorage -> {
                     if (Objects.isNull(attributeStorage.getCluster())) {
                         attributeStorage.setCluster(entity.getStorageContext().getCluster());
-                        setStorage(attributeStorage, entity);
-                    } else {
-                        setStorage(attributeStorage, null);
                     }
+                    setStorage(attributeStorage, entity);
                     generateId(attributeStorage);
                     attributeStorage.setEntityId(entity.getId());
                     persist(attributeStorage, onlyChanged);
@@ -475,7 +472,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
             return null;
         }
         boolean isAurTransaction = startTransaction();
-        entities.forEach(it -> it = save(it, onlyChanged));
+        entities.forEach(it -> save(it, onlyChanged));
         if (isAurTransaction) {
             flush();
         }

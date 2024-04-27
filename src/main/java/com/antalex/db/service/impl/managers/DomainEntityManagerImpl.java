@@ -14,6 +14,7 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.core.GenericTypeResolver;
 import org.springframework.stereotype.Component;
 
+import javax.persistence.EntityTransaction;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -23,8 +24,8 @@ import java.util.stream.Collectors;
 public class DomainEntityManagerImpl implements DomainEntityManager {
     private static final Map<Class<?>, Mapper> MAPPERS = new HashMap<>();
 
-    private ThreadLocal<Mapper> currentMapper = new ThreadLocal<>();
-    private ThreadLocal<Class<?>> currentSourceClass = new ThreadLocal<>();
+    private final ThreadLocal<Mapper> currentMapper = new ThreadLocal<>();
+    private final ThreadLocal<Class<?>> currentSourceClass = new ThreadLocal<>();
 
     @Autowired
     private ShardEntityManager entityManager;
@@ -70,7 +71,12 @@ public class DomainEntityManagerImpl implements DomainEntityManager {
 
     @Override
     public <T extends Domain> T find(Class<T> clazz, Long id) {
-        return map(clazz, (ShardInstance) entityManager.find(getMapper(clazz).entityClass, id));
+        return map(clazz, entityManager.find(getMapper(clazz).entityClass, id));
+    }
+
+    @Override
+    public <T extends Domain> List<T> findAll(Class<T> clazz, String condition, Object... binds) {
+        return mapAllToDomains(clazz, entityManager.findAll(getMapper(clazz).entityClass, condition, binds));
     }
 
     @Override
@@ -159,10 +165,29 @@ public class DomainEntityManagerImpl implements DomainEntityManager {
         return attributeStorage;
     }
 
-    @AllArgsConstructor
-    private class Mapper {
-        DomainEntityMapper domainEntityMapper;
-        Class entityClass;
+    @Override
+    public <T extends Domain> boolean lock(T domain) {
+        return entityManager.lock(domain.getEntity());
+    }
+
+    @Override
+    public EntityTransaction getTransaction() {
+        return entityManager.getTransaction();
+    }
+
+    @Override
+    public String getTransactionUUID() {
+        return entityManager.getTransactionUUID();
+    }
+
+    @Override
+    public void setAutonomousTransaction() {
+        entityManager.setAutonomousTransaction();
+    }
+
+    @Override
+    public void addParallel() {
+        entityManager.addParallel();
     }
 
     private <T extends Domain> List<T> saveAll(List<T> domains, boolean isUpdate) {
@@ -179,5 +204,11 @@ public class DomainEntityManagerImpl implements DomainEntityManager {
             entityManager.saveAll(mapAllToEntities(clazz, domains));
         }
         return domains;
+    }
+
+    @AllArgsConstructor
+    private static class Mapper {
+        DomainEntityMapper domainEntityMapper;
+        Class entityClass;
     }
 }
