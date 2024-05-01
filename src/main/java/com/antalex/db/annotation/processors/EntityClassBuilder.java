@@ -40,7 +40,7 @@ public class EntityClassBuilder {
     private static final String TABLE_PREFIX = "T_";
     private static final String COLUMN_PREFIX = "C_";
 
-    private static Map<Element, EntityClassDto> entityClasses = new HashMap<>();
+    private static final Map<Element, EntityClassDto> ENTITY_CLASSES = new HashMap<>();
 
     private static List<IndexDto> getIndexes(Index[] indexes) {
         List<IndexDto> result = new ArrayList<>();
@@ -62,7 +62,7 @@ public class EntityClassBuilder {
         if (shardEntity == null) {
             return null;
         }
-        if (!entityClasses.containsKey(classElement)) {
+        if (!ENTITY_CLASSES.containsKey(classElement)) {
             String elementName = classElement.getSimpleName().toString();
 
             Map<String, String> getters = ProcessorUtils.getMethodsByPrefix(classElement, "get");
@@ -106,9 +106,9 @@ public class EntityClassBuilder {
                     .build();
 
             normalizeClassDto(entityClassDto);
-            entityClasses.put(classElement, entityClassDto);
+            ENTITY_CLASSES.put(classElement, entityClassDto);
         }
-        return entityClasses.get(classElement);
+        return ENTITY_CLASSES.get(classElement);
     }
 
     private static void normalizeClassDto(EntityClassDto entityClassDto) {
@@ -239,9 +239,8 @@ public class EntityClassBuilder {
                 ) + " WHERE ID=?";
     }
 
-    private static String getSelectSQLCode(EntityClassDto entityClassDto) {
-        String code = "SELECT " + getSelectList(entityClassDto, "x0");
-        String fromCode = " FROM $$$." + entityClassDto.getTableName() + " x0";
+    private static String getSelectPrefixCode(EntityClassDto entityClassDto) {
+        StringBuilder code = new StringBuilder("SELECT ").append(getSelectList(entityClassDto, "x0"));
         int idx = 0;
         for (EntityFieldDto field : entityClassDto.getColumnFields()) {
             if (isEagerField(field)) {
@@ -250,15 +249,41 @@ public class EntityClassBuilder {
                 );
                 if (Objects.nonNull(entityClassDtoField)) {
                     idx++;
-                    code = code.concat("," + getSelectList(entityClassDtoField, "x" + idx));
-                    fromCode = fromCode.concat(
-                            " LEFT OUTER JOIN $$$." + entityClassDtoField.getTableName() + " x" + idx +
-                                    " ON x0." + field.getColumnName() + " = x" + idx + ".ID"
-                    );
+                    code
+                            .append(",")
+                            .append(getSelectList(entityClassDtoField, "x" + idx));
                 }
             }
         }
-        return code + fromCode + " WHERE x0.SHARD_MAP>=0";
+        return code.toString();
+    }
+
+    private static String getFromPrefixCode(EntityClassDto entityClassDto) {
+        StringBuilder fromCode = new StringBuilder(" FROM $$$.")
+                .append(entityClassDto.getTableName())
+                .append(" x0");
+        int idx = 0;
+        for (EntityFieldDto field : entityClassDto.getColumnFields()) {
+            if (isEagerField(field)) {
+                EntityClassDto entityClassDtoField = getClassDtoByElement(
+                        ProcessorUtils.getDeclaredType(field.getElement()).asElement()
+                );
+                if (Objects.nonNull(entityClassDtoField)) {
+                    idx++;
+                    fromCode
+                            .append(" LEFT OUTER JOIN $$$.")
+                            .append(entityClassDtoField.getTableName())
+                            .append(" x")
+                            .append(idx)
+                            .append(" ON x0.")
+                            .append(field.getColumnName())
+                            .append(" = x")
+                            .append(idx)
+                            .append(".ID");
+                }
+            }
+        }
+        return fromCode.toString();
     }
 
     private static String getSelectList(EntityClassDto entityClassDto, String alias) {
@@ -355,9 +380,12 @@ public class EntityClassBuilder {
                     "    private static final String LOCK_QUERY = \"" + getLockSQLCode(entityClassDto) + "\";"
             );
             out.println(
-                    "    private static final String SELECT_QUERY = \"" + getSelectSQLCode(entityClassDto) + "\";"
+                    "    private static final String SELECT_PREFIX = \"" + getSelectPrefixCode(entityClassDto) + "\";"
             );
-            if (entityClassDto.getUniqueFields().size() > 0) {
+            out.println(
+                    "    private static final String FROM_PREFIX = \"" + getFromPrefixCode(entityClassDto) + "\";"
+            );
+            if (!entityClassDto.getUniqueFields().isEmpty()) {
                 out.println(
                         "    private static final Long UNIQUE_COLUMNS = " + getUniqueColumnsValueCode(entityClassDto) +
                                 "L;"
@@ -405,6 +433,8 @@ public class EntityClassBuilder {
             out.println(getFindAllPrivateCode(entityClassDto));
             out.println();
             out.println(getMethodUpdateSQLCode());
+            out.println();
+            out.println(getSelectQueryCode());
             out.println("}");
         }
     }
@@ -638,6 +668,39 @@ public class EntityClassBuilder {
                 "    }";
     }
 
+    private static String getSelectQueryCode() {
+        return "    private String getSelectQuery(Map<String, DataStorage> storageMap) {\n" +
+                "        if (Objects.nonNull(storageMap)) {\n" +
+                "            StringBuilder selectPrefix = new StringBuilder(SELECT_PREFIX);\n" +
+                "            StringBuilder fromPrefix = new StringBuilder(FROM_PREFIX);\n" +
+                "            int idx = 0;\n" +
+                "            for (DataStorage dataStorage : storageMap.values()) {\n" +
+                "                if (dataStorage.getFetchType() == FetchType.EAGER && dataStorage.getCluster()" +
+                " == cluster) {\n" +
+                "                    idx++;\n" +
+                "                    selectPrefix\n" +
+                "                            .append(\",s\").append(idx)\n" +
+                "                            .append(\".ID,s\").append(idx)\n" +
+                "                            .append(\".SHARD_MAP,s\").append(idx)\n" +
+                "                            .append(\".C_ENTITY_ID,s\").append(idx)\n" +
+                "                            .append(\".C_STORAGE_NAME,s\").append(idx)\n" +
+                "                            .append(\".C_DATA,s\").append(idx)\n" +
+                "                            .append(\".C_DATA_FORMAT\");\n" +
+                "                    fromPrefix\n" +
+                "                            .append(\" LEFT OUTER JOIN $$$.APP_ATTRIBUTE_STORAGE s\").append(idx)\n" +
+                "                            .append(\" ON s\").append(idx)\n" +
+                "                            .append(\".C_ENTITY_ID=x0.ID and s\").append(idx)\n" +
+                "                            .append(\".C_STORAGE_NAME='\").append(dataStorage.getName())." +
+                "append(\"'\");\n" +
+                "                }\n" +
+                "            }\n" +
+                "            return selectPrefix + fromPrefix.toString() + \" WHERE x0.SHARD_MAP>=0 and x0.ID=?\";\n" +
+                "        } else {\n" +
+                "            return SELECT_PREFIX + FROM_PREFIX + \" WHERE x0.SHARD_MAP>=0 and x0.ID=?\";\n" +
+                "        }\n" +
+                "    }\n";
+    }
+
     private static String getNewEntityCode(EntityClassDto entityClassDto) {
         return "    @Override\n" +
                 "    public " + entityClassDto.getTargetClassName() + " newEntity() {\n" +
@@ -662,14 +725,12 @@ public class EntityClassBuilder {
     private static String getFindCode(EntityClassDto entityClassDto) {
         return  "    @Override\n" +
                 "    public " + entityClassDto.getTargetClassName() + " find(" + entityClassDto.getTargetClassName() +
-                " entity) {\n" +
+                " entity, Map<String, DataStorage> storageMap) {\n" +
                 "        try {\n" +
-                "            " + entityClassDto.getTargetClassName() + ProcessorUtils.CLASS_INTERCEPT_POSTFIX +
-                " entityInterceptor = (" +
-                entityClassDto.getTargetClassName() + ProcessorUtils.CLASS_INTERCEPT_POSTFIX + ") entity;\n" +
                 "            ResultQuery result = entityManager\n" +
-                "                    .createQuery(entity, SELECT_QUERY + \" and x0.ID=?\", QueryType.SELECT," +
-                " QueryStrategy.OWN_SHARD)\n" +
+                "                    .createQuery(entity, getSelectQuery(storageMap), QueryType.SELECT, " +
+                "QueryStrategy.OWN_SHARD)\n" +
+                "                    .bind(entity.getId())\n" +
                 "                    .bind(entity.getId())\n" +
                 "                    .getResult();\n" +
                 "            if (result.next()) {\n" +
@@ -692,7 +753,7 @@ public class EntityClassBuilder {
                 "                entityManager\n" +
                 "                        .createQuery(\n" +
                 "                                " + entityClassDto.getTargetClassName() + ".class, \n" +
-                "                                SELECT_QUERY +\n" +
+                "                                SELECT_PREFIX + FROM_PREFIX + \" WHERE x0.SHARD_MAP>=0\" +\n" +
                 "                                        Optional.ofNullable(condition).map(it -> \" and \" + it)" +
                 ".orElse(StringUtils.EMPTY),\n" +
                 "                                QueryType.SELECT\n" +

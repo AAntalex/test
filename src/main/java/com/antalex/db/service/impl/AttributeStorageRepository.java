@@ -13,7 +13,6 @@ import com.antalex.db.service.ShardEntityManager;
 import com.antalex.db.service.ShardEntityRepository;
 import com.antalex.db.service.api.ResultQuery;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
@@ -34,7 +33,7 @@ public class AttributeStorageRepository implements ShardEntityRepository<Attribu
             "C_DATA",
             "C_DATA_FORMAT"
     );
-    private Map<Long, String> updateQueries = new HashMap<>();
+    private final Map<Long, String> updateQueries = new HashMap<>();
 
     private ShardEntityManager entityManager;
 
@@ -138,7 +137,6 @@ public class AttributeStorageRepository implements ShardEntityRepository<Attribu
     @Override
     public AttributeStorage find(AttributeStorage entity) {
         try {
-            AttributeStorageInterceptor entityInterceptor = (AttributeStorageInterceptor) entity;
             ResultQuery result = entityManager
                     .createQuery(entity, SELECT_QUERY + " and x0.ID=?", QueryType.SELECT, QueryStrategy.OWN_SHARD)
                     .bind(entity.getId())
@@ -146,7 +144,6 @@ public class AttributeStorageRepository implements ShardEntityRepository<Attribu
             if (result.next()) {
                 int index = 0;
                 extractValues(entity, result, index);
-                index = index + 6;
             } else {
                 return null;
             }
@@ -211,7 +208,6 @@ public class AttributeStorageRepository implements ShardEntityRepository<Attribu
                 AttributeStorage entity = entityManager.getEntity(AttributeStorage.class, result.getLong(1));
                 int index = 0;
                 extractValues(entity, result, index);
-                index = index + 6;
                 entities.add(entity);
             }
         } catch (Exception err) {

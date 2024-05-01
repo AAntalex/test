@@ -15,4 +15,5 @@ public class StorageDto {
     private ShardType shardType;
     private DataFormat dataFormat;
     private FetchType fetchType;
+    private Boolean isUsed;
 }

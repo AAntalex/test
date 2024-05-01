@@ -211,9 +211,16 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
 
     @Override
     public Stream<Shard> getEnabledShards(Cluster cluster) {
-        return cluster
-                .getShards()
-                .stream()
+        return Optional.ofNullable(cluster)
+                .map(Cluster::getShards)
+                .map(List::stream)
+                .orElse(
+                        clusters
+                                .values()
+                                .stream()
+                                .map(this::getEnabledShards)
+                                .reduce(Stream.empty(), Stream::concat)
+                )
                 .filter(this::isEnabled);
     }
 

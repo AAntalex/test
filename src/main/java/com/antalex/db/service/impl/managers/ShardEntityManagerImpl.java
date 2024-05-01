@@ -32,7 +32,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
 
     private ThreadLocal<ShardEntityRepository<?>> currentShardEntityRepository = new ThreadLocal<>();
     private ThreadLocal<Class<?>> currentSourceClass = new ThreadLocal<>();
-    private ThreadLocal<Map<Long, ShardInstance>> entities = ThreadLocal.withInitial(HashMap::new);
+    private final ThreadLocal<Map<Long, ShardInstance>> entities = ThreadLocal.withInitial(HashMap::new);
 
     @Autowired
     private ShardDataBaseManager dataBaseManager;
@@ -377,14 +377,29 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
             QueryType queryType)
     {
         ShardEntityRepository<T> repository = getEntityRepository(clazz);
-        return dataBaseManager.getEnabledShards(repository.getCluster())
+        return createQueries(repository.getCluster(), query, queryType);
+    }
+
+    @Override
+    public Iterable<TransactionalQuery> createQueries(
+            Cluster cluster,
+            String query,
+            QueryType queryType)
+    {
+        return dataBaseManager.getEnabledShards(cluster)
                 .map(shard -> this.createQuery(shard, query, queryType))
                 .collect(Collectors.toList());
     }
 
+
     @Override
     public <T extends ShardInstance> TransactionalQuery createQuery(Class<T> clazz, String query, QueryType queryType) {
         return getMainQuery(createQueries(clazz, query, queryType));
+    }
+
+    @Override
+    public TransactionalQuery createQuery(Cluster cluster, String query, QueryType queryType) {
+        return getMainQuery(createQueries(cluster, query, queryType));
     }
 
     @Override

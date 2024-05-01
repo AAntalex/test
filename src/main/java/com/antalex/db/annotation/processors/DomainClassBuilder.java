@@ -98,6 +98,7 @@ public class DomainClassBuilder {
                 .cluster(storage.cluster())
                 .shardType(storage.shardType())
                 .fetchType(storage.fetchType())
+                .isUsed(false)
                 .build();
     }
 
@@ -149,6 +150,7 @@ public class DomainClassBuilder {
                                 )
                         );
                     }
+                    storage.setIsUsed(true);
                     return storage;
                 })
                 .orElse(null);
@@ -200,9 +202,9 @@ public class DomainClassBuilder {
                             "    }\n"
             );
             out.println(getSetLazyCode(domainClassDto));
-            out.println(getReadEntityCode(domainClassDto));
             out.println(getGettersCode(domainClassDto));
             out.println(getSettersCode(domainClassDto));
+            out.println(getReadEntityCode(domainClassDto));
             out.println("}");
         }
     }
@@ -388,7 +390,7 @@ public class DomainClassBuilder {
                                                 StringUtils.EMPTY
                                         ) +
                                 "        super." + field.getSetter() + "(value);\n" +
-                                "    }\n" +
+                                "    }\n\n" +
                                 "    @Override\n" +
                                 "    public void " + field.getSetter() +
                                 "(" + ProcessorUtils.getTypeField(field.getElement()) + " value) {\n" +
@@ -424,8 +426,7 @@ public class DomainClassBuilder {
                                         "), false);"
                 )
                 .reduce(
-                        "    @Override\n" +
-                                "    public void readEntity() {\n" +
+                        "    private void readEntity() {\n" +
                                 "        " + classDto.getEntityClass().getTargetClassName() + " entity = (" +
                                 classDto.getEntityClass().getTargetClassName() + ") this.entity;",
                         String::concat
@@ -577,6 +578,7 @@ public class DomainClassBuilder {
         return classDto.getStorageMap()
                 .values()
                 .stream()
+                .filter(StorageDto::getIsUsed)
                 .map(storageDto ->
                         "\n        storageMap.put(\n" +
                                 "                \"" + storageDto.getName() + "\",\n" +
