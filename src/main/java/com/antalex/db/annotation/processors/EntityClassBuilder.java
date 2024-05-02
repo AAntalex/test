@@ -2,8 +2,10 @@ package com.antalex.db.annotation.processors;
 
 import com.antalex.db.annotation.ParentShard;
 import com.antalex.db.annotation.ShardEntity;
+import com.antalex.db.entity.AttributeStorage;
 import com.antalex.db.entity.abstraction.ShardInstance;
 import com.antalex.db.model.Cluster;
+import com.antalex.db.model.DataStorage;
 import com.antalex.db.model.StorageContext;
 import com.antalex.db.model.dto.*;
 import com.antalex.db.model.enums.QueryStrategy;
@@ -342,7 +344,10 @@ public class EntityClassBuilder {
                                             Map.class.getCanonicalName(),
                                             HashMap.class.getCanonicalName(),
                                             ShardInstance.class.getCanonicalName(),
-                                            SerialClob.class.getCanonicalName()
+                                            SerialClob.class.getCanonicalName(),
+                                            AttributeStorage.class.getCanonicalName(),
+                                            DataStorage.class.getCanonicalName(),
+                                            FetchType.class.getCanonicalName()
                                     )
                             )
                     )
@@ -728,9 +733,12 @@ public class EntityClassBuilder {
                 " entity, Map<String, DataStorage> storageMap) {\n" +
                 "        try {\n" +
                 "            ResultQuery result = entityManager\n" +
-                "                    .createQuery(entity, getSelectQuery(storageMap), QueryType.SELECT, " +
-                "QueryStrategy.OWN_SHARD)\n" +
-                "                    .bind(entity.getId())\n" +
+                "                    .createQuery(\n" +
+                "                            entity,\n" +
+                "                            getSelectQuery(storageMap) + \" and x0.ID=?\",\n" +
+                "                            QueryType.SELECT,\n" +
+                "                            QueryStrategy.OWN_SHARD\n" +
+                "                    )\n" +
                 "                    .bind(entity.getId())\n" +
                 "                    .getResult();\n" +
                 "            if (result.next()) {\n" +
@@ -748,18 +756,19 @@ public class EntityClassBuilder {
     private static String getFindAllCode(EntityClassDto entityClassDto) {
         return  "    @Override\n" +
                 "    public List<" + entityClassDto.getTargetClassName() +
-                "> findAll(String condition, Object... binds) {\n" +
+                "> findAll(Map<String, DataStorage> storageMap, String condition, Object... binds) {\n" +
                 "        return findAll(\n" +
                 "                entityManager\n" +
                 "                        .createQuery(\n" +
                 "                                " + entityClassDto.getTargetClassName() + ".class, \n" +
-                "                                SELECT_PREFIX + FROM_PREFIX + \" WHERE x0.SHARD_MAP>=0\" +\n" +
+                "                                getSelectQuery(storageMap) +\n" +
                 "                                        Optional.ofNullable(condition).map(it -> \" and \" + it)" +
                 ".orElse(StringUtils.EMPTY),\n" +
                 "                                QueryType.SELECT\n" +
                 "                        )\n" +
                 "                        .bindAll(binds)\n" +
-                "                        .getResult()\n" +
+                "                        .getResult(),\n" +
+                "                storageMap" +
                 "        );\n" +
                 "    }";
     }
@@ -767,28 +776,34 @@ public class EntityClassBuilder {
     private static String getFindAllParentCode(EntityClassDto entityClassDto) {
         return  "    @Override\n" +
                 "    public List<" + entityClassDto.getTargetClassName() +
-                "> findAll(ShardInstance parent, String condition, Object... binds) {\n" +
+                "> findAll(\n" +
+                "            ShardInstance parent,\n" +
+                "            Map<String, DataStorage> storageMap,\n" +
+                "            String condition,\n" +
+                "            Object... binds)\n" +
+                "    {\n" +
                 "        if (parent.getStorageContext().getCluster() != this.cluster) {\n" +
-                "            return findAll(condition, binds);\n" +
+                "            return findAll(storageMap, condition, binds);\n" +
                 "        }\n" +
                 "        return findAll(\n" +
                 "                entityManager\n" +
                 "                        .createQuery(\n" +
                 "                                parent,\n" +
-                "                                SELECT_QUERY +\n" +
+                "                                getSelectQuery(storageMap) +\n" +
                 "                                        Optional.ofNullable(condition).map(it -> \" and \" + it)" +
                 ".orElse(StringUtils.EMPTY),\n" +
                 "                                QueryType.SELECT\n" +
                 "                        )\n" +
                 "                        .bindAll(binds)\n" +
-                "                        .getResult()\n" +
+                "                        .getResult(),\n" +
+                "                storageMap\n" +
                 "        );\n" +
                 "    }";
     }
 
     private static String getFindAllPrivateCode(EntityClassDto entityClassDto) {
         return  "    private List<" + entityClassDto.getTargetClassName() +
-                "> findAll(ResultQuery result) {\n" +
+                "> findAll(ResultQuery result, Map<String, DataStorage> storageMap) {\n" +
                 "        List<" + entityClassDto.getTargetClassName() + "> entities = new ArrayList<>();\n" +
                 "        try {\n" +
                 "            while (result.next()) {\n" +
@@ -840,7 +855,9 @@ public class EntityClassBuilder {
                                 "                extractValues(entity, result, index);\n" +
                                 "                index = index + " + getCountSelectColumns(entityClassDto) + ";\n",
                         String::concat
-                );
+                ) +
+                "                entity.setAttributeStorage(entityManager.extractAttributeStorage" +
+                "(storageMap, result, cluster, index));\n";
     }
 
     private static String getResultObjectCode(EntityFieldDto field) {
@@ -920,24 +937,28 @@ public class EntityClassBuilder {
                 )
                 .reduce(
                         "    @Override\n" +
-                                "    public void extractValues(" + entityClassDto.getTargetClassName() + " entity, " +
+                                "    public " + entityClassDto.getTargetClassName() + " extractValues(" +
+                                entityClassDto.getTargetClassName() + " entity, " +
                                 "ResultQuery result, int index) {\n" +
                                 "        try {\n" +
                                 "            if (result.getLong(++index) != 0L) {\n" +
                                 "                " + entityClassDto.getTargetClassName() +
                                 ProcessorUtils.CLASS_INTERCEPT_POSTFIX +
-                                " entityInterceptor = (" + entityClassDto.getTargetClassName() +
-                                ProcessorUtils.CLASS_INTERCEPT_POSTFIX
-                                + ") entity;\n" +
-                                "                entity.setShardMap(result.getLong(++index));\n",
+                                " entityInterceptor =\n" +
+                                "                        (" + entityClassDto.getTargetClassName() +
+                                ProcessorUtils.CLASS_INTERCEPT_POSTFIX + ") Optional.ofNullable(entity)\n" +
+                                "                                .orElse(entityManager.getEntity(" +
+                                entityClassDto.getTargetClassName() + ".class, result.getLong(index)));\n" +
+                                "                entityInterceptor.setShardMap(result.getLong(++index));\n",
                         String::concat
                 ) +
-                "                entity.getStorageContext().setLazy(false);\n" +
+                "                entityInterceptor.getStorageContext().setLazy(false);\n" +
                 "                entityInterceptor.init();\n" +
                 "            }\n" +
                 "        } catch (Exception err) {\n" +
                 "            throw new RuntimeException(err);\n" +
                 "        }\n" +
+                "        return null;\n" +
                 "    }";
     }
 

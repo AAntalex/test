@@ -1,7 +1,9 @@
 package com.antalex.db.service;
 
+import com.antalex.db.entity.AttributeStorage;
 import com.antalex.db.entity.abstraction.ShardInstance;
 import com.antalex.db.model.Cluster;
+import com.antalex.db.model.DataStorage;
 import com.antalex.db.model.enums.QueryStrategy;
 import com.antalex.db.model.enums.QueryType;
 import com.antalex.db.model.enums.ShardType;
@@ -10,6 +12,7 @@ import com.antalex.db.service.api.TransactionalQuery;
 
 import javax.persistence.EntityTransaction;
 import java.util.List;
+import java.util.Map;
 
 public interface ShardEntityManager {
     <T extends ShardInstance> ShardType getShardType(T entity);
@@ -56,11 +59,29 @@ public interface ShardEntityManager {
     <T extends ShardInstance> TransactionalQuery createQuery(Class<T> clazz, String query, QueryType queryType);
     TransactionalQuery createQuery(Cluster cluster, String query, QueryType queryType);
     <T extends ShardInstance> boolean lock(T entity);
-    <T extends ShardInstance> T find(Class<T> clazz, Long id);
-    <T extends ShardInstance> T find(T entity);
-    <T extends ShardInstance> List<T> findAll(Class<T> clazz, String condition, Object... binds);
-    <T extends ShardInstance> List<T> findAll(Class<T> clazz, ShardInstance parent, String condition, Object... binds);
-    <T extends ShardInstance> void extractValues(T entity, ResultQuery result, int index);
+    <T extends ShardInstance> T find(Class<T> clazz, Long id, Map<String, DataStorage> storageMap);
+    <T extends ShardInstance> T find(T entity, Map<String, DataStorage> storageMap);
+    <T extends ShardInstance> List<T> findAll(
+            Map<String, DataStorage> storageMap,
+            Class<T> clazz,
+            String condition,
+            Object... binds
+    );
+    <T extends ShardInstance> List<T> findAll(
+            Class<T> clazz,
+            ShardInstance parent,
+            Map<String, DataStorage> storageMap,
+            String condition,
+            Object... binds
+    );
+    <T extends ShardInstance> T extractValues(T entity, ResultQuery result, int index);
+    <T extends ShardInstance> T extractValues(Class<T> clazz, ResultQuery result, int index);
+    List<AttributeStorage> extractAttributeStorage(
+            Map<String, DataStorage> storageMap,
+            ResultQuery result,
+            Cluster cluster,
+            int index
+    );
     EntityTransaction getTransaction();
     String getTransactionUUID();
     void setAutonomousTransaction();
@@ -79,7 +100,28 @@ public interface ShardEntityManager {
         return createQueries(entity, query, queryType, QueryStrategy.ALL_SHARDS);
     }
 
+    default <T extends ShardInstance> T find(Class<T> clazz, Long id) {
+        return find(clazz, id, null);
+    }
+
+    default <T extends ShardInstance> T find(T entity) {
+        return find(entity, null);
+    }
+
+    default <T extends ShardInstance> List<T> findAll(Class<T> clazz, String condition, Object... binds) {
+        return findAll(null, clazz, condition, binds);
+    }
+
     default  <T extends ShardInstance> List<T> findAll(Class<T> clazz) {
         return findAll(clazz, null);
+    }
+
+    default <T extends ShardInstance> List<T> findAll(
+            Class<T> clazz,
+            ShardInstance parent,
+            String condition,
+            Object... binds)
+    {
+        return findAll(clazz, parent, null, condition, binds);
     }
 }

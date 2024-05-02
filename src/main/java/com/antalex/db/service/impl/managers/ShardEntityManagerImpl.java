@@ -1,8 +1,10 @@
 package com.antalex.db.service.impl.managers;
 
+import com.antalex.db.entity.AttributeStorage;
 import com.antalex.db.entity.abstraction.ShardInstance;
 import com.antalex.db.exception.ShardDataBaseException;
 import com.antalex.db.model.Cluster;
+import com.antalex.db.model.DataStorage;
 import com.antalex.db.model.Shard;
 import com.antalex.db.model.StorageContext;
 import com.antalex.db.model.enums.QueryStrategy;
@@ -22,6 +24,7 @@ import org.springframework.core.GenericTypeResolver;
 import org.springframework.stereotype.Component;
 
 import javax.persistence.EntityTransaction;
+import javax.persistence.FetchType;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -423,42 +426,80 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
     }
 
     @Override
-    public <T extends ShardInstance> T find(Class<T> clazz, Long id) {
-        return find(getEntity(clazz, id));
+    public <T extends ShardInstance> T find(Class<T> clazz, Long id, Map<String, DataStorage> storageMap) {
+        return find(getEntity(clazz, id), storageMap);
     }
 
     @Override
-    public <T extends ShardInstance> List<T> findAll(Class<T> clazz, String condition, Object... binds) {
+    public <T extends ShardInstance> List<T> findAll(
+            Map<String, DataStorage> storageMap,
+            Class<T> clazz,
+            String condition,
+            Object... binds)
+    {
         ShardEntityRepository<T> repository = getEntityRepository(clazz);
-        return repository.findAll(condition, binds);
+        return repository.findAll(storageMap, condition, binds);
     }
+
 
     @Override
     public <T extends ShardInstance> List<T> findAll(
             Class<T> clazz,
             ShardInstance parent,
+            Map<String, DataStorage> storageMap,
             String condition,
             Object... binds)
     {
         ShardEntityRepository<T> repository = getEntityRepository(clazz);
-        return repository.findAll(parent, condition, binds);
+        return repository.findAll(parent, storageMap, condition, binds);
     }
 
     @Override
-    public <T extends ShardInstance> void extractValues(T entity, ResultQuery result, int index) {
-        if (entity == null) {
-            return;
-        }
-        getEntityRepository(entity.getClass()).extractValues(entity, result, index);
-    }
-
-    @Override
-    public <T extends ShardInstance> T find(T entity) {
+    public <T extends ShardInstance> T extractValues(T entity, ResultQuery result, int index) {
         if (entity == null) {
             return null;
         }
         ShardEntityRepository<T> repository = getEntityRepository(entity.getClass());
-        return repository.find(entity);
+        return repository.extractValues(entity, result, index);
+    }
+
+    @Override
+    public <T extends ShardInstance> T extractValues(Class<T> clazz, ResultQuery result, int index) {
+        ShardEntityRepository<T> repository = getEntityRepository(clazz);
+        return repository.extractValues(null, result, index);
+    }
+
+    @Override
+    public List<AttributeStorage> extractAttributeStorage(
+            Map<String, DataStorage> storageMap,
+            ResultQuery result,
+            Cluster cluster,
+            int index)
+    {
+        List<AttributeStorage> attributeStorageList = new ArrayList<>();
+        if (Objects.nonNull(storageMap)) {
+            for (DataStorage dataStorage : storageMap.values()) {
+                if (dataStorage.getFetchType() == FetchType.EAGER && dataStorage.getCluster() == cluster) {
+                    AttributeStorage attributeStorage = extractValues(AttributeStorage.class, result, index);
+                    if (Objects.nonNull(attributeStorage)) {
+                        attributeStorage.setCluster(cluster);
+                        attributeStorage.setShardType(dataStorage.getShardType());
+                        attributeStorageList.add(attributeStorage);
+                    }
+                    index = index + 6;
+                }
+            }
+        }
+        return attributeStorageList;
+    }
+
+    @Override
+    public <T extends ShardInstance> T find(T entity, Map<String, DataStorage> storageMap) {
+        if (entity == null) {
+            return null;
+        }
+        ShardEntityRepository<T> repository = getEntityRepository(entity.getClass());
+        return repository.find(entity, storageMap);
     }
 
     private <T extends ShardInstance> T save(T entity, boolean onlyChanged) {

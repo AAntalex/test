@@ -71,12 +71,29 @@ public class DomainEntityManagerImpl implements DomainEntityManager {
 
     @Override
     public <T extends Domain> T find(Class<T> clazz, Long id) {
-        return map(clazz, entityManager.find(getMapper(clazz).entityClass, id));
+        Mapper mapper = getMapper(clazz);
+        return map(
+                clazz,
+                entityManager.find(
+                        mapper.entityClass,
+                        id,
+                        mapper.domainEntityMapper.getDataStorage()
+                )
+        );
     }
 
     @Override
     public <T extends Domain> List<T> findAll(Class<T> clazz, String condition, Object... binds) {
-        return mapAllToDomains(clazz, entityManager.findAll(getMapper(clazz).entityClass, condition, binds));
+        Mapper mapper = getMapper(clazz);
+        return mapAllToDomains(
+                clazz,
+                entityManager.findAll(
+                        mapper.domainEntityMapper.getDataStorage(),
+                        mapper.entityClass,
+                        condition,
+                        binds
+                )
+        );
     }
 
     @Override

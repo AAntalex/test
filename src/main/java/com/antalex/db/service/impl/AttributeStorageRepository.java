@@ -4,6 +4,7 @@ import com.antalex.db.entity.AttributeStorage;
 import com.antalex.db.entity.AttributeStorageInterceptor;
 import com.antalex.db.entity.abstraction.ShardInstance;
 import com.antalex.db.model.Cluster;
+import com.antalex.db.model.DataStorage;
 import com.antalex.db.model.StorageContext;
 import com.antalex.db.model.enums.DataFormat;
 import com.antalex.db.model.enums.QueryStrategy;
@@ -117,25 +118,29 @@ public class AttributeStorageRepository implements ShardEntityRepository<Attribu
 
 
     @Override
-    public void extractValues(AttributeStorage entity, ResultQuery result, int index) {
+    public AttributeStorage extractValues(AttributeStorage entity, ResultQuery result, int index) {
         try {
             if (result.getLong(++index) != 0L) {
-                AttributeStorageInterceptor entityInterceptor = (AttributeStorageInterceptor) entity;
-                entity.setShardMap(result.getLong(++index));
+                AttributeStorageInterceptor entityInterceptor =
+                        (AttributeStorageInterceptor) Optional.ofNullable(entity)
+                                .orElse(entityManager.getEntity(AttributeStorage.class, result.getLong(index)));
+                entityInterceptor.setShardMap(result.getLong(++index));
                 entityInterceptor.setEntityId(result.getLong(++index), false);
                 entityInterceptor.setStorageName(result.getString(++index), false);
                 entityInterceptor.setData(result.getString(++index), false);
                 entityInterceptor.setDataFormat(result.getObject(++index, DataFormat.class), false);
-                entity.getStorageContext().setLazy(false);
+                entityInterceptor.getStorageContext().setLazy(false);
                 entityInterceptor.init();
+                return entityInterceptor;
             }
         } catch (Exception err) {
             throw new RuntimeException(err);
         }
+        return null;
     }
 
     @Override
-    public AttributeStorage find(AttributeStorage entity) {
+    public AttributeStorage find(AttributeStorage entity, Map<String, DataStorage> storageMap) {
         try {
             ResultQuery result = entityManager
                     .createQuery(entity, SELECT_QUERY + " and x0.ID=?", QueryType.SELECT, QueryStrategy.OWN_SHARD)
@@ -154,13 +159,15 @@ public class AttributeStorageRepository implements ShardEntityRepository<Attribu
     }
 
     @Override
-    public List<AttributeStorage> findAll(String condition, Object... binds) {
+    public List<AttributeStorage> findAll(Map<String, DataStorage> storageMap, String condition, Object... binds) {
         return findAll(
                 entityManager
                         .createQuery(
                                 AttributeStorage.class, 
                                 SELECT_QUERY +
-                                        Optional.ofNullable(condition).map(it -> " and " + it).orElse(StringUtils.EMPTY),
+                                        Optional.ofNullable(condition)
+                                                .map(it -> " and " + it)
+                                                .orElse(StringUtils.EMPTY),
                                 QueryType.SELECT
                         )
                         .bindAll(binds)
@@ -169,13 +176,20 @@ public class AttributeStorageRepository implements ShardEntityRepository<Attribu
     }
 
     @Override
-    public List<AttributeStorage> findAll(ShardInstance parent, String condition, Object... binds) {
+    public List<AttributeStorage> findAll(
+            ShardInstance parent,
+            Map<String, DataStorage> storageMap,
+            String condition,
+            Object... binds)
+    {
         return findAll(
                 entityManager
                         .createQuery(
                                 parent,
                                 SELECT_QUERY +
-                                        Optional.ofNullable(condition).map(it -> " and " + it).orElse(StringUtils.EMPTY),
+                                        Optional.ofNullable(condition)
+                                                .map(it -> " and " + it)
+                                                .orElse(StringUtils.EMPTY),
                                 QueryType.SELECT
                         )
                         .bindAll(binds)
