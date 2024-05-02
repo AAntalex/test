@@ -1,5 +1,6 @@
 package com.antalex.service.impl;
 
+import com.antalex.db.entity.AttributeStorage;
 import com.antalex.db.entity.abstraction.ShardInstance;
 import com.antalex.db.model.Cluster;
 import com.antalex.db.model.DataStorage;
@@ -20,6 +21,7 @@ import org.springframework.stereotype.Component;
 
 import javax.persistence.FetchType;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.IntStream;
 
 
@@ -175,7 +177,7 @@ public class TestBShardEntityRepositoryTEST implements ShardEntityRepository<Tes
 
 
     @Override
-    public void extractValues(TestBShardEntity entity, ResultQuery result, int index) {
+    public TestBShardEntity extractValues(TestBShardEntity entity, ResultQuery result, int index) {
         try {
             if (result.getLong(++index) != 0L) {
                 TestBShardEntity$Interceptor entityInterceptor = (TestBShardEntity$Interceptor) entity;
@@ -186,12 +188,14 @@ public class TestBShardEntityRepositoryTEST implements ShardEntityRepository<Tes
                 entityInterceptor.setExecuteTime(result.getLocalDateTime(++index), false);
                 entity.getStorageContext().setLazy(false);
                 entityInterceptor.init();
+                return entityInterceptor;
             }
         } catch (Exception err) {
             throw new RuntimeException(err);
         }
+        return null;
     }
-
+    @Override
     public TestBShardEntity find(TestBShardEntity entity, Map<String, DataStorage> storageMap) {
         try {
             TestBShardEntity$Interceptor entityInterceptor = (TestBShardEntity$Interceptor) entity;
@@ -207,34 +211,8 @@ public class TestBShardEntityRepositoryTEST implements ShardEntityRepository<Tes
             if (result.next()) {
                 int index = 0;
                 extractValues(entity, result, index);
-                index = index + 6;
-
-                storageMap
-                        .values()
-                        .forEach();
-
-            } else {
-                return null;
-            }
-        } catch (Exception err) {
-            throw new RuntimeException(err);
-        }
-        return entity;
-    }
-
-
-    @Override
-    public TestBShardEntity find(TestBShardEntity entity) {
-        try {
-            TestBShardEntity$Interceptor entityInterceptor = (TestBShardEntity$Interceptor) entity;
-            ResultQuery result = entityManager
-                    .createQuery(entity, SELECT_QUERY + " and x0.ID=?", QueryType.SELECT, QueryStrategy.OWN_SHARD)
-                    .bind(entity.getId())
-                    .getResult();
-            if (result.next()) {
-                int index = 0;
-                extractValues(entity, result, index);
-                index = index + 6;
+                index += 6;
+                entity.setAttributeStorage(entityManager.extractAttributeStorage(storageMap, result, cluster, index));
             } else {
                 return null;
             }
@@ -245,35 +223,42 @@ public class TestBShardEntityRepositoryTEST implements ShardEntityRepository<Tes
     }
 
     @Override
-    public List<TestBShardEntity> findAll(String condition, Object... binds) {
+    public List<TestBShardEntity> findAll(Map<String, DataStorage> storageMap, String condition, Object... binds) {
         return findAll(
                 entityManager
                         .createQuery(
-                                TestBShardEntity.class, 
-                                SELECT_QUERY +
+                                TestBShardEntity.class,
+                                getSelectQuery(storageMap) +
                                         Optional.ofNullable(condition).map(it -> " and " + it).orElse(StringUtils.EMPTY),
                                 QueryType.SELECT
                         )
                         .bindAll(binds)
-                        .getResult()
+                        .getResult(),
+                storageMap
         );
     }
 
     @Override
-    public List<TestBShardEntity> findAll(ShardInstance parent, String condition, Object... binds) {
+    public List<TestBShardEntity> findAll(
+            ShardInstance parent,
+            Map<String, DataStorage> storageMap,
+            String condition,
+            Object... binds)
+    {
         if (parent.getStorageContext().getCluster() != this.cluster) {
-            return findAll(condition, binds);
+            return findAll(storageMap, condition, binds);
         }
         return findAll(
                 entityManager
                         .createQuery(
                                 parent,
-                                SELECT_QUERY +
+                                getSelectQuery(storageMap) +
                                         Optional.ofNullable(condition).map(it -> " and " + it).orElse(StringUtils.EMPTY),
                                 QueryType.SELECT
                         )
                         .bindAll(binds)
-                        .getResult()
+                        .getResult(),
+                storageMap
         );
     }
 
@@ -312,7 +297,7 @@ public class TestBShardEntityRepositoryTEST implements ShardEntityRepository<Tes
         }
     }
 
-    private List<TestBShardEntity> findAll(ResultQuery result) {
+    private List<TestBShardEntity> findAll(ResultQuery result, Map<String, DataStorage> storageMap) {
         List<TestBShardEntity> entities = new ArrayList<>();
         try {
             while (result.next()) {
@@ -320,6 +305,7 @@ public class TestBShardEntityRepositoryTEST implements ShardEntityRepository<Tes
                 int index = 0;
                 extractValues(entity, result, index);
                 index = index + 6;
+                entity.setAttributeStorage(entityManager.extractAttributeStorage(storageMap, result, cluster, index));
                 entities.add(entity);
             }
         } catch (Exception err) {
