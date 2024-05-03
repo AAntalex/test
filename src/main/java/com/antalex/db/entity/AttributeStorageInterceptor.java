@@ -2,13 +2,11 @@ package com.antalex.db.entity;
 
 import com.antalex.db.model.enums.DataFormat;
 import com.antalex.db.service.ShardEntityManager;
+import lombok.Setter;
 
+@Setter
 public class AttributeStorageInterceptor extends AttributeStorage {
     private ShardEntityManager entityManager;
-    public void setEntityManager(ShardEntityManager entityManager) {
-        this.entityManager = entityManager;
-    }
-
 
     public void init() {
     }
@@ -56,10 +54,10 @@ public class AttributeStorageInterceptor extends AttributeStorage {
         setEntityId(value, true);
     }
     public void setStorageName(String value, boolean change) {
-        if (this.isLazy()) {
-            entityManager.find(this);
-        }
         if (change) {
+            if (this.isLazy()) {
+                entityManager.find(this);
+            }
             this.setChanges(2);
         }
         super.setStorageName(value);
@@ -69,10 +67,10 @@ public class AttributeStorageInterceptor extends AttributeStorage {
         setStorageName(value, true);
     }
     public void setData(String value, boolean change) {
-        if (this.isLazy()) {
-            entityManager.find(this);
-        }
         if (change) {
+            if (this.isLazy()) {
+                entityManager.find(this);
+            }
             this.setChanges(3);
         }
         super.setData(value);
@@ -82,10 +80,10 @@ public class AttributeStorageInterceptor extends AttributeStorage {
         setData(value, true);
     }
     public void setDataFormat(DataFormat value, boolean change) {
-        if (this.isLazy()) {
-            entityManager.find(this);
-        }
         if (change) {
+            if (this.isLazy()) {
+                entityManager.find(this);
+            }
             this.setChanges(4);
         }
         super.setDataFormat(value);

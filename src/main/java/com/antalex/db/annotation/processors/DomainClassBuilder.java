@@ -186,7 +186,11 @@ public class DomainClassBuilder {
                                             ShardEntityManager.class.getCanonicalName(),
                                             Optional.class.getCanonicalName(),
                                             ShardInstance.class.getCanonicalName(),
-                                            DomainEntityManager.class.getCanonicalName()
+                                            DomainEntityManager.class.getCanonicalName(),
+                                            DataStorage.class.getCanonicalName(),
+                                            Map.class.getCanonicalName(),
+                                            AttributeStorage.class.getCanonicalName(),
+                                            DataWrapper.class.getCanonicalName()
                                     )
                             )
                     )
@@ -205,6 +209,7 @@ public class DomainClassBuilder {
             out.println(getGettersCode(domainClassDto));
             out.println(getSettersCode(domainClassDto));
             out.println(getReadEntityCode(domainClassDto));
+            out.println(getReadFromStorageCode(domainClassDto));
             out.println("}");
         }
     }
@@ -260,10 +265,17 @@ public class DomainClassBuilder {
                             "ThreadLocal.withInitial(HashMap::new);\n" +
                             "    private final Map<String, DataStorage> storageMap = new HashMap<>();\n\n" +
                             getConstructorMapperCode(domainClassDto, className) +
-                            "\n\n    @Override\n" +
+                            "\n\n" +
+                            "    @Override\n" +
                             "    public void setDomainManager(DomainEntityManager domainManager) {\n" +
                             "        this.domainManager = domainManager;\n" +
                             "    }\n" +
+                            "\n" +
+                            "    @Override\n" +
+                            "    public Map<String, DataStorage> getDataStorage() {\n" +
+                            "        return storageMap;\n" +
+                            "    }\n" +
+                            "\n" +
                             "    @Override\n" +
                             "    public " + domainClassDto.getTargetClassName() + " newDomain(" +
                             domainClassDto.getEntityClass().getTargetClassName() + " entity) {\n" +
@@ -288,7 +300,7 @@ public class DomainClassBuilder {
                 .map(ProcessorUtils::getDeclaredType)
                 .forEach(type -> {
                     importedTypes.add(type.asElement().toString());
-                    if (type.getTypeArguments().size() > 0) {
+                    if (!type.getTypeArguments().isEmpty()) {
                         type.getTypeArguments()
                                 .stream()
                                 .map(it -> (DeclaredType) it)
@@ -315,7 +327,6 @@ public class DomainClassBuilder {
                                 field.getGetter() + "() {\n" +
                                 (
                                         Objects.nonNull(field.getEntityField()) ?
-
                                                 (
                                                         ProcessorUtils.isAnnotationPresentInArgument(
                                                                 field.getElement(),
@@ -338,10 +349,12 @@ public class DomainClassBuilder {
                                                                                 }
                                                                         """
                                                 ) :
-                                                StringUtils.EMPTY
-                                        ) +
-
-
+                                                "        if (this.isLazy(\"" + field.getStorage().getName() +
+                                                        "\")) {\n" +
+                                                        "            readFromStorage(\"" +
+                                                        field.getStorage().getName() + "\");\n" +
+                                                        "        }\n"
+                                ) +
                                 "        return super." + field.getGetter() + "();\n" +
                                 "    }\n"
                 )
@@ -360,16 +373,20 @@ public class DomainClassBuilder {
                         "\n    public void " + field.getSetter() +
                                 "(" + ProcessorUtils.getTypeField(field.getElement()) +
                                 " value, boolean change) {\n" +
-
-                                "        if (this.isLazy(" +
+                                "        if (change) {\n" +
+                                "            if (this.isLazy(" +
                                 (
                                         Objects.nonNull(field.getEntityField()) ?
                                                 StringUtils.EMPTY :
                                                 "\"" + field.getStorage().getName() + "\""
                                 ) + ")) {\n" +
-                                "            readEntity();\n" +
-                                "        }\n" +
-                                "        if (change) {\n" +
+                                (
+                                        Objects.nonNull(field.getEntityField()) ?
+                                                "                readEntity();\n" :
+                                                "                readFromStorage(\"" + field.getStorage().getName() +
+                                                        "\");\n"
+                                ) +
+                                "            }\n" +
                                 "            this.setChanges(" +
                                 (
                                         Objects.nonNull(field.getEntityField()) ?
@@ -377,18 +394,6 @@ public class DomainClassBuilder {
                                                 "\"" + field.getStorage().getName() + "\""
                                 ) + ");\n" +
                                 "        }\n" +
-
-        (
-                                        Objects.nonNull(field.getEntityField()) ?
-                                                "        if (this.isLazy()) {\n" +
-                                                        "            readEntity();\n" +
-                                                        "        }\n" +
-                                                        "        if (change) {\n" +
-                                                        "            this.setChanges(" + field.getFieldIndex() +
-                                                        ");\n" +
-                                                        "        }\n" :
-                                                StringUtils.EMPTY
-                                        ) +
                                 "        super." + field.getSetter() + "(value);\n" +
                                 "    }\n\n" +
                                 "    @Override\n" +
@@ -432,7 +437,7 @@ public class DomainClassBuilder {
                         String::concat
                 ) +
                 "\n        this.isLazy = false;" +
-                "\n    }";
+                "\n    }\n";
     }
 
     private static String getMapToDomainCode(DomainClassDto classDto) {
@@ -449,6 +454,13 @@ public class DomainClassBuilder {
                         "            domain = newDomain(entity);\n" +
                         "            domains.get().put(entity.getId(), domain);\n" +
                         "        }\n" +
+                        "        for (String storageName : storageMap.keySet()) {\n" +
+                        "            domain.setLazy(storageName, true);\n" +
+                        "        }\n" +
+                        "        Map<String, AttributeStorage> storage = domain.getStorage();\n" +
+                        "        entity.getAttributeStorage()\n" +
+                        "                .forEach(attributeStorage -> storage.put(attributeStorage.getStorageName()," +
+                        " attributeStorage));\n" +
                         "        domain.setLazy(true);\n" +
                         "        return domain;\n" +
                         "    }";
@@ -542,6 +554,50 @@ public class DomainClassBuilder {
                 "                storage.add(attributeStorage);\n" +
                 "            }";
     }
+
+    private static String getReadFromStorageCode(DomainClassDto classDto) {
+        return classDto.getStorageMap()
+                .keySet()
+                .stream()
+                .map(storageDto -> getReadStorageCode(classDto, storageDto)
+                )
+                .reduce(
+                        "    private void readFromStorage(String storageName) {\n" +
+                                "        Map<String, DataStorage> storageMap = domainManager.getDataStorage(" +
+                                classDto.getTargetClassName() + ".class);\n" +
+                                "        AttributeStorage attributeStorage = domainManager.getAttributeStorage(this, storageMap.get(storageName));\n" +
+                                "        DataWrapper dataWrapper  = attributeStorage.getDataWrapper();\n" +
+                                "        try {\n" +
+                                "            switch (storageName) {",
+                        String::concat
+                ) +
+                "\n            }\n" +
+                "            setLazy(storageName, false);\n" +
+                "        } catch (Exception err) {\n" +
+                "            throw new RuntimeException(err);\n" +
+                "        }\n" +
+                "    }";
+    }
+
+    private static String getReadStorageCode(DomainClassDto classDto, String storageName) {
+        return classDto.getFields()
+                .stream()
+                .filter(field ->
+                        Objects.nonNull(field.getStorage()) &&
+                                storageName.equals(field.getStorage().getName())
+                )
+                .map(field ->
+                        "\n                    " + field.getSetter() + "(dataWrapper.get(\"" +
+                                storageName + "\", " + ProcessorUtils.getTypeField(field.getElement()) +
+                                ".class), false);"
+                )
+                .reduce(
+                        "\n                case \"" + storageName + "\":",
+                        String::concat
+                ) +
+                "\n                    break;";
+    }
+
 
     private static String getLazyFlagsCode(DomainClassDto classDto) {
         return classDto.getFields()

@@ -46,7 +46,7 @@ public interface ShardEntityManager {
             QueryType queryType,
             QueryStrategy queryStrategy
     );
-    public Iterable<TransactionalQuery> createQueries(
+    Iterable<TransactionalQuery> createQueries(
             Cluster cluster,
             String query,
             QueryType queryType
@@ -61,6 +61,7 @@ public interface ShardEntityManager {
     <T extends ShardInstance> boolean lock(T entity);
     <T extends ShardInstance> T find(Class<T> clazz, Long id, Map<String, DataStorage> storageMap);
     <T extends ShardInstance> T find(T entity, Map<String, DataStorage> storageMap);
+    AttributeStorage findAttributeStorage(ShardInstance parent, DataStorage storage);
     <T extends ShardInstance> List<T> findAll(
             Map<String, DataStorage> storageMap,
             Class<T> clazz,

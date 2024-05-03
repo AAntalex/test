@@ -116,7 +116,6 @@ public class AttributeStorageRepository implements ShardEntityRepository<Attribu
                 .execute();
     }
 
-
     @Override
     public AttributeStorage extractValues(AttributeStorage entity, ResultQuery result, int index) {
         try {
@@ -156,6 +155,32 @@ public class AttributeStorageRepository implements ShardEntityRepository<Attribu
             throw new RuntimeException(err);
         }
         return entity;
+    }
+
+    public AttributeStorage find(ShardInstance parent, DataStorage storage) {
+        try {
+            ResultQuery result = entityManager
+                    .createQuery(
+                            storage.getCluster(),
+                            SELECT_QUERY + " and x0.C_ENTITY_ID=? and x0.C_STORAGE_NAME=?",
+                            QueryType.SELECT
+                    )
+                    .bind(parent.getId())
+                    .bind(storage.getName())
+                    .getResult();
+            if (result.next()) {
+                AttributeStorage entity = entityManager.getEntity(AttributeStorage.class, result.getLong(1));
+                int index = 0;
+                extractValues(entity, result, index);
+                entity.setCluster(storage.getCluster());
+                entity.setShardType(storage.getShardType());
+                return entity;
+            } else {
+                return null;
+            }
+        } catch (Exception err) {
+            throw new RuntimeException(err);
+        }
     }
 
     @Override

@@ -27,11 +27,13 @@ public class DomainEntityManagerImpl implements DomainEntityManager {
     private final ThreadLocal<Mapper> currentMapper = new ThreadLocal<>();
     private final ThreadLocal<Class<?>> currentSourceClass = new ThreadLocal<>();
 
-    @Autowired
-    private ShardEntityManager entityManager;
+    private final ShardEntityManager entityManager;
+    private final DataWrapperFactory dataWrapperFactory;
 
-    @Autowired
-    private DataWrapperFactory dataWrapperFactory;
+    DomainEntityManagerImpl(ShardEntityManager entityManager, DataWrapperFactory dataWrapperFactory) {
+        this.entityManager = entityManager;
+        this.dataWrapperFactory = dataWrapperFactory;
+    }
 
     @Autowired
     public void setDomainMappers(
@@ -164,22 +166,34 @@ public class DomainEntityManagerImpl implements DomainEntityManager {
     @Override
     public AttributeStorage getAttributeStorage(Domain domain, DataStorage dataStorage) {
         AttributeStorage attributeStorage = domain.getStorage().get(dataStorage.getName());
-        if (attributeStorage == null) {
-            attributeStorage = entityManager.newEntity(AttributeStorage.class);
-            attributeStorage.setStorageName(dataStorage.getName());
-            attributeStorage.setDataFormat(dataStorage.getDataFormat());
+        if (Objects.isNull(attributeStorage)) {
+            if (domain.isLazy(dataStorage.getName())) {
+                attributeStorage = entityManager.findAttributeStorage(domain.getEntity(), dataStorage);
+            }
+            if (Objects.isNull(attributeStorage)) {
+                attributeStorage = entityManager.newEntity(AttributeStorage.class);
+                attributeStorage.setStorageName(dataStorage.getName());
+                attributeStorage.setDataFormat(dataStorage.getDataFormat());
+                attributeStorage.setCluster(dataStorage.getCluster());
+                attributeStorage.setShardType(dataStorage.getShardType());
+            }
+            domain.getStorage().put(dataStorage.getName(), attributeStorage);
+        }
+        if (Objects.isNull(attributeStorage.getDataWrapper())) {
             DataWrapper dataWrapper = dataWrapperFactory.createDataWrapper(attributeStorage.getDataFormat());
             try {
-                dataWrapper.init(null);
+                dataWrapper.init(attributeStorage.getData());
             } catch (Exception err) {
                 throw new ShardDataBaseException(err);
             }
             attributeStorage.setDataWrapper(dataWrapper);
-            attributeStorage.setCluster(dataStorage.getCluster());
-            attributeStorage.setShardType(dataStorage.getShardType());
-            domain.getStorage().put(dataStorage.getName(), attributeStorage);
         }
         return attributeStorage;
+    }
+
+    @Override
+    public <T extends Domain> Map<String, DataStorage> getDataStorage(Class<T> clazz) {
+        return getMapper(clazz).domainEntityMapper.getDataStorage();
     }
 
     @Override

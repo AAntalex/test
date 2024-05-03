@@ -409,7 +409,7 @@ public class EntityClassBuilder {
             out.println();
             out.println(getConstructorCode(entityClassDto, className));
             out.println();
-            out.println(getSetEntityManagerCode(entityClassDto));
+            out.println(getSetEntityManagerCode());
             out.println();
             out.println(getNewEntityCode(entityClassDto));
             out.println();
@@ -470,10 +470,12 @@ public class EntityClassBuilder {
                     )
             );
             out.println("public class " + className + " extends " + entityClassDto.getTargetClassName() + " {");
-            out.println("    private ShardEntityManager entityManager;\n" +
-                    "    public void setEntityManager(ShardEntityManager entityManager) {\n" +
-                    "        this.entityManager = entityManager;\n" +
-                    "    }\n");
+            out.println("""
+                        private ShardEntityManager entityManager;
+                        public void setEntityManager(ShardEntityManager entityManager) {
+                            this.entityManager = entityManager;
+                        }
+                    """);
             out.println(getLazyFlagsCode(entityClassDto));
             out.println(getInitCode(entityClassDto));
             out.println(getGettersCode(entityClassDto));
@@ -485,13 +487,13 @@ public class EntityClassBuilder {
     private static String getImportedTypes(EntityClassDto entityClassDto, List<String> importedTypes) {
         entityClassDto.getFields()
                 .stream()
-                .filter(field ->
-                        !ProcessorUtils.isAnnotationPresent(field.getElement(), Transient.class))
                 .map(EntityFieldDto::getElement)
+                .filter(element ->
+                        !ProcessorUtils.isAnnotationPresent(element, Transient.class))
                 .map(ProcessorUtils::getDeclaredType)
                 .forEach(type -> {
                     importedTypes.add(type.asElement().toString());
-                    if (type.getTypeArguments().size() > 0) {
+                    if (!type.getTypeArguments().isEmpty()) {
                         type.getTypeArguments()
                                 .stream()
                                 .map(it -> (DeclaredType) it)
@@ -597,9 +599,11 @@ public class EntityClassBuilder {
                                                         "            this." + field.getFieldName() +
                                                         "Lazy = false;\n" +
                                                         "        }\n" :
-                                                "        if (this.isLazy()) {\n" +
-                                                        "            entityManager.find(this);\n" +
-                                                        "        }\n"
+                                                """
+                                                                if (this.isLazy()) {
+                                                                    entityManager.find(this);
+                                                                }
+                                                        """
                                 ) +
                                 "        return super." + field.getGetter() + "();\n" +
                                 "    }"
@@ -653,57 +657,61 @@ public class EntityClassBuilder {
     }
 
     private static String getMethodUpdateSQLCode() {
-        return "    private String getUpdateSQL(Long changes) {\n" +
-                "        if (\n" +
-                "                Optional.ofNullable(changes)\n" +
-                "                .map(it -> it.equals(0L) && COLUMNS.size() <= Long.SIZE)\n" +
-                "                .orElse(true)) \n" +
-                "        {\n" +
-                "            return null;\n" +
-                "        }\n" +
-                "        String sql = updateQueries.get(changes);\n" +
-                "        if (Objects.isNull(sql)) {\n" +
-                "            sql = IntStream.range(0, COLUMNS.size())\n" +
-                "                    .filter(idx -> idx > Long.SIZE || (changes & (1L << idx)) > 0L)\n" +
-                "                    .mapToObj(idx -> \",\" + COLUMNS.get(idx) + \"=?\")\n" +
-                "                    .reduce(UPD_QUERY_PREFIX, String::concat) + \" WHERE ID=?\";\n" +
-                "            updateQueries.put(changes, sql);\n" +
-                "        }\n" +
-                "        return sql;\n" +
-                "    }";
+        return """
+                    private String getUpdateSQL(Long changes) {
+                        if (
+                                Optional.ofNullable(changes)
+                                .map(it -> it.equals(0L) && COLUMNS.size() <= Long.SIZE)
+                                .orElse(true))\s
+                        {
+                            return null;
+                        }
+                        String sql = updateQueries.get(changes);
+                        if (Objects.isNull(sql)) {
+                            sql = IntStream.range(0, COLUMNS.size())
+                                    .filter(idx -> idx > Long.SIZE || (changes & (1L << idx)) > 0L)
+                                    .mapToObj(idx -> "," + COLUMNS.get(idx) + "=?")
+                                    .reduce(UPD_QUERY_PREFIX, String::concat) + " WHERE ID=?";
+                            updateQueries.put(changes, sql);
+                        }
+                        return sql;
+                    }\
+                """;
     }
 
     private static String getSelectQueryCode() {
-        return "    private String getSelectQuery(Map<String, DataStorage> storageMap) {\n" +
-                "        if (Objects.nonNull(storageMap)) {\n" +
-                "            StringBuilder selectPrefix = new StringBuilder(SELECT_PREFIX);\n" +
-                "            StringBuilder fromPrefix = new StringBuilder(FROM_PREFIX);\n" +
-                "            int idx = 0;\n" +
-                "            for (DataStorage dataStorage : storageMap.values()) {\n" +
-                "                if (dataStorage.getFetchType() == FetchType.EAGER && dataStorage.getCluster()" +
-                " == cluster) {\n" +
-                "                    idx++;\n" +
-                "                    selectPrefix\n" +
-                "                            .append(\",s\").append(idx)\n" +
-                "                            .append(\".ID,s\").append(idx)\n" +
-                "                            .append(\".SHARD_MAP,s\").append(idx)\n" +
-                "                            .append(\".C_ENTITY_ID,s\").append(idx)\n" +
-                "                            .append(\".C_STORAGE_NAME,s\").append(idx)\n" +
-                "                            .append(\".C_DATA,s\").append(idx)\n" +
-                "                            .append(\".C_DATA_FORMAT\");\n" +
-                "                    fromPrefix\n" +
-                "                            .append(\" LEFT OUTER JOIN $$$.APP_ATTRIBUTE_STORAGE s\").append(idx)\n" +
-                "                            .append(\" ON s\").append(idx)\n" +
-                "                            .append(\".C_ENTITY_ID=x0.ID and s\").append(idx)\n" +
-                "                            .append(\".C_STORAGE_NAME='\").append(dataStorage.getName())." +
-                "append(\"'\");\n" +
-                "                }\n" +
-                "            }\n" +
-                "            return selectPrefix + fromPrefix.toString() + \" WHERE x0.SHARD_MAP>=0 and x0.ID=?\";\n" +
-                "        } else {\n" +
-                "            return SELECT_PREFIX + FROM_PREFIX + \" WHERE x0.SHARD_MAP>=0 and x0.ID=?\";\n" +
-                "        }\n" +
-                "    }\n";
+        return """
+                    private String getSelectQuery(Map<String, DataStorage> storageMap) {
+                        if (Objects.nonNull(storageMap)) {
+                            StringBuilder selectPrefix = new StringBuilder(SELECT_PREFIX);
+                            StringBuilder fromPrefix = new StringBuilder(FROM_PREFIX);
+                            int idx = 0;
+                            for (DataStorage dataStorage : storageMap.values()) {
+                                if (dataStorage.getFetchType() == FetchType.EAGER && dataStorage.getCluster()\
+                 == cluster) {
+                                    idx++;
+                                    selectPrefix
+                                            .append(",s").append(idx)
+                                            .append(".ID,s").append(idx)
+                                            .append(".SHARD_MAP,s").append(idx)
+                                            .append(".C_ENTITY_ID,s").append(idx)
+                                            .append(".C_STORAGE_NAME,s").append(idx)
+                                            .append(".C_DATA,s").append(idx)
+                                            .append(".C_DATA_FORMAT");
+                                    fromPrefix
+                                            .append(" LEFT OUTER JOIN $$$.APP_ATTRIBUTE_STORAGE s").append(idx)
+                                            .append(" ON s").append(idx)
+                                            .append(".C_ENTITY_ID=x0.ID and s").append(idx)
+                                            .append(".C_STORAGE_NAME='").append(dataStorage.getName()).\
+                append("'");
+                                }
+                            }
+                            return selectPrefix + fromPrefix.toString() + " WHERE x0.SHARD_MAP>=0 and x0.ID=?";
+                        } else {
+                            return SELECT_PREFIX + FROM_PREFIX + " WHERE x0.SHARD_MAP>=0 and x0.ID=?";
+                        }
+                    }
+                """;
     }
 
     private static String getNewEntityCode(EntityClassDto entityClassDto) {
@@ -768,7 +776,7 @@ public class EntityClassBuilder {
                 "                        )\n" +
                 "                        .bindAll(binds)\n" +
                 "                        .getResult(),\n" +
-                "                storageMap" +
+                "                storageMap\n" +
                 "        );\n" +
                 "    }";
     }
@@ -970,16 +978,18 @@ public class EntityClassBuilder {
         );
         StringBuilder persistCode =
                 new StringBuilder(
-                        "        String sql = entity.isStored() ? (onlyChanged ? getUpdateSQL(entity.getChanges())" +
-                                " : UPD_QUERY) : INS_QUERY;\n" +
-                                "        if (Objects.nonNull(sql)) {\n" +
-                                "            boolean checkChanges = onlyChanged && entity.isStored();\n" +
-                                "            entityManager\n" +
-                                "                    .createQueries(entity, sql, QueryType.DML)\n" +
-                                "                    .forEach(query ->\n" +
-                                "                            query\n" +
-                                "                                    .bind(entityManager.getTransactionUUID())\n" +
-                                "                                    .bindShardMap(entity)\n"
+                        """
+                                        String sql = entity.isStored() ? (onlyChanged ? getUpdateSQL(entity.getChanges())\
+                                 : UPD_QUERY) : INS_QUERY;
+                                        if (Objects.nonNull(sql)) {
+                                            boolean checkChanges = onlyChanged && entity.isStored();
+                                            entityManager
+                                                    .createQueries(entity, sql, QueryType.DML)
+                                                    .forEach(query ->
+                                                            query
+                                                                    .bind(entityManager.getTransactionUUID())
+                                                                    .bindShardMap(entity)
+                                """
                 );
 
         StringBuilder childPersistCode = new StringBuilder(StringUtils.EMPTY);
@@ -1016,11 +1026,13 @@ public class EntityClassBuilder {
         return code
                 .append(persistCode)
                 .append(
-                        "                                    .bind(entity.getId())\n" +
-                                "                                    .addBatch()\n" +
-                                "                    );\n" +
-                                "        }\n" +
-                                "        additionalPersist(entity);\n"
+                        """
+                                                                    .bind(entity.getId())
+                                                                    .addBatch()
+                                                    );
+                                        }
+                                        additionalPersist(entity);
+                                """
                 )
                 .append(childPersistCode)
                 .append("    }")
@@ -1057,10 +1069,12 @@ public class EntityClassBuilder {
                         String::concat
                 )
                 .concat(
-                        "                                    .bind(entity.getId())\n" +
-                                "                                    .addBatch()\n" +
-                                "                    );\n" +
-                                "        }\n"
+                        """
+                                                                    .bind(entity.getId())
+                                                                    .addBatch()
+                                                    );
+                                        }
+                                """
                 )
                 .concat(entityClassDto.getUniqueFields().isEmpty() ?
                         StringUtils.EMPTY :
@@ -1079,27 +1093,31 @@ public class EntityClassBuilder {
                                                 ) + ", isUpdate && !entity.isChanged(" + field.getColumnIndex() + "))\n"
                                 )
                                 .reduce(
-                                        "        boolean isUpdate = entity.isStored();\n" +
-                                                "        if (!entity.hasMainShard() && (!isUpdate || entity.isChanged" +
-                                                "() && (entity.getChanges() & UNIQUE_COLUMNS) > 0L)) {\n" +
-                                                "            entityManager\n" +
-                                                "                    .createQuery(\n" +
-                                                "                            entity,\n" +
-                                                "                            isUpdate ?\n" +
-                                                "                                    getUpdateSQL(entity.getChanges()" +
-                                                " & UNIQUE_COLUMNS) :\n" +
-                                                "                                    INS_UNIQUE_FIELDS_QUERY,\n" +
-                                                "                            QueryType.DML,\n" +
-                                                "                            QueryStrategy.MAIN_SHARD\n" +
-                                                "                    )\n" +
-                                                "                    .bind(entityManager.getTransactionUUID())\n" +
-                                                "                    .bindShardMap(entity)\n",
+                                        """
+                                                        boolean isUpdate = entity.isStored();
+                                                        if (!entity.hasMainShard() && (!isUpdate || entity.isChanged\
+                                                () && (entity.getChanges() & UNIQUE_COLUMNS) > 0L)) {
+                                                            entityManager
+                                                                    .createQuery(
+                                                                            entity,
+                                                                            isUpdate ?
+                                                                                    getUpdateSQL(entity.getChanges()\
+                                                 & UNIQUE_COLUMNS) :
+                                                                                    INS_UNIQUE_FIELDS_QUERY,
+                                                                            QueryType.DML,
+                                                                            QueryStrategy.MAIN_SHARD
+                                                                    )
+                                                                    .bind(entityManager.getTransactionUUID())
+                                                                    .bindShardMap(entity)
+                                                """,
                                         String::concat
                                 )
                                 .concat(
-                                        "                    .bind(entity.getId())\n" +
-                                                "                    .addBatch();\n" +
-                                                "        }\n"
+                                        """
+                                                                    .bind(entity.getId())
+                                                                    .addBatch();
+                                                        }
+                                                """
                                 )
                 )
                 .concat("    }");
@@ -1116,11 +1134,13 @@ public class EntityClassBuilder {
                 "    }";
     }
 
-    private static String getSetEntityManagerCode(EntityClassDto entityClassDto) {
-        return "    @Override\n" +
-                "    public void setEntityManager(ShardEntityManager entityManager) {\n" +
-                "        this.entityManager = entityManager;\n" +
-                "    }";
+    private static String getSetEntityManagerCode() {
+        return """
+                    @Override
+                    public void setEntityManager(ShardEntityManager entityManager) {
+                        this.entityManager = entityManager;
+                    }\
+                """;
     }
 
     private static String getShardTypeCode(EntityClassDto entityClassDto) {

@@ -41,18 +41,22 @@ public abstract class BaseDomain implements Domain {
         return storage;
     }
 
+    @Override
     public boolean isLazy() {
         return isLazy;
     }
 
+    @Override
     public boolean isLazy(String storageName) {
         return Optional.ofNullable(lazyStore.get(storageName)).orElse(false);
     }
 
+    @Override
     public void setLazy(boolean lazy) {
         isLazy = lazy;
     }
 
+    @Override
     public void setLazy(String storageName, boolean lazy) {
         lazyStore.put(storageName, lazy);
     }

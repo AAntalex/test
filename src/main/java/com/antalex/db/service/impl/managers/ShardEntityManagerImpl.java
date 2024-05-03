@@ -16,6 +16,7 @@ import com.antalex.db.service.ShardEntityRepository;
 import com.antalex.db.service.SharedTransactionManager;
 import com.antalex.db.service.api.ResultQuery;
 import com.antalex.db.service.api.TransactionalQuery;
+import com.antalex.db.service.impl.AttributeStorageRepository;
 import com.antalex.db.service.impl.SharedEntityTransaction;
 import com.antalex.db.utils.ShardUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,17 +34,26 @@ import java.util.stream.Collectors;
 public class ShardEntityManagerImpl implements ShardEntityManager {
     private static final Map<Class<?>, ShardEntityRepository> REPOSITORIES = new HashMap<>();
 
-    private ThreadLocal<ShardEntityRepository<?>> currentShardEntityRepository = new ThreadLocal<>();
-    private ThreadLocal<Class<?>> currentSourceClass = new ThreadLocal<>();
+    private final ThreadLocal<ShardEntityRepository<?>> currentShardEntityRepository = new ThreadLocal<>();
+    private final ThreadLocal<Class<?>> currentSourceClass = new ThreadLocal<>();
     private final ThreadLocal<Map<Long, ShardInstance>> entities = ThreadLocal.withInitial(HashMap::new);
 
-    @Autowired
-    private ShardDataBaseManager dataBaseManager;
-    @Autowired
-    private SharedTransactionManager sharedTransactionManager;
+    private final ShardDataBaseManager dataBaseManager;
+    private final SharedTransactionManager sharedTransactionManager;
+    private final AttributeStorageRepository attributeStorageRepository;
+
+    ShardEntityManagerImpl(
+            ShardDataBaseManager dataBaseManager,
+            SharedTransactionManager sharedTransactionManager,
+            AttributeStorageRepository attributeStorageRepository)
+    {
+        this.dataBaseManager = dataBaseManager;
+        this.sharedTransactionManager = sharedTransactionManager;
+        this.attributeStorageRepository = attributeStorageRepository;
+    }
 
     @Autowired
-    public void setRepositories(List<ShardEntityRepository> entityRepositories) {
+    public void setRepositories(List<ShardEntityRepository<?>> entityRepositories) {
         for (ShardEntityRepository<?> shardEntityRepository : entityRepositories) {
             Class<?>[] classes = GenericTypeResolver
                     .resolveTypeArguments(shardEntityRepository.getClass(), ShardEntityRepository.class);
@@ -336,18 +346,14 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
             QueryType queryType,
             QueryStrategy queryStrategy)
     {
-        switch (queryStrategy) {
-            case OWN_SHARD:
-                return this.createQuery(entity.getStorageContext().getShard(), query, queryType);
-            case MAIN_SHARD:
-                return this.createQuery(entity.getStorageContext().getCluster().getMainShard(), query, queryType);
-            case ALL_SHARDS:
-            case NEW_SHARDS:
-                return getMainQuery(
-                        createQueries(entity, query, queryType, queryStrategy)
-                );
-        }
-        return null;
+        return switch (queryStrategy) {
+            case OWN_SHARD -> this.createQuery(entity.getStorageContext().getShard(), query, queryType);
+            case MAIN_SHARD ->
+                    this.createQuery(entity.getStorageContext().getCluster().getMainShard(), query, queryType);
+            case ALL_SHARDS, NEW_SHARDS -> getMainQuery(
+                    createQueries(entity, query, queryType, queryStrategy)
+            );
+        };
     }
 
     @Override
@@ -357,20 +363,16 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
             QueryType queryType,
             QueryStrategy queryStrategy)
     {
-        switch (queryStrategy) {
-            case OWN_SHARD:
-            case MAIN_SHARD:
-                return Collections.singletonList(createQuery(entity, query, queryType, queryStrategy));
-            case ALL_SHARDS:
-                return dataBaseManager.getEntityShards(entity)
-                        .map(shard -> this.createQuery(shard, query, queryType))
-                        .collect(Collectors.toList());
-            case NEW_SHARDS:
-                return dataBaseManager.getNewShards(entity)
-                        .map(shard -> this.createQuery(shard, query, queryType))
-                        .collect(Collectors.toList());
-        }
-        return Collections.emptyList();
+        return switch (queryStrategy) {
+            case OWN_SHARD, MAIN_SHARD ->
+                    Collections.singletonList(createQuery(entity, query, queryType, queryStrategy));
+            case ALL_SHARDS -> dataBaseManager.getEntityShards(entity)
+                    .map(shard -> this.createQuery(shard, query, queryType))
+                    .collect(Collectors.toList());
+            case NEW_SHARDS -> dataBaseManager.getNewShards(entity)
+                    .map(shard -> this.createQuery(shard, query, queryType))
+                    .collect(Collectors.toList());
+        };
     }
 
     @Override
@@ -480,7 +482,8 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
         if (Objects.nonNull(storageMap)) {
             for (DataStorage dataStorage : storageMap.values()) {
                 if (dataStorage.getFetchType() == FetchType.EAGER && dataStorage.getCluster() == cluster) {
-                    AttributeStorage attributeStorage = extractValues(AttributeStorage.class, result, index);
+                    AttributeStorage attributeStorage =
+                            attributeStorageRepository.extractValues(null, result, index);
                     if (Objects.nonNull(attributeStorage)) {
                         attributeStorage.setCluster(cluster);
                         attributeStorage.setShardType(dataStorage.getShardType());
@@ -500,6 +503,11 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
         }
         ShardEntityRepository<T> repository = getEntityRepository(entity.getClass());
         return repository.find(entity, storageMap);
+    }
+
+    @Override
+    public AttributeStorage findAttributeStorage(ShardInstance parent, DataStorage storage) {
+        return attributeStorageRepository.find(parent, storage);
     }
 
     private <T extends ShardInstance> T save(T entity, boolean onlyChanged) {

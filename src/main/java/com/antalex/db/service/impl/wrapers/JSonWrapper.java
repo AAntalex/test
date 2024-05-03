@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import java.io.IOException;
+import java.util.Objects;
 import java.util.Optional;
 
 public class JSonWrapper implements DataWrapper {
@@ -32,7 +33,7 @@ public class JSonWrapper implements DataWrapper {
     @Override
     public <T> T get(String attribute, Class<T> clazz) throws JsonProcessingException {
         JsonNode nodeAttribute = this.root.get(attribute);
-        return objectMapper.treeToValue(nodeAttribute, clazz);
+        return Objects.isNull(nodeAttribute) ? null : objectMapper.treeToValue(nodeAttribute, clazz);
     }
 
     @Override
