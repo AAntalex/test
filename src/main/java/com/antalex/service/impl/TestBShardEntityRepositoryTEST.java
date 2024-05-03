@@ -1,6 +1,5 @@
 package com.antalex.service.impl;
 
-import com.antalex.db.entity.AttributeStorage;
 import com.antalex.db.entity.abstraction.ShardInstance;
 import com.antalex.db.model.Cluster;
 import com.antalex.db.model.DataStorage;
@@ -21,7 +20,6 @@ import org.springframework.stereotype.Component;
 
 import javax.persistence.FetchType;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.IntStream;
 
 

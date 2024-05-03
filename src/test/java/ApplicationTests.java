@@ -197,7 +197,7 @@ public class ApplicationTests {
 		System.out.println(profiler.printTimeCounter());
 	}
 
-//	@Test
+	@Test
 	public void findAllJPA() {
 		profiler.start("findAllJPA");
 		List<TestBEntity> bList = testBRepository.findAllByValueLike("JPA%");
@@ -324,7 +324,7 @@ public class ApplicationTests {
 	}
 
 
-	@Test
+//	@Test
 	public void saveJPA() {
         databaseManager.sequenceNextVal();
 		profiler.start("testService.generate");
@@ -340,7 +340,7 @@ public class ApplicationTests {
 		System.out.println("testBEntities.size = " + testBEntities.size());
 	}
 
-	@Test
+//	@Test
 	public void saveMyBatis() {
         databaseManager.sequenceNextVal();
 		profiler.start("testService.generate");
@@ -355,7 +355,7 @@ public class ApplicationTests {
 		System.out.println("testBEntities.size = " + testBEntities.size());
 	}
 
-	@Test
+//	@Test
 	public void saveStatement() {
         databaseManager.sequenceNextVal();
 		profiler.start("testService.generate");
@@ -370,7 +370,7 @@ public class ApplicationTests {
 		System.out.println("testBEntities.size = " + testBEntities.size());
 	}
 
-	@Test
+//	@Test
 	public void saveShard() {
         databaseManager.sequenceNextVal();
 		profiler.start("testShardService.generate");
@@ -427,7 +427,7 @@ public class ApplicationTests {
 		*/
 	}
 
-	@Test
+//	@Test
 	public void saveDomain() {
 		databaseManager.sequenceNextVal();
 		profiler.start("saveDomain.generate");
