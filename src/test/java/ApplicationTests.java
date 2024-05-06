@@ -197,7 +197,7 @@ public class ApplicationTests {
 		System.out.println(profiler.printTimeCounter());
 	}
 
-	@Test
+//	@Test
 	public void findAllJPA() {
 		profiler.start("findAllJPA");
 		List<TestBEntity> bList = testBRepository.findAllByValueLike("JPA%");
@@ -230,7 +230,33 @@ public class ApplicationTests {
 		System.out.println(profiler.printTimeCounter());
 	}
 
-//	@Test
+	@Test
+	public void findAllDomain() {
+		profiler.start("findAllDomain");
+		List<TestBDomain> bList = domainEntityManager.findAll(
+				TestBDomain.class,
+				"x0.C_VALUE like ?",
+				"Domain%");
+		System.out.println("FIND B bList.size() = " + bList.size());
+/*
+		bList.forEach(b -> {
+			int cSize = b.getCList().size();
+		});
+		System.out.println("b.getCList().size() = " + bList.get(0).getCList().size());
+*/
+
+
+		System.out.println("isLazy= " + bList.get(0).isLazy("TestBDomain"));
+
+		System.out.println("b.note = " + bList.get(0).getNote());
+		System.out.println("b.routing.name = " + bList.get(0).getRouting().getName());
+		System.out.println("b.numDoc = " + bList.get(0).getNumDoc());
+
+		profiler.stop();
+		System.out.println(profiler.printTimeCounter());
+	}
+
+	//	@Test
 	public void findAllMBatis() {
 		profiler.start("findAllMBatis");
 		List<TestBEntity> bList = testService.findAllByValueLikeMBatis("MyBatis%");
@@ -262,49 +288,6 @@ public class ApplicationTests {
 	}
 
 
-	//	@Test
-	public void sequence() {
-		/*
-		SequenceGenerator sequenceGenerator = new ApplicationSequenceGenerator(
-				"SEQ_ID",
-				databaseManager.getCluster(ShardUtils.DEFAULT_CLUSTER_NAME).getMainShard());
-		((ApplicationSequenceGenerator) sequenceGenerator).setCacheSize(10000);
-		((ApplicationSequenceGenerator) sequenceGenerator).setProfiler(profiler);
-		*/
-
-		profiler.start("Тест0");
-
-//		System.out.println("AAA START! SEQ APP =  " + sequenceGenerator.nextValue());
-
-
-		long seq;
-		for (long i = 1L; i <= 100000L; i++) {
-			seq = databaseManager.sequenceNextVal();
-/*
-			if (seq != i) {
-				System.out.println("AAA i =  " + i + " seq = " + seq);
-			}
-*/
-		}
-
-		profiler.stop();
-		System.out.println(profiler.printTimeCounter());
-
-/*
-		sequenceGenerator = new TestSequenceGenerator(
-				"SEQ_ID",
-				databaseManager.getCluster(ShardUtils.DEFAULT_CLUSTER_NAME).getMainShard());
-		((TestSequenceGenerator) sequenceGenerator).setCacheSize(1000);
-		((TestSequenceGenerator) sequenceGenerator).setProfiler(profiler);
-
-		profiler.start("Тест1");
-		for (long i = 1L; i < 100000L; i++) {
-			seq = sequenceGenerator.nextValue();
-		}
-		profiler.stop();
-		System.out.println(profiler.printTimeCounter());
-*/
-	}
 
 //	@Test
 	public void saveOther() {
@@ -431,7 +414,7 @@ public class ApplicationTests {
 	public void saveDomain() {
 		databaseManager.sequenceNextVal();
 		profiler.start("saveDomain.generate");
-		List<TestBDomain> testBDomains = domainService.generate(1000, 100, "Domain");
+		List<TestBDomain> testBDomains = domainService.generate(10, 100, "Domain");
 		profiler.stop();
 		System.out.println(profiler.printTimeCounter());
 
@@ -444,7 +427,7 @@ public class ApplicationTests {
 
 		System.out.println("testBDomains.size = " + testBDomains.size());
 
-/*
+
 		TestBDomain b = testBDomains.get(0);
 		TestADomain a = b.getTestA();
 
@@ -461,10 +444,17 @@ public class ApplicationTests {
 
 		b = testBDomains.get(9);
 		System.out.println("AAA!!!!!!!!!!!!!! BEFORE b = " + b.getEntity().getId() +
-				" a.ID = " + a.getEntity().getId()
+				" shardMap = " + b.getEntity().getStorageContext().getShardMap() +
+				" a.ID = " + a.getEntity().getId() +
+				" a.shardMap = " + a.getEntity().getStorageContext().getShardMap() +
+				" b.shard = " + b.getEntity().getStorageContext().getShard().getName() +
+				" b.note = " + b.getNote()
 		);
+
 		b.setTestA(a);
 		a.setValue("DomainVal_A!!!");
+
+		b.setNote("new Note");
 
 		profiler.start("ADD testShardService.save");
 
@@ -474,10 +464,15 @@ public class ApplicationTests {
 		System.out.println(profiler.printTimeCounter());
 
 		System.out.println("AAA!!!!!!!!!!!!!! AFTER b = " + b.getEntity().getId() +
-				" a.ID = " + a.getEntity().getId()
+				" shardMap = " + b.getEntity().getStorageContext().getShardMap() +
+				" a.ID = " + a.getEntity().getId() +
+				" a.shardMap = " + a.getEntity().getStorageContext().getShardMap() +
+				" b.shard = " + b.getEntity().getStorageContext().getShard().getName() +
+				" b.note = " + b.getNote()
 		);
+
 		System.out.println("STOP");
-		*/
+
 	}
 
 

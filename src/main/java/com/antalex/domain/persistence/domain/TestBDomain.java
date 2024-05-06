@@ -17,7 +17,7 @@ import java.util.List;
 @DomainEntity(
         value = TestBShardEntity.class,
         additionalStorage = {
-                @Storage(value = "routingSection", cluster = "RAW"),
+                @Storage(value = "routingSection"),
                 @Storage(value = "accountingSection", cluster = "RAW"),
         })
 @Data

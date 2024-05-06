@@ -1,6 +1,7 @@
 package com.antalex.service.impl;
 
 import com.antalex.db.service.DomainEntityManager;
+import com.antalex.domain.persistence.domain.Routing;
 import com.antalex.domain.persistence.domain.TestADomain;
 import com.antalex.domain.persistence.domain.TestBDomain;
 import com.antalex.domain.persistence.domain.TestCDomain;
@@ -46,6 +47,11 @@ public class TestDomainServiceImpl implements TestDomainService {
             b.setNumDoc(1234);
             b.setSum(BigDecimal.valueOf(1.23));
             b.setDateProc(LocalDateTime.now());
+
+            Routing routing = new Routing();
+            routing.setName("Test");
+            routing.setExecuteTime(LocalDateTime.now());
+            b.setRouting(routing);
 
             List<TestCDomain> cEntities = new ArrayList<>();
             for (int j = 0; j < cntArray; j++) {
