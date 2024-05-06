@@ -15,9 +15,9 @@ public abstract class BaseDomain implements Domain {
     protected ShardInstance entity;
     protected boolean isLazy;
     private Long changes;
-    private Map<String, Boolean> lazyStore = new HashMap<>();
-    private Map<String, Boolean> changedStore = new HashMap<>();
-    private Map<String, AttributeStorage> storage = new HashMap<>();
+    private final Map<String, Boolean> lazyStore = new HashMap<>();
+    private final Map<String, Boolean> changedStore = new HashMap<>();
+    private final Map<String, AttributeStorage> storage = new HashMap<>();
 
     public BaseDomain () {
         if (this.getClass().isAnnotationPresent(DomainEntity.class)) {
@@ -58,6 +58,8 @@ public abstract class BaseDomain implements Domain {
 
     @Override
     public void setLazy(String storageName, boolean lazy) {
+        System.out.println("storageName = " + storageName + "lazy = " + lazy);
+
         lazyStore.put(storageName, lazy);
     }
 

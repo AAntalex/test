@@ -166,7 +166,13 @@ public class DomainEntityManagerImpl implements DomainEntityManager {
     @Override
     public AttributeStorage getAttributeStorage(Domain domain, DataStorage dataStorage) {
         AttributeStorage attributeStorage = domain.getStorage().get(dataStorage.getName());
+
+        System.out.println("!!! storageName = " + dataStorage.getName() + " attributeStorage = " + attributeStorage);
+
+
         if (Objects.isNull(attributeStorage)) {
+            System.out.println("!!! storageName = " + dataStorage.getName() + "lazy = " + domain.isLazy(dataStorage.getName()));
+
             if (domain.isLazy(dataStorage.getName())) {
                 attributeStorage = entityManager.findAttributeStorage(domain.getEntity(), dataStorage);
             }

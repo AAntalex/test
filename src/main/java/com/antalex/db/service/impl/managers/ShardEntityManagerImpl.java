@@ -481,7 +481,12 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
         List<AttributeStorage> attributeStorageList = new ArrayList<>();
         if (Objects.nonNull(storageMap)) {
             for (DataStorage dataStorage : storageMap.values()) {
-                if (dataStorage.getFetchType() == FetchType.EAGER && dataStorage.getCluster() == cluster) {
+                if (
+                        dataStorage.getFetchType() == FetchType.EAGER &&
+                                Optional.ofNullable(dataStorage.getCluster())
+                                        .map(it -> it == cluster)
+                                        .orElse(true)
+                ) {
                     AttributeStorage attributeStorage =
                             attributeStorageRepository.extractValues(null, result, index);
                     if (Objects.nonNull(attributeStorage)) {

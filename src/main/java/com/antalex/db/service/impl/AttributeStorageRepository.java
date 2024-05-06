@@ -159,9 +159,12 @@ public class AttributeStorageRepository implements ShardEntityRepository<Attribu
 
     public AttributeStorage find(ShardInstance parent, DataStorage storage) {
         try {
+            Cluster cluster =
+                    Optional.ofNullable(storage.getCluster())
+                            .orElse(parent.getStorageContext().getCluster());
             ResultQuery result = entityManager
                     .createQuery(
-                            storage.getCluster(),
+                            cluster,
                             SELECT_QUERY + " and x0.C_ENTITY_ID=? and x0.C_STORAGE_NAME=?",
                             QueryType.SELECT
                     )
@@ -172,7 +175,7 @@ public class AttributeStorageRepository implements ShardEntityRepository<Attribu
                 AttributeStorage entity = entityManager.getEntity(AttributeStorage.class, result.getLong(1));
                 int index = 0;
                 extractValues(entity, result, index);
-                entity.setCluster(storage.getCluster());
+                entity.setCluster(cluster);
                 entity.setShardType(storage.getShardType());
                 return entity;
             } else {

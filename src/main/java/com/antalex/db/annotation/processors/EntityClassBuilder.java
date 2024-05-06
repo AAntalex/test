@@ -619,10 +619,10 @@ public class EntityClassBuilder {
                         "\n    public void " + field.getSetter() +
                                 "(" + ProcessorUtils.getTypeField(field.getElement()) +
                                 " value, boolean change) {\n" +
-                                "        if (this.isLazy()) {\n" +
-                                "            entityManager.find(this);\n" +
-                                "        }\n" +
                                 "        if (change) {\n" +
+                                "            if (this.isLazy()) {\n" +
+                                "                entityManager.find(this);\n" +
+                                "            }\n" +
                                 "            this.setChanges(" + field.getColumnIndex() + ");\n" +
                                 "        }\n" +
                                 "        super." + field.getSetter() + "(value);\n" +
@@ -687,8 +687,12 @@ public class EntityClassBuilder {
                             StringBuilder fromPrefix = new StringBuilder(FROM_PREFIX);
                             int idx = 0;
                             for (DataStorage dataStorage : storageMap.values()) {
-                                if (dataStorage.getFetchType() == FetchType.EAGER && dataStorage.getCluster()\
-                 == cluster) {
+                            if (
+                                    dataStorage.getFetchType() == FetchType.EAGER &&
+                                            Optional.ofNullable(dataStorage.getCluster())
+                                                    .map(it -> it == cluster)
+                                                    .orElse(true)
+                            ) {
                                     idx++;
                                     selectPrefix
                                             .append(",s").append(idx)
@@ -706,9 +710,9 @@ public class EntityClassBuilder {
                 append("'");
                                 }
                             }
-                            return selectPrefix + fromPrefix.toString() + " WHERE x0.SHARD_MAP>=0 and x0.ID=?";
+                            return selectPrefix + fromPrefix.toString() + " WHERE x0.SHARD_MAP>=0";
                         } else {
-                            return SELECT_PREFIX + FROM_PREFIX + " WHERE x0.SHARD_MAP>=0 and x0.ID=?";
+                            return SELECT_PREFIX + FROM_PREFIX + " WHERE x0.SHARD_MAP>=0";
                         }
                     }
                 """;

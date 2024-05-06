@@ -41,10 +41,10 @@ public class AttributeStorageInterceptor extends AttributeStorage {
     }
 
     public void setEntityId(Long value, boolean change) {
-        if (this.isLazy()) {
-            entityManager.find(this);
-        }
         if (change) {
+            if (this.isLazy()) {
+                entityManager.find(this);
+            }
             this.setChanges(1);
         }
         super.setEntityId(value);
