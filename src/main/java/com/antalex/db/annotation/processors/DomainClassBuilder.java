@@ -588,7 +588,7 @@ public class DomainClassBuilder {
                 )
                 .map(field ->
                         "\n                    " + field.getSetter() + "(dataWrapper.get(\"" +
-                                storageName + "\", " + ProcessorUtils.getTypeField(field.getElement()) +
+                                field.getFieldName() + "\", " + ProcessorUtils.getTypeField(field.getElement()) +
                                 ".class), false);"
                 )
                 .reduce(

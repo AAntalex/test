@@ -27,7 +27,7 @@ public class JSonWrapper implements DataWrapper {
 
     @Override
     public void put(String attribute, Object o) throws JsonProcessingException {
-        this.root.put(attribute, objectMapper.writeValueAsString(o));
+        this.root.replace(attribute, objectMapper.valueToTree(o));
     }
 
     @Override

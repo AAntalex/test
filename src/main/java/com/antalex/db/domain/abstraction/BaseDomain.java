@@ -58,8 +58,6 @@ public abstract class BaseDomain implements Domain {
 
     @Override
     public void setLazy(String storageName, boolean lazy) {
-        System.out.println("storageName = " + storageName + "lazy = " + lazy);
-
         lazyStore.put(storageName, lazy);
     }
 

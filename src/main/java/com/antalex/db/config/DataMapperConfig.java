@@ -16,6 +16,7 @@ public class DataMapperConfig {
         return JsonMapper.builder()
                 .findAndAddModules()
                 .addModule(new JavaTimeModule())
+                .enable(SerializationFeature.INDENT_OUTPUT)
                 // Корректная сериализация OffsetDateTime
                 .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
                 .disable(DeserializationFeature.ADJUST_DATES_TO_CONTEXT_TIME_ZONE)
