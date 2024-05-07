@@ -197,28 +197,10 @@ public class ApplicationTests {
 		System.out.println(profiler.printTimeCounter());
 	}
 
-//	@Test
+	@Test
 	public void findAllJPA() {
 		profiler.start("findAllJPA");
 		List<TestBEntity> bList = testBRepository.findAllByValueLike("JPA%");
-		System.out.println("FIND B bList.size() = " + bList.size());
-/*
-		bList.forEach(b -> {
-			int cSize = b.getCList().size();
-		});
-		System.out.println("b.getCList().size() = " + bList.get(0).getCList().size());
-*/
-		profiler.stop();
-		System.out.println(profiler.printTimeCounter());
-	}
-
-//	@Test
-	public void findAllShard() {
-		profiler.start("findAllShard");
-		List<TestBShardEntity> bList = entityManager.findAll(
-				TestBShardEntity.class,
-				"x0.C_VALUE like ?",
-				"Shard%");
 		System.out.println("FIND B bList.size() = " + bList.size());
 /*
 		bList.forEach(b -> {
@@ -245,18 +227,37 @@ public class ApplicationTests {
 		System.out.println("b.getCList().size() = " + bList.get(0).getCList().size());
 */
 
-
+/*
 		System.out.println("isLazy= " + bList.get(0).isLazy("TestBDomain"));
 
 		System.out.println("b.note = " + bList.get(0).getNote());
 		System.out.println("b.routing.name = " + bList.get(0).getRouting().getName());
 		System.out.println("b.numDoc = " + bList.get(0).getNumDoc());
-
+*/
+		domainEntityManager.getTransaction().commit();
 		profiler.stop();
 		System.out.println(profiler.printTimeCounter());
 	}
 
-	//	@Test
+	@Test
+	public void findAllShard() {
+		profiler.start("findAllShard");
+		List<TestBShardEntity> bList = entityManager.findAll(
+				TestBShardEntity.class,
+				"x0.C_VALUE like ?",
+				"Shard%");
+		System.out.println("FIND B bList.size() = " + bList.size());
+/*
+		bList.forEach(b -> {
+			int cSize = b.getCList().size();
+		});
+		System.out.println("b.getCList().size() = " + bList.get(0).getCList().size());
+*/
+		profiler.stop();
+		System.out.println(profiler.printTimeCounter());
+	}
+
+	@Test
 	public void findAllMBatis() {
 		profiler.start("findAllMBatis");
 		List<TestBEntity> bList = testService.findAllByValueLikeMBatis("MyBatis%");
@@ -272,7 +273,7 @@ public class ApplicationTests {
 		System.out.println(profiler.printTimeCounter());
 	}
 
-//	@Test
+	@Test
 	public void findAllStatement() {
 		profiler.start("findAllStatement");
 		List<TestBEntity> bList = testService.findAllBByValueLikeStatement("Statement%");
@@ -414,7 +415,7 @@ public class ApplicationTests {
 	public void saveDomain() {
 		databaseManager.sequenceNextVal();
 		profiler.start("saveDomain.generate");
-		List<TestBDomain> testBDomains = domainService.generate(10, 100, "Domain");
+		List<TestBDomain> testBDomains = domainService.generate(1000, 100, "Domain");
 		profiler.stop();
 		System.out.println(profiler.printTimeCounter());
 
@@ -427,7 +428,7 @@ public class ApplicationTests {
 
 		System.out.println("testBDomains.size = " + testBDomains.size());
 
-
+/*
 		TestBDomain b = testBDomains.get(0);
 		TestADomain a = b.getTestA();
 
@@ -472,7 +473,7 @@ public class ApplicationTests {
 		);
 
 		System.out.println("STOP");
-
+*/
 	}
 
 

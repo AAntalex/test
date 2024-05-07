@@ -8,6 +8,7 @@ import com.antalex.db.model.enums.MappingType;
 import com.antalex.domain.persistence.entity.shard.TestBShardEntity;
 import lombok.Data;
 
+import javax.persistence.FetchType;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -16,8 +17,9 @@ import java.util.List;
 
 @DomainEntity(
         value = TestBShardEntity.class,
+        storage = @Storage(value = "TestBDomain", fetchType = FetchType.LAZY),
         additionalStorage = {
-                @Storage(value = "routingSection"),
+                @Storage(value = "routingSection", fetchType = FetchType.LAZY),
                 @Storage(value = "accountingSection", cluster = "RAW"),
         })
 @Data
