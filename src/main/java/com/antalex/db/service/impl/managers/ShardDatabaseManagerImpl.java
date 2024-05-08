@@ -468,6 +468,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         if (shard.getDynamicDataBaseInfo().getLastTime() != null &&
                 System.currentTimeMillis() - shard.getDynamicDataBaseInfo().getLastTime() > this.timeOut)
         {
+            log.trace("Read dynamic DB info...'");
             DynamicDataBaseInfo dynamicDataBaseInfo = shard.getDynamicDataBaseInfo();
             dynamicDataBaseInfo.setLastTime(System.currentTimeMillis());
             try {
