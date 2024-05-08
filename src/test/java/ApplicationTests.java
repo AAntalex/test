@@ -212,7 +212,7 @@ public class ApplicationTests {
 		System.out.println(profiler.printTimeCounter());
 	}
 
-	@Test
+//	@Test
 	public void findAllDomain() {
 		profiler.start("findAllDomain");
 		List<TestBDomain> bList = domainEntityManager.findAll(
@@ -253,6 +253,7 @@ public class ApplicationTests {
 		});
 		System.out.println("b.getCList().size() = " + bList.get(0).getCList().size());
 */
+		domainEntityManager.getTransaction().commit();
 		profiler.stop();
 		System.out.println(profiler.printTimeCounter());
 	}
