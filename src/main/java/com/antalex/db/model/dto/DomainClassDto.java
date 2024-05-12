@@ -17,4 +17,5 @@ public class DomainClassDto {
     private StorageDto storage;
     private Element classElement;
     private Map<String, StorageDto> storageMap;
+    private Boolean chainAccessors;
 }

@@ -14,6 +14,7 @@ import com.antalex.db.service.DomainEntityMapper;
 import com.antalex.db.service.ShardDataBaseManager;
 import com.antalex.db.service.ShardEntityManager;
 import com.antalex.db.service.api.DataWrapper;
+import lombok.experimental.Accessors;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -58,6 +59,11 @@ public class DomainClassBuilder {
                     .storage(mainStorage)
                     .classElement(classElement)
                     .storageMap(storageDtoMap)
+                    .chainAccessors(
+                            Optional.ofNullable(classElement.getAnnotation(Accessors.class))
+                                    .map(Accessors::chain)
+                                    .orElse(false)
+                    )
                     .fields(
                             ElementFilter.fieldsIn(classElement.getEnclosedElements())
                                     .stream()
@@ -370,7 +376,8 @@ public class DomainClassBuilder {
                                 !ProcessorUtils.isAnnotationPresentInArgument(it.getElement(), DomainEntity.class)
                 )
                 .map(field ->
-                        "\n    public void " + field.getSetter() +
+                        "\n    public " + (classDto.getChainAccessors() ? classDto.getTargetClassName() : "void") +
+                                " " + field.getSetter() +
                                 "(" + ProcessorUtils.getTypeField(field.getElement()) +
                                 " value, boolean change) {\n" +
                                 "        if (change) {\n" +
@@ -394,12 +401,16 @@ public class DomainClassBuilder {
                                                 "\"" + field.getStorage().getName() + "\""
                                 ) + ");\n" +
                                 "        }\n" +
-                                "        super." + field.getSetter() + "(value);\n" +
+                                "        " + (classDto.getChainAccessors() ? "return " : StringUtils.EMPTY) +
+                                "super." + field.getSetter() + "(value);\n" +
                                 "    }\n\n" +
                                 "    @Override\n" +
-                                "    public void " + field.getSetter() +
+                                "    public " +
+                                (classDto.getChainAccessors() ? classDto.getTargetClassName() : "void") +
+                                " " + field.getSetter() +
                                 "(" + ProcessorUtils.getTypeField(field.getElement()) + " value) {\n" +
-                                "        " + field.getSetter() + "(value, true);\n" +
+                                "        " + (classDto.getChainAccessors() ? "return " : StringUtils.EMPTY) +
+                                field.getSetter() + "(value, true);\n" +
                                 "    }\n"
                 )
                 .reduce(StringUtils.EMPTY, String::concat);

@@ -16,6 +16,7 @@ import com.antalex.db.service.ShardEntityManager;
 import com.antalex.db.service.ShardEntityRepository;
 import com.antalex.db.service.api.ResultQuery;
 import com.google.common.base.CaseFormat;
+import lombok.experimental.Accessors;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -77,6 +78,11 @@ public class EntityClassBuilder {
                             Optional.ofNullable(classElement.getAnnotation(Table.class))
                                     .map(Table::name)
                                     .orElse(getTableName(classElement))
+                    )
+                    .chainAccessors(
+                            Optional.ofNullable(classElement.getAnnotation(Accessors.class))
+                                    .map(Accessors::chain)
+                                    .orElse(false)
                     )
                     .classPackage(ProcessorUtils.getPackage(classElement.asType().toString()))
                     .cluster(shardEntity.cluster())
@@ -611,12 +617,13 @@ public class EntityClassBuilder {
                 .reduce(StringUtils.EMPTY, String::concat);
     }
 
-    private static String getSettersCode(EntityClassDto entityClassDto) {
-        return entityClassDto.getColumnFields()
+    private static String getSettersCode(EntityClassDto classDto) {
+        return classDto.getColumnFields()
                 .stream()
                 .filter(it -> Objects.nonNull(it.getSetter()))
                 .map(field ->
-                        "\n    public void " + field.getSetter() +
+                        "\n    public " + (classDto.getChainAccessors() ? classDto.getTargetClassName() : "void") +
+                                " " + field.getSetter() +
                                 "(" + ProcessorUtils.getTypeField(field.getElement()) +
                                 " value, boolean change) {\n" +
                                 "        if (change) {\n" +
@@ -625,12 +632,16 @@ public class EntityClassBuilder {
                                 "            }\n" +
                                 "            this.setChanges(" + field.getColumnIndex() + ");\n" +
                                 "        }\n" +
-                                "        super." + field.getSetter() + "(value);\n" +
+                                "        " + (classDto.getChainAccessors() ? "return " : StringUtils.EMPTY) +
+                                "super." + field.getSetter() + "(value);\n" +
                                 "    }\n" +
                                 "    @Override\n" +
-                                "    public void " + field.getSetter() +
+                                "    public " +
+                                (classDto.getChainAccessors() ? classDto.getTargetClassName() : "void") +
+                                " " + field.getSetter() +
                                 "(" + ProcessorUtils.getTypeField(field.getElement()) + " value) {\n" +
-                                "        " + field.getSetter() + "(value, true);\n" +
+                                "        " + (classDto.getChainAccessors() ? "return " : StringUtils.EMPTY) +
+                                field.getSetter() + "(value, true);\n" +
                                 "    }"
                 )
                 .reduce(StringUtils.EMPTY, String::concat);

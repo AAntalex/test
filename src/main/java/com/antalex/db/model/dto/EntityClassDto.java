@@ -22,4 +22,5 @@ public class EntityClassDto {
     private List<IndexDto> indexes;
     private List<EntityFieldDto> uniqueFields;
     private List<EntityFieldDto> columnFields;
+    private Boolean chainAccessors;
 }
