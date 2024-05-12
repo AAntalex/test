@@ -4,6 +4,7 @@ package com.antalex.domain.persistence.entity.shard;
 import com.antalex.db.annotation.ShardEntity;
 import com.antalex.db.entity.abstraction.BaseShardEntity;
 import lombok.Data;
+import lombok.experimental.Accessors;
 
 import javax.persistence.Table;
 import java.math.BigDecimal;
@@ -14,6 +15,7 @@ import java.util.Date;
 import java.util.UUID;
 
 @Table(name = "TEST_OTHER")
+@Accessors(chain = true)
 @Data
 @ShardEntity
 public class TestOtherShardEntity extends BaseShardEntity {
