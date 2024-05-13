@@ -24,15 +24,15 @@ public abstract class AbstractTransactionalTask implements TransactionalTask {
     protected Shard shard;
 
     private String error;
-    private Map<String, TransactionalQuery> queries = new HashMap<>();
-    private List<TransactionalQuery> dmlQueries = new ArrayList<>();
-    private Map<String, TransactionalQuery> dmlQueryMap = new HashMap<>();
+    private final Map<String, TransactionalQuery> queries = new HashMap<>();
+    private final List<TransactionalQuery> dmlQueries = new ArrayList<>();
+    private final Map<String, TransactionalQuery> dmlQueryMap = new HashMap<>();
     private TransactionalTask mainTask;
-    private List<Step> steps = new ArrayList<>();
-    private List<Step> commitSteps = new ArrayList<>();
-    private List<Step> rollbackSteps = new ArrayList<>();
-    private List<Step> afterCommitSteps = new ArrayList<>();
-    private List<Step> afterRollbackSteps = new ArrayList<>();
+    private final List<Step> steps = new ArrayList<>();
+    private final List<Step> commitSteps = new ArrayList<>();
+    private final List<Step> rollbackSteps = new ArrayList<>();
+    private final List<Step> afterCommitSteps = new ArrayList<>();
+    private final List<Step> afterRollbackSteps = new ArrayList<>();
 
     @Override
     public void run(Boolean parallelRun) {
@@ -42,7 +42,7 @@ public abstract class AbstractTransactionalTask implements TransactionalTask {
                                 if (this.error == null) {
                                     try {
                                         log.trace(
-                                                String.format("Running \"%s\", step \"%s\"...", this.name, step.name)
+                                                "Running \"" + this.name + "\", step \"" + step.name + "\"..."
                                         );
                                         step.target.run();
                                     } catch (Exception err) {
@@ -65,7 +65,7 @@ public abstract class AbstractTransactionalTask implements TransactionalTask {
     public void waitTask() {
         if (this.status == TaskStatus.RUNNING) {
             try {
-                log.trace(String.format("Waiting %s...", this.name));
+                log.trace("Waiting " + this.name + "...");
                 this.future.get();
             } catch (Exception err) {
                 throw new ShardDataBaseException(err);
@@ -105,11 +105,8 @@ public abstract class AbstractTransactionalTask implements TransactionalTask {
                                     if (this.errorCompletion == null) {
                                         try {
                                             log.trace(
-                                                    String.format(
-                                                            "%s for \"%s\", step \"%s\"...",
-                                                            rollback ? "ROLLBACK" : "COMMIT",
-                                                            this.name,
-                                                            step.name)
+                                                    rollback ? "ROLLBACK" : "COMMIT" +
+                                                            " for \"" + this.name + "\", step \"" + step.name + "\"..."
                                             );
                                             step.target.run();
                                         } catch (Exception err) {

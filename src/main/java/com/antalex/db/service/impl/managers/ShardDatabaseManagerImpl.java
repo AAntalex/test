@@ -139,20 +139,28 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
 
     @Override
     public Cluster getCluster(Short id) {
-        Assert.notNull(id, "Не указан идентификатор кластера");
+        if (id == null) {
+            throw new ShardDataBaseException("Не указан идентификатор кластера");
+        }
         Cluster cluster = clusterIds.get(id);
-        Assert.notNull(cluster, String.format("Отсутсвует кластер с идентификатором '%d'", id));
+        if (cluster == null) {
+            throw new ShardDataBaseException("Отсутсвует кластер с идентификатором " + id);
+        }
         return cluster;
     }
 
     @Override
     public Cluster getCluster(String clusterName) {
-        Assert.notNull(clusterName, "Не указано наименование кластера");
+        if (clusterName == null) {
+            throw new ShardDataBaseException("Не указано наименование кластера");
+        }
         if (ShardUtils.DEFAULT_CLUSTER_NAME.equals(clusterName)) {
             return defaultCluster;
         } else {
             Cluster cluster = clusters.get(clusterName);
-            Assert.notNull(cluster, String.format("Отсутсвует кластер с наименованием '%s'", clusterName));
+            if (cluster == null) {
+                throw new ShardDataBaseException("Отсутсвует кластер с наименованием " + clusterName);
+            }
             return cluster;
         }
     }
@@ -164,13 +172,18 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
 
     @Override
     public Shard getShard(Cluster cluster, Short id) {
-        Assert.notNull(cluster, "Не указан кластер");
-        Assert.notNull(id, "Не указан идентификатор шарды");
+        if (cluster == null) {
+            throw new ShardDataBaseException("Не указан кластер");
+        }
+        if (id == null) {
+            throw new ShardDataBaseException("Не указан идентификатор шарды");
+        }
         Shard shard = cluster.getShardMap().get(id);
-        Assert.notNull(
-                shard,
-                String.format("Отсутсвует шарда с идентификатором '%d' в кластере '%s'", id, cluster.getName())
-        );
+        if (shard == null) {
+            throw new ShardDataBaseException(
+                    String.format("Отсутсвует шарда с идентификатором '%d' в кластере '%s'", id, cluster.getName())
+            );
+        }
         return shard;
     }
 
@@ -282,8 +295,12 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
 
     @Override
     public StorageContext getStorageContext(Long id) {
-        Assert.notNull(id, "Не указан идентификатор сущности");
-        Assert.isTrue(!id.equals(0L), "Идентификатор сущности не может быть равен 0");
+        if (id == null) {
+            throw new ShardDataBaseException("Не указан идентификатор сущности");
+        }
+        if (id.equals(0L)) {
+            throw new ShardDataBaseException("Идентификатор сущности не может быть равен 0");
+        }
         Cluster cluster = getCluster(ShardUtils.getClusterIdFromEntityId(id));
         Shard shard = getShard(cluster, ShardUtils.getShardIdFromEntityId(id));
         return StorageContext.builder()
@@ -499,7 +516,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                 .filter(it -> !it.getExternal())
                 .forEach(shard -> {
                     TransactionalSQLTask task = (TransactionalSQLTask) getTransactionalTask(shard);
-                    task.setName(String.format("GET DataBase Info on shard '%s'", shard.getName()));
+                    task.setName("GET DataBase Info on shard " + shard.getName());
                     TransactionalSQLQuery query = (TransactionalSQLQuery) task.addQuery(
                             SELECT_DB_INFO,
                             QueryType.SELECT
@@ -565,7 +582,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         dynamicDBInfo.setAccessible(Optional.ofNullable(dynamicDBInfo.getAccessible()).orElse(true));
 
         TransactionalSQLTask task = (TransactionalSQLTask) getTransactionalTask(shard);
-        task.setName(String.format("SAVE DataBase Info on shard '%s'", shard.getName()));
+        task.setName("SAVE DataBase Info on shard " + shard.getName());
         task.addQuery(INS_DB_INFO, QueryType.DML)
                 .bind(shard.getDataBaseInfo().getShardId())
                 .bind(shard.getDataBaseInfo().isMainShard())

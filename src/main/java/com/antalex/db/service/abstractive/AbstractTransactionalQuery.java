@@ -30,7 +30,7 @@ public abstract class AbstractTransactionalQuery implements TransactionalQuery, 
     private boolean isButch;
     private int count;
     private Shard shard;
-    private List<TransactionalQuery> relatedQueries = new ArrayList<>();
+    private final List<TransactionalQuery> relatedQueries = new ArrayList<>();
     private String error;
     private ResultParallelQuery parallelResult;
 
@@ -215,11 +215,11 @@ public abstract class AbstractTransactionalQuery implements TransactionalQuery, 
     private RunInfo runQuery(TransactionalQuery transactionalQuery) {
         RunInfo runInfo = new RunInfo();
         runInfo.setName(
-                String.format(
-                        "\"%s\" on shard \"%s\"",
-                        transactionalQuery.getQuery(),
-                        transactionalQuery.getShard().getName()
-                )
+                "\"" +
+                        transactionalQuery.getQuery() +
+                        "\" on shard \"" +
+                        transactionalQuery.getShard().getName() +
+                        "\""
         );
         runInfo.setFuture(
                 this.executorService.submit(() -> {
@@ -237,7 +237,7 @@ public abstract class AbstractTransactionalQuery implements TransactionalQuery, 
 
     private void waitRun(RunInfo runInfo) {
         try {
-            log.trace(String.format("Waiting %s...", runInfo.getName()));
+            log.trace("Waiting " + runInfo.getName() + "...");
             runInfo.getFuture().get();
         } catch (Exception err) {
             throw new ShardDataBaseException(err);
