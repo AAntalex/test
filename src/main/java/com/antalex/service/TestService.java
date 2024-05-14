@@ -14,8 +14,10 @@ public interface TestService {
     List<TestBEntity> generate(int cnt, int cntArray, TestAEntity testAEntity, String prefix);
     void saveJPA(List<TestBEntity> testBEntities);
     void saveMyBatis(List<TestBEntity> testBEntities);
+    void saveMyBatis(TestBEntity entity);
     void saveTransactionalJPA(List<TestBEntity> testBEntities);
     void save(List<TestBEntity> entities);
+    void save(TestBEntity entity);
     TestBEntity findBByIdMBatis(Long id);
     List<TestBEntity> findAllByValueLikeMBatis(String value);
     List<TestCEntity> findAllCMBatis(Long id, EntityMapper entityMapper);

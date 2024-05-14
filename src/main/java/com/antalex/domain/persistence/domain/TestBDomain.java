@@ -17,9 +17,9 @@ import java.util.List;
 
 @DomainEntity(
         value = TestBShardEntity.class,
-        storage = @Storage(value = "TestBDomain", fetchType = FetchType.LAZY),
+        storage = @Storage(value = "TestBDomain"),
         additionalStorage = {
-                @Storage(value = "routingSection", fetchType = FetchType.LAZY),
+                @Storage(value = "routingSection"),
                 @Storage(value = "accountingSection", cluster = "RAW"),
         })
 @Data

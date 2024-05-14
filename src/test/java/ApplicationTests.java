@@ -197,7 +197,7 @@ public class ApplicationTests {
 		System.out.println(profiler.printTimeCounter());
 	}
 
-//	@Test
+	@Test
 	public void findAllJPA() {
 		profiler.start("findAllJPA");
 		List<TestBEntity> bList = testBRepository.findAllByValueLike("JPA%");
@@ -239,7 +239,7 @@ public class ApplicationTests {
 		System.out.println(profiler.printTimeCounter());
 	}
 
-	@Test
+//	@Test
 	public void findAllShard() {
 		profiler.start("findAllShard");
 		List<TestBShardEntity> bList = entityManager.findAll(
@@ -258,7 +258,7 @@ public class ApplicationTests {
 		System.out.println(profiler.printTimeCounter());
 	}
 
-//	@Test
+	@Test
 	public void findAllMBatis() {
 		profiler.start("findAllMBatis");
 		List<TestBEntity> bList = testService.findAllByValueLikeMBatis("MyBatis%");
@@ -318,7 +318,11 @@ public class ApplicationTests {
 		System.out.println(profiler.printTimeCounter());
 
 		profiler.start("testService.saveTransactionalJPA");
+
 		testService.saveTransactionalJPA(testBEntities);
+//		testBEntities.forEach(it -> testBRepository.save(it));
+
+
 		profiler.stop();
 		System.out.println(profiler.printTimeCounter());
 
@@ -334,7 +338,10 @@ public class ApplicationTests {
 		System.out.println(profiler.printTimeCounter());
 
 		profiler.start("testService.saveMyBatis");
+
 		testService.saveMyBatis(testBEntities);
+//		testBEntities.forEach(it -> testService.saveMyBatis(it));
+
 		profiler.stop();
 		System.out.println(profiler.printTimeCounter());
 		System.out.println("testBEntities.size = " + testBEntities.size());
@@ -349,7 +356,10 @@ public class ApplicationTests {
 		System.out.println(profiler.printTimeCounter());
 
 		profiler.start("testService.save");
+
+//		testBEntities.forEach(it -> testService.save(it));
 		testService.save(testBEntities);
+
 		profiler.stop();
 		System.out.println(profiler.printTimeCounter());
 		System.out.println("testBEntities.size = " + testBEntities.size());
@@ -423,6 +433,7 @@ public class ApplicationTests {
 		profiler.start("saveDomain.save");
 
 		domainEntityManager.updateAll(testBDomains);
+//		testBDomains.forEach(it -> domainEntityManager.update(it));
 
 		profiler.stop();
 		System.out.println(profiler.printTimeCounter());

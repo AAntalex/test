@@ -138,6 +138,35 @@ public class TestServiceImpl implements TestService{
         }
     }
 
+    @Override
+    public void saveMyBatis(TestBEntity entity) {
+        profiler.startTimeCounter("Prepare saveMyBatis", "AAA");
+        SqlSession sqlSession = sqlSessionFactory.openSession(ExecutorType.BATCH);
+        try {
+            EntityMapper entityMapper = sqlSession.getMapper(EntityMapper.class);
+            try {
+                entity.setId(databaseManager.sequenceNextVal() * 10000L);
+                entityMapper.insert("TEST_B", entity);
+            } catch (Exception err) {
+                throw new RuntimeException(err);
+            }
+            entity.getCList().forEach(cEntity -> {
+                try {
+                    cEntity.setId(databaseManager.sequenceNextVal() * 10000L);
+                    cEntity.setB(entity.getId());
+                    entityMapper.insertC("TEST_C", cEntity);
+                } catch (Exception err) {
+                    throw new RuntimeException(err);
+                }
+            });
+            profiler.fixTimeCounter();
+            profiler.startTimeCounter("commit saveMyBatis", "AAA");
+            sqlSession.commit();
+            profiler.fixTimeCounter();
+        } finally {
+            sqlSession.close();
+        }
+    }
 
     @Transactional
     @Override
@@ -346,4 +375,60 @@ public class TestServiceImpl implements TestService{
             throw new RuntimeException(err);
         }
     }
+
+    @Override
+    public void save(TestBEntity entity) {
+        try {
+            profiler.startTimeCounter("prepare save", "AAA");
+            Connection connection = dataSource.getConnection();
+            connection.setAutoCommit(false);
+            PreparedStatement preparedBStatement = connection.prepareStatement(INS_B_QUERY);
+            PreparedStatement preparedCStatement = connection.prepareStatement(INS_C_QUERY);
+
+            try {
+                entity.setId(databaseManager.sequenceNextVal() * 10000L);
+                preparedBStatement.setLong(1, entity.getId());
+                preparedBStatement.setLong(2, entity.getShardMap());
+                preparedBStatement.setString(3, entity.getValue());
+                preparedBStatement.setString(4, entity.getNewValue());
+                preparedBStatement.addBatch();
+
+                entity.getCList().forEach(cEntity -> {
+                    try {
+                        cEntity.setId(databaseManager.sequenceNextVal() * 10000L);
+                        preparedCStatement.setLong(1, cEntity.getId());
+                        preparedCStatement.setLong(2, cEntity.getShardMap());
+                        preparedCStatement.setString(3, cEntity.getValue());
+                        preparedCStatement.setString(4, cEntity.getNewValue());
+                        preparedCStatement.setLong(5, entity.getId());
+                        preparedCStatement.addBatch();
+
+                    } catch (SQLException err) {
+                        throw new RuntimeException(err);
+                    }
+                });
+
+            } catch (SQLException err) {
+                throw new RuntimeException(err);
+            }
+
+            profiler.fixTimeCounter();
+
+            profiler.startTimeCounter("executeBatch save", "AAA");
+            preparedBStatement.executeBatch();
+            preparedCStatement.executeBatch();
+            profiler.fixTimeCounter();
+
+            profiler.startTimeCounter("commit save", "AAA");
+            connection.commit();
+            profiler.fixTimeCounter();
+
+
+            connection.close();
+
+        } catch (Exception err) {
+            throw new RuntimeException(err);
+        }
+    }
+
 }
