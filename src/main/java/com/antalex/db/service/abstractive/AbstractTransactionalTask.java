@@ -203,14 +203,7 @@ public abstract class AbstractTransactionalTask implements TransactionalTask {
         this.parallelCommit = parallelCommit;
     }
 
-    private class Step {
-        private Runnable target;
-        private String name;
-
-        Step(Runnable target, String name) {
-            this.target = target;
-            this.name = name;
-        }
+    private record Step(Runnable target, String name) {
     }
 
     @Override

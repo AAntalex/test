@@ -40,9 +40,6 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public class EntityClassBuilder {
-    private static final String TABLE_PREFIX = "T_";
-    private static final String COLUMN_PREFIX = "C_";
-
     private static final Map<Element, EntityClassDto> ENTITY_CLASSES = new HashMap<>();
 
     private static List<IndexDto> getIndexes(Index[] indexes) {
@@ -77,7 +74,7 @@ public class EntityClassBuilder {
                     .tableName(
                             Optional.ofNullable(classElement.getAnnotation(Table.class))
                                     .map(Table::name)
-                                    .orElse(getTableName(classElement))
+                                    .orElse(getTableName(shardEntity.tablePrefix(), classElement))
                     )
                     .chainAccessors(
                             Optional.ofNullable(classElement.getAnnotation(Accessors.class))
@@ -96,7 +93,12 @@ public class EntityClassBuilder {
                                                     EntityFieldDto
                                                             .builder()
                                                             .fieldName(fieldElement.getSimpleName().toString())
-                                                            .columnName(getColumnName(fieldElement))
+                                                            .columnName(
+                                                                    getColumnName(
+                                                                            shardEntity.columnPrefix(),
+                                                                            fieldElement
+                                                                    )
+                                                            )
                                                             .isLinked(isLinkedField(fieldElement))
                                                             .getter(ProcessorUtils.findGetter(getters, fieldElement))
                                                             .setter(ProcessorUtils.findSetter(setters, fieldElement))
@@ -165,7 +167,7 @@ public class EntityClassBuilder {
     }
 
 
-    private static String getColumnName(Element element) {
+    private static String getColumnName(String columnPrefix, Element element) {
         if (ProcessorUtils.isAnnotationPresent(element, Transient.class)) {
             return null;
         }
@@ -178,13 +180,13 @@ public class EntityClassBuilder {
                                         .orElse(StringUtils.EMPTY)
                         );
         return StringUtils.isEmpty(columnName) ?
-                COLUMN_PREFIX +
+                columnPrefix +
                         CaseFormat.LOWER_CAMEL.to(CaseFormat.UPPER_UNDERSCORE, element.getSimpleName().toString()) :
                 columnName;
     }
 
-    private static String getTableName(Element element) {
-        return TABLE_PREFIX + CaseFormat.LOWER_CAMEL.to(CaseFormat.UPPER_UNDERSCORE,
+    private static String getTableName(String tablePrefix, Element element) {
+        return tablePrefix + CaseFormat.LOWER_CAMEL.to(CaseFormat.UPPER_UNDERSCORE,
                 element.getSimpleName().toString());
     }
 
@@ -964,7 +966,8 @@ public class EntityClassBuilder {
                                 entityClassDto.getTargetClassName() + " entity, " +
                                 "ResultQuery result, int index) {\n" +
                                 "        try {\n" +
-                                "            if (result.getLong(++index) != 0L) {\n" +
+                                "            if (!Optional.ofNullable(result.getLong(++index)).map(it -> it == 0L)" +
+                                ".orElse(true)) {\n" +
                                 "                " + entityClassDto.getTargetClassName() +
                                 ProcessorUtils.CLASS_INTERCEPT_POSTFIX +
                                 " entityInterceptor =\n" +

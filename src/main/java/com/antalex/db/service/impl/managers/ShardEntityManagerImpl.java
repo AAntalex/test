@@ -331,7 +331,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
 
     @Override
     public void flush() {
-        getTransaction().commit();
+        flush(false);
     }
 
     @Override
@@ -515,6 +515,12 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
         return attributeStorageRepository.find(parent, storage);
     }
 
+    private void flush(boolean shortTransaction) {
+        SharedEntityTransaction transaction = (SharedEntityTransaction) getTransaction();
+        transaction.setIsShort(shortTransaction);
+        transaction.commit();
+    }
+
     private <T extends ShardInstance> T save(T entity, boolean onlyChanged) {
         setStorage(entity, null, true);
         generateId(entity, true);
@@ -531,7 +537,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
                     persist(attributeStorage, onlyChanged);
                 });
         if (isAurTransaction) {
-            flush();
+            flush(true);
         }
         return entity;
     }
@@ -543,7 +549,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
         boolean isAurTransaction = startTransaction();
         entities.forEach(it -> save(it, onlyChanged));
         if (isAurTransaction) {
-            flush();
+            flush(false);
         }
         return entities;
     }

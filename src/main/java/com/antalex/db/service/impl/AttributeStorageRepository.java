@@ -119,7 +119,7 @@ public class AttributeStorageRepository implements ShardEntityRepository<Attribu
     @Override
     public AttributeStorage extractValues(AttributeStorage entity, ResultQuery result, int index) {
         try {
-            if (result.getLong(++index) != 0L) {
+            if (!Optional.ofNullable(result.getLong(++index)).map(it -> it == 0L).orElse(true)) {
                 AttributeStorageInterceptor entityInterceptor =
                         (AttributeStorageInterceptor) Optional.ofNullable(entity)
                                 .orElse(entityManager.getEntity(AttributeStorage.class, result.getLong(index)));

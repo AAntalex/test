@@ -5,7 +5,6 @@ import com.antalex.db.model.Shard;
 import com.antalex.db.model.enums.QueryType;
 import com.antalex.db.service.api.TransactionalQuery;
 import com.antalex.db.service.api.TransactionalTask;
-import com.antalex.profiler.service.ProfilerService;
 import org.apache.commons.lang3.StringUtils;
 
 import javax.persistence.EntityTransaction;
@@ -30,15 +29,20 @@ public class SharedEntityTransaction implements EntityTransaction {
     private String error;
     private String errorCommit;
     private UUID uuid;
-    private Boolean parallelRun;
+    private final Boolean parallelRun;
     private Long duration;
+    private boolean isShort;
 
-    private List<TransactionalTask> tasks = new ArrayList<>();
-    private Map<Integer, TransactionalTask> currentTasks = new HashMap<>();
-    private Map<Integer, Bucket> buckets = new HashMap<>();
+    private final List<TransactionalTask> tasks = new ArrayList<>();
+    private final Map<Integer, TransactionalTask> currentTasks = new HashMap<>();
+    private final Map<Integer, Bucket> buckets = new HashMap<>();
 
     public SharedEntityTransaction(Boolean parallelRun) {
         this.parallelRun = parallelRun;
+    }
+
+    public void setIsShort(boolean isShort) {
+        this.isShort = isShort;
     }
 
     @Override
@@ -66,7 +70,9 @@ public class SharedEntityTransaction implements EntityTransaction {
             this.error = processTask(task, task.getError(), this.error, SQL_ERROR_TEXT);
         });
         this.duration = System.currentTimeMillis() - this.duration;
-        prepareSaveTransaction();
+        if (!isShort) {
+            prepareSaveTransaction();
+        }
         this.tasks.forEach(task -> task.completion(this.hasError));
         this.tasks.forEach(TransactionalTask::finish);
         this.tasks.forEach(task ->
@@ -187,9 +193,8 @@ public class SharedEntityTransaction implements EntityTransaction {
     }
 
     private void prepareSaveTransaction() {
-        this.buckets.entrySet()
+        this.buckets.values()
                 .stream()
-                .map(Map.Entry::getValue)
                 .map(Bucket::mainTask)
                 .filter(it -> !it.getDmlQueries().isEmpty())
                 .forEach(task -> {
@@ -228,8 +233,8 @@ public class SharedEntityTransaction implements EntityTransaction {
                 });
     }
 
-    private class Bucket {
-        private List<TransactionalTask> chunks = new ArrayList<>();
+    private static class Bucket {
+        private final List<TransactionalTask> chunks = new ArrayList<>();
         private int currentIndex;
 
         int chunkSize() {

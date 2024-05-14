@@ -35,7 +35,7 @@ public abstract class AbstractTransactionalQuery implements TransactionalQuery, 
     private ResultParallelQuery parallelResult;
 
     @Data
-    private class RunInfo {
+    private static class RunInfo {
         private Future future;
         private String error;
         private String name;
