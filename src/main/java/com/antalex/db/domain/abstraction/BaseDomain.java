@@ -31,6 +31,11 @@ public abstract class BaseDomain implements Domain {
     }
 
     @Override
+    public Long getId() {
+        return Optional.ofNullable(entity).map(ShardInstance::getId).orElse(null);
+    }
+
+    @Override
     @SuppressWarnings("unchecked")
     public <T extends ShardInstance> T getEntity() {
         return (T) entity;

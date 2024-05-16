@@ -6,6 +6,7 @@ import com.antalex.db.entity.abstraction.ShardInstance;
 import java.util.Map;
 
 public interface Domain {
+    Long getId();
     <T extends ShardInstance> T getEntity();
     Map<String, AttributeStorage> getStorage();
     boolean isLazy();
