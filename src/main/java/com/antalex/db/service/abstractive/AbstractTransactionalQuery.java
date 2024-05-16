@@ -16,6 +16,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.stream.IntStream;
 
 @Slf4j
 public abstract class AbstractTransactionalQuery implements TransactionalQuery, Runnable {
@@ -23,6 +24,8 @@ public abstract class AbstractTransactionalQuery implements TransactionalQuery, 
     protected String query;
     protected ResultQuery result;
 
+    private int resultUpdate;
+    private int[] resultUpdateBatch;
     private ExecutorService executorService;
     private Boolean parallelRun;
     private AbstractTransactionalQuery mainQuery;
@@ -159,14 +162,14 @@ public abstract class AbstractTransactionalQuery implements TransactionalQuery, 
         try {
             if (queryType == QueryType.DML) {
                 if (this.isButch) {
-                    executeBatch();
+                    this.resultUpdateBatch = executeBatch();
                 } else {
                     this.increment();
-                    executeUpdate();
+                    this.resultUpdate = executeUpdate();
                 }
             } else {
                 this.increment();
-                executeQuery();
+                this.result = executeQuery();
             }
         } catch (Exception err) {
             throw new ShardDataBaseException(err);
@@ -207,9 +210,37 @@ public abstract class AbstractTransactionalQuery implements TransactionalQuery, 
     public void init() {
         this.currentIndex = 0;
         this.result = null;
+        this.resultUpdateBatch = null;
+        this.resultUpdate = 0;
         this.error = null;
         this.parallelResult = null;
         this.relatedQueries.clear();
+    }
+
+    @Override
+    public int getResultUpdate() {
+        if (relatedQueries.isEmpty()) {
+            return resultUpdate;
+        } else {
+            return relatedQueries.stream()
+                    .map(TransactionalQuery::getResultUpdate)
+                    .reduce(resultUpdate, Integer::sum);
+        }
+    }
+
+    public int[] getResultUpdateBatch() {
+        if (relatedQueries.isEmpty()) {
+            return resultUpdateBatch;
+        } else {
+            return IntStream
+                    .range(0, resultUpdateBatch.length)
+                    .map(idx ->
+                            relatedQueries.stream()
+                                    .map(TransactionalQuery::getResultUpdateBatch)
+                                    .map(arr -> arr[idx])
+                                    .reduce(resultUpdateBatch[idx], Integer::sum)
+                    ).toArray();
+        }
     }
 
     private RunInfo runQuery(TransactionalQuery transactionalQuery) {

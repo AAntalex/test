@@ -31,6 +31,8 @@ public interface TransactionalQuery {
     void setShard(Shard shard);
     Shard getShard();
     void init();
+    int getResultUpdate();
+    int[] getResultUpdateBatch();
 
     default TransactionalQuery bind(Object o) {
         return bind(o, false);

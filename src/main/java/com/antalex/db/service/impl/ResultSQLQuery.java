@@ -13,7 +13,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 public class ResultSQLQuery implements ResultQuery {
-    private ResultSet result;
+    private final ResultSet result;
 
     ResultSQLQuery(ResultSet result) {
         this.result = result;
@@ -26,7 +26,7 @@ public class ResultSQLQuery implements ResultQuery {
 
     @Override
     public Long getLong(int idx) throws SQLException {
-        Long ret = result.getLong(idx);
+        long ret = result.getLong(idx);
         return result.wasNull() ? null : ret;
     }
 
@@ -37,13 +37,13 @@ public class ResultSQLQuery implements ResultQuery {
 
     @Override
     public Boolean getBoolean(int idx) throws SQLException {
-        Boolean ret = result.getBoolean(idx);
+        boolean ret = result.getBoolean(idx);
         return result.wasNull() ? null : ret;
     }
 
     @Override
     public Short getShort(int idx) throws SQLException {
-        Short ret = result.getShort(idx);
+        short ret = result.getShort(idx);
         return result.wasNull() ? null : ret;
     }
 
@@ -60,25 +60,25 @@ public class ResultSQLQuery implements ResultQuery {
 
     @Override
     public Byte getByte(int idx) throws SQLException {
-        Byte ret = result.getByte(idx);
+        byte ret = result.getByte(idx);
         return result.wasNull() ? null : ret;
     }
 
     @Override
     public Double getDouble(int idx) throws SQLException {
-        Double ret = result.getDouble(idx);
+        double ret = result.getDouble(idx);
         return result.wasNull() ? null : ret;
     }
 
     @Override
     public Float getFloat(int idx) throws SQLException {
-        Float ret = result.getFloat(idx);
+        float ret = result.getFloat(idx);
         return result.wasNull() ? null : ret;
     }
 
     @Override
     public Integer getInteger(int idx) throws SQLException {
-        Integer ret = result.getInt(idx);
+        int ret = result.getInt(idx);
         return result.wasNull() ? null : ret;
     }
 
@@ -148,4 +148,5 @@ public class ResultSQLQuery implements ResultQuery {
                 .map(Timestamp::toLocalDateTime)
                 .orElse(null);
     }
+
 }

@@ -80,7 +80,6 @@ public class TransactionalSQLQuery extends AbstractTransactionalQuery {
     @Override
     public ResultQuery executeQuery() throws SQLException {
         this.preparedStatement.setFetchSize(FETCH_SIZE);
-        this.result = new ResultSQLQuery(this.preparedStatement.executeQuery());
-        return result;
+        return new ResultSQLQuery(this.preparedStatement.executeQuery());
     }
 }
