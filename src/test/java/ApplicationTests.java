@@ -197,7 +197,7 @@ public class ApplicationTests {
 		System.out.println(profiler.printTimeCounter());
 	}
 
-	@Test
+//	@Test
 	public void findAllJPA() {
 		profiler.start("findAllJPA");
 		List<TestBEntity> bList = testBRepository.findAllByValueLike("JPA%");
@@ -246,6 +246,7 @@ public class ApplicationTests {
 				TestBShardEntity.class,
 				"x0.C_VALUE like ?",
 				"Shard%");
+
 		System.out.println("FIND B bList.size() = " + bList.size());
 /*
 		bList.forEach(b -> {
@@ -258,7 +259,7 @@ public class ApplicationTests {
 		System.out.println(profiler.printTimeCounter());
 	}
 
-	@Test
+//	@Test
 	public void findAllMBatis() {
 		profiler.start("findAllMBatis");
 		List<TestBEntity> bList = testService.findAllByValueLikeMBatis("MyBatis%");
@@ -274,7 +275,7 @@ public class ApplicationTests {
 		System.out.println(profiler.printTimeCounter());
 	}
 
-	@Test
+//	@Test
 	public void findAllStatement() {
 		profiler.start("findAllStatement");
 		List<TestBEntity> bList = testService.findAllBByValueLikeStatement("Statement%");
