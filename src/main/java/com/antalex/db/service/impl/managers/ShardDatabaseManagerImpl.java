@@ -643,19 +643,19 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         ).ifPresent(functionSet);
     }
 
-    private static <T> void setDataBaseConfigValue(DataBaseConfig dataBaseConfig,
-                                                   Function<DataBaseConfig, T> functionGet,
+    private static <T> void setDataBaseConfigValue(DataSourceConfig dataSourceConfig,
+                                                   Function<DataSourceConfig, T> functionGet,
                                                    Consumer<T> functionSet)
     {
-        Optional.ofNullable(dataBaseConfig).map(functionGet).ifPresent(functionSet);
+        Optional.ofNullable(dataSourceConfig).map(functionGet).ifPresent(functionSet);
     }
 
-    private void setOptionalDataBaseConfig(HikariConfig config, DataBaseConfig dataBaseConfig) {
-        setDataBaseConfigValue(dataBaseConfig, DataBaseConfig::getUrl, config::setJdbcUrl);
-        setDataBaseConfigValue(dataBaseConfig, DataBaseConfig::getDriver, config::setDriverClassName);
-        setDataBaseConfigValue(dataBaseConfig, DataBaseConfig::getClassName, config::setDataSourceClassName);
-        setDataBaseConfigValue(dataBaseConfig, DataBaseConfig::getUser, config::setUsername);
-        setDataBaseConfigValue(dataBaseConfig, DataBaseConfig::getPass, config::setPassword);
+    private void setOptionalDataSourceConfig(HikariConfig config, DataSourceConfig dataSourceConfig) {
+        setDataBaseConfigValue(dataSourceConfig, DataSourceConfig::getUrl, config::setJdbcUrl);
+        setDataBaseConfigValue(dataSourceConfig, DataSourceConfig::getDriver, config::setDriverClassName);
+        setDataBaseConfigValue(dataSourceConfig, DataSourceConfig::getClassName, config::setDataSourceClassName);
+        setDataBaseConfigValue(dataSourceConfig, DataSourceConfig::getUser, config::setUsername);
+        setDataBaseConfigValue(dataSourceConfig, DataSourceConfig::getPass, config::setPassword);
     }
 
     private void setOptionalHikariConfig(
@@ -703,7 +703,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
             ShardConfig shardConfig)
     {
         HikariConfig config = new HikariConfig();
-        setOptionalDataBaseConfig(config, shardConfig.getDataBase());
+        setOptionalDataSourceConfig(config, shardConfig.getDataSource());
         setOptionalHikariConfig(config, shardDataBaseConfig, clusterConfig, shardConfig);
         return config;
     }
@@ -778,14 +778,14 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
             clusterConfig.getShards().forEach(shardConfig-> {
                 Shard shard = new Shard();
                 setOptionalHikariConfig(shardDataBaseConfig, clusterConfig, shardConfig);
-                if (Optional.ofNullable(shardConfig.getDataBase()).map(DataBaseConfig::getUrl).isPresent()) {
+                if (Optional.ofNullable(shardConfig.getDataSource()).map(DataSourceConfig::getUrl).isPresent()) {
                     HikariDataSource dataSource = new HikariDataSource(
                             getHikariConfig(shardDataBaseConfig, clusterConfig, shardConfig)
                     );
                     shard.setDataSource(dataSource);
                     shard.setOwner(
-                            Optional.ofNullable(shardConfig.getDataBase())
-                                    .map(DataBaseConfig::getOwner)
+                            Optional.ofNullable(shardConfig.getDataSource())
+                                    .map(DataSourceConfig::getOwner)
                                     .orElse(dataSource.getUsername())
                     );
                     shard.setExternal(false);
@@ -795,7 +795,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                     Assert.isTrue(
                             Objects.nonNull(shard.getUrl()),
                             String.format(
-                                    "Properties '%s.clusters.shards.database.url' or '%s.clusters.shards.url'" +
+                                    "Properties '%s.clusters.shards.datasource.url' or '%s.clusters.shards.url'" +
                                     " must not be empty",
                                     ShardDataBaseConfig.CONFIG_NAME,
                                     ShardDataBaseConfig.CONFIG_NAME
@@ -826,8 +826,8 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                         String.format(
                                 "%s: (%s)",
                                 cluster.getName(),
-                                Optional.ofNullable(shardConfig.getDataBase())
-                                        .map(DataBaseConfig::getUrl)
+                                Optional.ofNullable(shardConfig.getDataSource())
+                                        .map(DataSourceConfig::getUrl)
                                         .orElse(shardConfig.getUrl())
                         )
                 );

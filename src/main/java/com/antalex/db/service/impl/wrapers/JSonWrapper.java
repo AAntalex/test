@@ -2,13 +2,13 @@ package com.antalex.db.service.impl.wrapers;
 
 import com.antalex.db.service.api.DataWrapper;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import java.io.IOException;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 
 public class JSonWrapper implements DataWrapper {
     private ObjectNode root;
@@ -34,6 +34,27 @@ public class JSonWrapper implements DataWrapper {
     public <T> T get(String attribute, Class<T> clazz) throws JsonProcessingException {
         JsonNode nodeAttribute = this.root.get(attribute);
         return Objects.isNull(nodeAttribute) ? null : objectMapper.treeToValue(nodeAttribute, clazz);
+    }
+
+    @Override
+    public <K, V> Map<K, V> getMap(
+            String attribute,
+            Class<K> keyClazz,
+            Class<V> valueClazz) throws JsonProcessingException
+    {
+        JsonNode nodeAttribute = this.root.get(attribute);
+        return Objects.isNull(nodeAttribute) ?
+                null :
+                objectMapper.treeToValue(nodeAttribute, new TypeReference<HashMap<K, V>>() {});
+    }
+
+    @Override
+    public <E> List<E> getList(String attribute, Class<E> clazz) throws JsonProcessingException
+    {
+        JsonNode nodeAttribute = this.root.get(attribute);
+        return Objects.isNull(nodeAttribute) ?
+                null :
+                objectMapper.treeToValue(nodeAttribute, new TypeReference<List<E>>(){});
     }
 
     @Override

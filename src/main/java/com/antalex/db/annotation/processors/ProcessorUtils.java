@@ -94,8 +94,12 @@ public class ProcessorUtils {
     }
 
     public static Class<?> getClassByType(TypeMirror type) {
+        return getClassByName(type.toString());
+    }
+
+    public static Class<?> getClassByName(String className) {
         try {
-            return Class.forName(type.toString());
+            return Class.forName(className);
         } catch (ClassNotFoundException err) {
             return null;
         }

@@ -3,7 +3,7 @@ package com.antalex.db.config;
 import lombok.Data;
 
 @Data
-public class DataBaseConfig {
+public class DataSourceConfig {
     private String driver;
     private String className;
     private String url;

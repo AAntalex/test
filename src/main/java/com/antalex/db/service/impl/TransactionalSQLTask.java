@@ -11,11 +11,12 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 
 @Slf4j
 public class TransactionalSQLTask extends AbstractTransactionalTask {
-    private Connection connection;
+    private final Connection connection;
 
     public TransactionalSQLTask(Shard shard, Connection connection, ExecutorService executorService) {
         this.connection = connection;
@@ -63,8 +64,18 @@ public class TransactionalSQLTask extends AbstractTransactionalTask {
 
     @Override
     public TransactionalQuery createQuery(String query, QueryType queryType) {
+        if (Optional.ofNullable(query).map(String::isEmpty).orElse(true)) {
+            return null;
+        }
         try {
-            if ((queryType == QueryType.DML || queryType == QueryType.LOCK) && connection.getAutoCommit()) {
+            if (
+                    (
+                            queryType == QueryType.DML ||
+                                    queryType == QueryType.LOCK ||
+                                    query.toUpperCase().contains("FOR UPDATE")
+                    )
+                            && connection.getAutoCommit())
+            {
                 connection.setAutoCommit(false);
             }
             String sql = ShardUtils.transformSQL(query, shard);

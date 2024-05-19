@@ -598,9 +598,41 @@ public class DomainClassBuilder {
                                 storageName.equals(field.getStorage().getName())
                 )
                 .map(field ->
-                        "\n                    " + field.getSetter() + "(dataWrapper.get(\"" +
-                                field.getFieldName() + "\", " + ProcessorUtils.getTypeField(field.getElement()) +
-                                ".class), false);"
+                                "\n                    " + field.getSetter() + "(dataWrapper." +
+                                Optional.ofNullable(
+                                        ProcessorUtils.getClassByName(
+                                                ProcessorUtils
+                                                        .getDeclaredType(field.getElement()).asElement().toString())
+                                        )
+                                        .map(clazz -> {
+                                            if  (clazz.isAssignableFrom(Map.class)) {
+                                                return
+                                                        ProcessorUtils.getDeclaredType(field.getElement())
+                                                                .getTypeArguments()
+                                                                .stream()
+                                                                .map(type -> (DeclaredType) type)
+                                                                .map(DeclaredType::asElement)
+                                                                .map(Element::getSimpleName)
+                                                                .map(className -> " ," + className + ".class")
+                                                                .reduce(
+                                                                        "getMap(\"" +
+                                                                                field.getFieldName() + "\"",
+                                                                        String::concat
+                                                                ) +
+                                                                "), false);";
+                                            }
+                                            if  (clazz.isAssignableFrom(List.class)) {
+                                                return "getList(\"" +
+                                                        field.getFieldName() + "\", " +
+                                                        ProcessorUtils.getFinalType(field.getElement()) +
+                                                        ".class), false);";
+                                            }
+                                            return null;
+                                        }).orElse(
+                                                "get(\"" +
+                                                        field.getFieldName() + "\", " + ProcessorUtils.getTypeField(field.getElement()) +
+                                                        ".class), false);"
+                                        )
                 )
                 .reduce(
                         "\n                case \"" + storageName + "\":",

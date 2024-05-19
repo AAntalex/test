@@ -6,7 +6,7 @@ import lombok.Data;
 public class ShardConfig {
     private Short id;
     private Boolean main;
-    private DataBaseConfig dataBase;
+    private DataSourceConfig dataSource;
     private HikariSettings hikari;
     private SharedTransactionConfig transactionConfig;
     private Integer sequenceCacheSize;
