@@ -205,7 +205,7 @@ public class DomainClassBuilder {
                     "public class " + className + " extends " + domainClassDto.getTargetClassName() + " {\n" +
                             "    private DomainEntityManager domainManager;\n" +
                             getLazyFlagsCode(domainClassDto) +
-                            "\n    " + className + "(" + domainClassDto.getEntityClass().getTargetClassName() +
+                            "\n    public " + className + "(" + domainClassDto.getEntityClass().getTargetClassName() +
                             " entity, DomainEntityManager domainManager) {\n" +
                             "        this.entity = entity;\n" +
                             "        this.domainManager = domainManager;\n" +
