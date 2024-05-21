@@ -9,7 +9,7 @@ public interface TransactionalTask {
     void commit() throws Exception;
     void rollback() throws Exception;
     Boolean needCommit();
-    void completion(boolean rollback);
+    void completion(boolean rollback, boolean force);
     void finish();
     void run(Boolean parallelRun);
     void waitTask();

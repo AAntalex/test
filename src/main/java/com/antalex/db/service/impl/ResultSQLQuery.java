@@ -8,6 +8,7 @@ import java.math.BigDecimal;
 import java.net.URL;
 import java.sql.*;
 import java.time.LocalDateTime;
+import java.util.Currency;
 import java.util.Date;
 import java.util.Optional;
 import java.util.UUID;
@@ -137,6 +138,11 @@ public class ResultSQLQuery implements ResultQuery {
         if (clazz.isAssignableFrom(UUID.class)) {
             return (T) Optional.ofNullable(result.getString(idx))
                     .map(str -> UUID.fromString(str))
+                    .orElse(null);
+        }
+        if (clazz.isAssignableFrom(Currency.class)) {
+            return (T) Optional.ofNullable(result.getString(idx))
+                    .map(str -> Currency.getInstance(str))
                     .orElse(null);
         }
         return (T) result.getObject(idx);

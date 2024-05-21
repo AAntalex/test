@@ -7,6 +7,7 @@ import com.antalex.db.service.api.ResultQuery;
 import java.net.URL;
 import java.sql.*;
 import java.time.LocalDateTime;
+import java.util.Currency;
 import java.util.Date;
 import java.util.UUID;
 
@@ -56,6 +57,10 @@ public class TransactionalSQLQuery extends AbstractTransactionalQuery {
         }
         if (o instanceof UUID) {
             preparedStatement.setString(idx, o.toString());
+            return;
+        }
+        if (o instanceof Currency) {
+            preparedStatement.setString(idx, ((Currency) o).getCurrencyCode());
             return;
         }
 

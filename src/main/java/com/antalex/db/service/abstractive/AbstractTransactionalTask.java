@@ -65,7 +65,7 @@ public abstract class AbstractTransactionalTask implements TransactionalTask {
     public void waitTask() {
         if (this.status == TaskStatus.RUNNING) {
             try {
-                log.trace("Waiting " + this.name + "...");
+                log.trace("Waiting {}...", this.name);
                 this.future.get();
             } catch (Exception err) {
                 throw new ShardDataBaseException(err);
@@ -76,8 +76,8 @@ public abstract class AbstractTransactionalTask implements TransactionalTask {
     }
 
     @Override
-    public void completion(boolean rollback) {
-        if (this.status == TaskStatus.DONE) {
+    public void completion(boolean rollback, boolean force) {
+        if (this.status == TaskStatus.DONE || force && this.status == TaskStatus.CREATED) {
             this.status = TaskStatus.COMPLETION;
             List<Step> steps = rollback ? rollbackSteps : commitSteps;
             if (needCommit()) {
@@ -98,7 +98,7 @@ public abstract class AbstractTransactionalTask implements TransactionalTask {
                         )
                 );
             }
-            if (steps.size() > 0) {
+            if (!steps.isEmpty()) {
                 Runnable target = () ->
                         Stream.concat(steps.stream(), (rollback ? afterRollbackSteps : afterCommitSteps).stream())
                                 .forEachOrdered(step -> {

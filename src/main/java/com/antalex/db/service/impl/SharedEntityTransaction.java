@@ -5,6 +5,8 @@ import com.antalex.db.model.Shard;
 import com.antalex.db.model.enums.QueryType;
 import com.antalex.db.service.api.TransactionalQuery;
 import com.antalex.db.service.api.TransactionalTask;
+import lombok.Getter;
+import lombok.Setter;
 import org.apache.commons.lang3.StringUtils;
 
 import javax.persistence.EntityTransaction;
@@ -22,15 +24,21 @@ public class SharedEntityTransaction implements EntityTransaction {
     private static final String SQL_ERROR_PREFIX = "\n\t\t";
     private static final String TASK_PREFIX = "\n\t";
 
+    @Setter
+    @Getter
     private SharedEntityTransaction parentTransaction;
     private boolean active;
+    @Getter
     private boolean completed;
     private boolean hasError;
     private String error;
     private String errorCommit;
+    @Getter
     private UUID uuid;
+    @Getter
     private final Boolean parallelRun;
     private Long duration;
+    @Setter
     private boolean isShort;
 
     private final List<TransactionalTask> tasks = new ArrayList<>();
@@ -39,10 +47,6 @@ public class SharedEntityTransaction implements EntityTransaction {
 
     public SharedEntityTransaction(Boolean parallelRun) {
         this.parallelRun = parallelRun;
-    }
-
-    public void setIsShort(boolean isShort) {
-        this.isShort = isShort;
     }
 
     @Override
@@ -55,6 +59,11 @@ public class SharedEntityTransaction implements EntityTransaction {
 
     @Override
     public void rollback() {
+        if (this.completed) {
+            return;
+        }
+        this.tasks.forEach(task -> task.completion(true, true));
+        this.tasks.forEach(TransactionalTask::finish);
         tasks.clear();
         currentTasks.clear();
         buckets.clear();
@@ -63,6 +72,9 @@ public class SharedEntityTransaction implements EntityTransaction {
 
     @Override
     public void commit() {
+        if (this.completed) {
+            return;
+        }
         this.duration = System.currentTimeMillis();
         this.tasks.forEach(task -> task.run(parallelRun && this.tasks.size() > 1));
         this.tasks.forEach(task -> {
@@ -73,7 +85,7 @@ public class SharedEntityTransaction implements EntityTransaction {
         if (!isShort) {
             prepareSaveTransaction();
         }
-        this.tasks.forEach(task -> task.completion(this.hasError));
+        this.tasks.forEach(task -> task.completion(this.hasError, false));
         this.tasks.forEach(TransactionalTask::finish);
         this.tasks.forEach(task ->
                 this.errorCommit =
@@ -113,28 +125,8 @@ public class SharedEntityTransaction implements EntityTransaction {
         return this.active;
     }
 
-    public SharedEntityTransaction getParentTransaction() {
-        return parentTransaction;
-    }
-
-    public void setParentTransaction(SharedEntityTransaction parentTransaction) {
-        this.parentTransaction = parentTransaction;
-    }
-
-    public Boolean getParallelRun() {
-        return parallelRun;
-    }
-
-    public boolean isCompleted() {
-        return this.completed;
-    }
-
     public boolean hasError() {
         return this.hasError;
-    }
-
-    public UUID getUuid() {
-        return uuid;
     }
 
     public TransactionalTask getCurrentTask(Shard shard, boolean limitParallel) {

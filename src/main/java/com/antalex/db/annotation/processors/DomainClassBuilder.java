@@ -325,6 +325,10 @@ public class DomainClassBuilder {
                 .stream()
                 .filter(field ->
                         ProcessorUtils.isAnnotationPresent(field.getElement(), Attribute.class) &&
+                                (
+                                        Objects.nonNull(field.getEntityField()) ||
+                                                Objects.nonNull(field.getStorage())
+                                ) &&
                                 Objects.nonNull(field.getGetter())
                 )
                 .map(field ->
