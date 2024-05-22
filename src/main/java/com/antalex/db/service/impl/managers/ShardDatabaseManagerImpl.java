@@ -317,7 +317,8 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                 .map(Shard::getDynamicDataBaseInfo)
                 .map(it ->
                         this.isAvailable(it) &&
-                                Optional.ofNullable(it.getSegment()).orElse(StringUtils.EMPTY)
+                                Optional.ofNullable(shard.getSegment())
+                                        .orElse(Optional.ofNullable(it.getSegment()).orElse(StringUtils.EMPTY))
                                         .equals(Optional.ofNullable(this.segment).orElse(StringUtils.EMPTY))
                 )
                 .orElse(true);
@@ -811,6 +812,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                                                 )
                                 )
                 );
+                shard.setSegment(shardConfig.getSegment());
                 shard.setDynamicDataBaseInfo(
                         DynamicDataBaseInfo
                                 .builder()

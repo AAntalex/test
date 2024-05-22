@@ -16,4 +16,5 @@ public class Shard {
     private Boolean external;
     private String url;
     private Integer hashCode;
+    private String segment;
 }
