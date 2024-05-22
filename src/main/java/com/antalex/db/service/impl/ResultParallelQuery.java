@@ -6,16 +6,17 @@ import org.apache.commons.lang3.StringUtils;
 import java.math.BigDecimal;
 import java.net.URL;
 import java.sql.*;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.Date;
 
 public class ResultParallelQuery implements ResultQuery {
-    private List<ResultQuery> results = new ArrayList<>();
+    private final List<ResultQuery> results = new ArrayList<>();
     private ResultQuery currentResult;
     private int currentIndex;
-    private int keyCount;
-    private Set<String> keyValues = new HashSet<>();
+    private final int keyCount;
+    private final Set<String> keyValues = new HashSet<>();
 
     public ResultParallelQuery(int keyCount) {
         this.keyCount = keyCount;
@@ -134,6 +135,11 @@ public class ResultParallelQuery implements ResultQuery {
     @Override
     public LocalDateTime getLocalDateTime(int idx) throws Exception {
         return currentResult.getLocalDateTime(idx);
+    }
+
+    @Override
+    public LocalDate getLocalDate(int idx) throws Exception {
+        return currentResult.getLocalDate(idx);
     }
 
     private boolean uniqueKey() throws Exception {

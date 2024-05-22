@@ -33,6 +33,7 @@ import java.io.PrintWriter;
 import java.math.BigDecimal;
 import java.net.URL;
 import java.sql.*;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.Date;
@@ -938,6 +939,9 @@ public class EntityClassBuilder {
             }
             if (clazz.isAssignableFrom(LocalDateTime.class)) {
                 return "result.getLocalDateTime(++index)";
+            }
+            if (clazz.isAssignableFrom(LocalDate.class)) {
+                return "result.getLocalDate(++index)";
             }
         }
         return "result.getObject(++index, " + ProcessorUtils.getTypeField(field.getElement()) + ".class)";

@@ -7,6 +7,7 @@ import javax.sql.rowset.serial.SerialClob;
 import java.math.BigDecimal;
 import java.net.URL;
 import java.sql.*;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Currency;
 import java.util.Date;
@@ -155,4 +156,10 @@ public class ResultSQLQuery implements ResultQuery {
                 .orElse(null);
     }
 
+    @Override
+    public LocalDate getLocalDate(int idx) throws SQLException {
+        return Optional.ofNullable(result.getDate(idx))
+                .map(java.sql.Date::toLocalDate)
+                .orElse(null);
+    }
 }

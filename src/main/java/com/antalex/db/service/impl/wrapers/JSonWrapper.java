@@ -45,7 +45,9 @@ public class JSonWrapper implements DataWrapper {
         JsonNode nodeAttribute = this.root.get(attribute);
         return Objects.isNull(nodeAttribute) ?
                 null :
-                objectMapper.treeToValue(nodeAttribute, new TypeReference<HashMap<K, V>>() {});
+                objectMapper.treeToValue(
+                        nodeAttribute,
+                        objectMapper.constructType(new TypeReference<HashMap<K, V>>() {}));
     }
 
     @Override
@@ -54,7 +56,10 @@ public class JSonWrapper implements DataWrapper {
         JsonNode nodeAttribute = this.root.get(attribute);
         return Objects.isNull(nodeAttribute) ?
                 null :
-                objectMapper.treeToValue(nodeAttribute, new TypeReference<List<E>>(){});
+                objectMapper.treeToValue(
+                        nodeAttribute,
+                        objectMapper.constructType(new TypeReference<List<E>>(){})
+                );
     }
 
     @Override

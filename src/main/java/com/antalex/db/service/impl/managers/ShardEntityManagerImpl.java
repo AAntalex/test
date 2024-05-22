@@ -517,7 +517,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
 
     private void flush(boolean shortTransaction) {
         SharedEntityTransaction transaction = (SharedEntityTransaction) getTransaction();
-        transaction.setIsShort(shortTransaction);
+        transaction.setShort(shortTransaction);
         transaction.commit();
     }
 
