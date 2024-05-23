@@ -389,7 +389,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         );
     }
 
-    private void checkClusterID(Cluster cluster, short clusterId) {
+    private void checkClusterID(Cluster cluster, short clusterId, String shardName) {
         if (Objects.isNull(cluster.getId())) {
             cluster.setId(clusterId);
             this.addCluster(cluster.getId(), cluster);
@@ -402,14 +402,14 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                             cluster.getId().equals(clusterId),
                     String.format(
                             "Идентификатор кластера '%s' в настройках '%s.clusters.id' = '%d' " +
-                                    "не соответсвует идентификатору в БД = '%d'.",
-                            ShardDataBaseConfig.CONFIG_NAME, cluster.getName(), cluster.getId(), clusterId
+                                    "не соответсвует идентификатору в БД (%s) = '%d'.",
+                            ShardDataBaseConfig.CONFIG_NAME, cluster.getName(), cluster.getId(), shardName, clusterId
                     )
             );
         }
     }
 
-    private void checkClusterName(Cluster cluster, String clusterName) {
+    private void checkClusterName(Cluster cluster, String clusterName, String shardName) {
         Assert.isTrue(
                 !Optional
                         .ofNullable(shardDataBaseConfig.getChecks())
@@ -418,13 +418,13 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                         cluster.getName().equals(clusterName),
                 String.format(
                         "Наименование кластера '%s' в настройках '%s.clusters.name' = '%s' " +
-                                "не соответсвует наименованию в БД = '%s'.",
-                        ShardDataBaseConfig.CONFIG_NAME, cluster.getName(), cluster.getName(), clusterName
+                                "не соответсвует наименованию в БД (%s) = '%s'.",
+                        ShardDataBaseConfig.CONFIG_NAME, cluster.getName(), cluster.getName(), shardName, clusterName
                 )
         );
     }
 
-    private void checkClusterDefault(Cluster cluster, boolean clusterDefault) {
+    private void checkClusterDefault(Cluster cluster, boolean clusterDefault, String shardName) {
         Assert.isTrue(
                 !Optional
                         .ofNullable(shardDataBaseConfig.getChecks())
@@ -432,9 +432,10 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                         .orElse(true) ||
                         cluster.getName().equals(getDefaultCluster().getName()) == clusterDefault,
                 String.format(
-                        "Кластер '%s'%s должен быть основным" ,
+                        "Кластер '%s'%s должен быть основным для БД %s" ,
                         cluster.getName(),
-                        clusterDefault ? "" : " не"
+                        clusterDefault ? "" : " не",
+                        shardName
                 )
         );
     }
@@ -463,9 +464,9 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         if (Objects.nonNull(shard.getDataBaseInfo())) {
             checkShardID(cluster, shard, shard.getDataBaseInfo().getShardId());
             checkMainShard(cluster, shard, shard.getDataBaseInfo().isMainShard());
-            checkClusterID(cluster, shard.getDataBaseInfo().getClusterId());
-            checkClusterName(cluster, shard.getDataBaseInfo().getClusterName());
-            checkClusterDefault(cluster, shard.getDataBaseInfo().isDefaultCluster());
+            checkClusterID(cluster, shard.getDataBaseInfo().getClusterId(), shard.getName());
+            checkClusterName(cluster, shard.getDataBaseInfo().getClusterName(), shard.getName());
+            checkClusterDefault(cluster, shard.getDataBaseInfo().isDefaultCluster(), shard.getName());
         } else {
             newShards.add(ImmutablePair.of(cluster, shard));
         }

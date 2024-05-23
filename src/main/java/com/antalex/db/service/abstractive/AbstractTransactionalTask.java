@@ -105,7 +105,7 @@ public abstract class AbstractTransactionalTask implements TransactionalTask {
                                     if (this.errorCompletion == null) {
                                         try {
                                             log.trace(
-                                                    rollback ? "ROLLBACK" : "COMMIT" +
+                                                    (rollback ? "ROLLBACK" : "COMMIT") +
                                                             " for \"" + this.name + "\", step \"" + step.name + "\"..."
                                             );
                                             step.target.run();

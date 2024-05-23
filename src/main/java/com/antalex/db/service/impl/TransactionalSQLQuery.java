@@ -6,6 +6,7 @@ import com.antalex.db.service.api.ResultQuery;
 
 import java.net.URL;
 import java.sql.*;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Currency;
 import java.util.Date;
@@ -49,6 +50,10 @@ public class TransactionalSQLQuery extends AbstractTransactionalQuery {
         }
         if (o instanceof LocalDateTime) {
             preparedStatement.setTimestamp(idx, Timestamp.valueOf((LocalDateTime) o));
+            return;
+        }
+        if (o instanceof LocalDate) {
+            preparedStatement.setDate(idx, java.sql.Date.valueOf((LocalDate) o));
             return;
         }
         if (o instanceof Enum) {
