@@ -290,9 +290,42 @@ public class ApplicationTests {
 		System.out.println(profiler.printTimeCounter());
 	}
 
-
-
 //	@Test
+	public void skipLockedDomain() {
+		profiler.start("skipLockedDomain");
+		List<TestBDomain> bList = domainEntityManager.skipLocked(
+				TestBDomain.class,
+				"x0.C_VALUE like ?",
+				"Domain%");
+		System.out.println("FIND B bList.size() = " + bList.size());
+		domainEntityManager.getTransaction().commit();
+		profiler.stop();
+		System.out.println(profiler.printTimeCounter());
+	}
+
+	@Test
+	public void deleteDomain() {
+		List<TestBDomain> bList = domainEntityManager.findAll(
+				TestBDomain.class,
+				"x0.C_VALUE like ?",
+				"Domain%");
+		System.out.println("FIND B bList.size() = " + bList.size());
+
+		TestBDomain b = bList.get(0);
+		System.out.println("FIND B ID = " + b.getId());
+
+		profiler.start("deleteDomain");
+		domainEntityManager.deleteAll(bList);
+		profiler.stop();
+		System.out.println(profiler.printTimeCounter());
+
+		domainEntityManager.saveAll(bList);
+
+		domainEntityManager.getTransaction().commit();
+	}
+
+
+	//	@Test
 	public void saveOther() {
 		profiler.start("saveOther");
 		entityManager.saveAll(testShardService.generateOther(100));
