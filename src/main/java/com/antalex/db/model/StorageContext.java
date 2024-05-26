@@ -56,10 +56,10 @@ public class StorageContext {
         return true;
     }
 
-    public void persist() {
+    public void persist(boolean delete) {
         if (this.transactionalContext != null) {
             this.transactionalContext.changes = null;
-            this.transactionalContext.stored = true;
+            this.transactionalContext.stored = !delete;
             this.transactionalContext.originalShardMap = this.shardMap;
             this.transactionalContext.persist = true;
         }

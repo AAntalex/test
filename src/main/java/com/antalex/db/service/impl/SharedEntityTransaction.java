@@ -76,6 +76,7 @@ public class SharedEntityTransaction implements EntityTransaction {
             return;
         }
         this.duration = System.currentTimeMillis();
+        this.tasks.forEach(task -> task.setName("TRN: " + this.uuid + task.getName()));
         this.tasks.forEach(task -> task.run(parallelRun && this.tasks.size() > 1));
         this.tasks.forEach(task -> {
             task.waitTask();
@@ -157,7 +158,7 @@ public class SharedEntityTransaction implements EntityTransaction {
 
         int chunkSize = buckets.get(shard.getHashCode()).chunkSize();
         task.setName(
-                "TRN: " + this.uuid + "(shard: " + shard.getName() +
+                "(shard: " + shard.getName() +
                         (chunkSize > 1 ? ", chunk: " + chunkSize : ")")
         );
     }

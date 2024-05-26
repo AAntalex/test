@@ -391,6 +391,10 @@ public class EntityClassBuilder {
                 );
             }
             out.println(
+                    "    private static final String DELETE_QUERY = \"DELETE FROM $$$." +
+                            entityClassDto.getTableName() + " WHERE ID=?\";"
+            );
+            out.println(
                     "    private static final String LOCK_QUERY = \"" + getLockSQLCode(entityClassDto) + "\";"
             );
             out.println(
@@ -401,10 +405,9 @@ public class EntityClassBuilder {
             );
             if (!entityClassDto.getUniqueFields().isEmpty()) {
                 out.println(
-                        "    private static final Long UNIQUE_COLUMNS = " + getUniqueColumnsValueCode(entityClassDto) +
-                                "L;"
+                        "    private static final Long UNIQUE_COLUMNS = " +
+                                getUniqueColumnsValueCode(entityClassDto) + "L;"
                 );
-
             }
             out.println();
             out.println(getColumnsCode(entityClassDto));
@@ -439,6 +442,8 @@ public class EntityClassBuilder {
             out.println(getFindCode(entityClassDto));
             out.println();
             out.println(getFindAllCode(entityClassDto));
+            out.println();
+            out.println(getSkipLockedCode(entityClassDto));
             out.println();
             out.println(getFindAllParentCode(entityClassDto));
             out.println();
@@ -487,6 +492,7 @@ public class EntityClassBuilder {
                     """);
             out.println(getLazyFlagsCode(entityClassDto));
             out.println(getInitCode(entityClassDto));
+            out.println(getLazyFlagMethodCode(entityClassDto));
             out.println(getGettersCode(entityClassDto));
             out.println(getSettersCode(entityClassDto));
             out.println("}");
@@ -571,7 +577,23 @@ public class EntityClassBuilder {
                                                 StringUtils.EMPTY
                                 )
                 )
-                .reduce("    public void init() {", String::concat) + "\n    }" ;
+                .reduce("    public void init() {", String::concat) + "\n    }";
+    }
+
+    private static String getLazyFlagMethodCode(EntityClassDto entityClassDto) {
+        return entityClassDto.getFields()
+                .stream()
+                .filter(field ->
+                        field.getIsLinked() &&
+                                Objects.nonNull(field.getGetter()) &&
+                                !ProcessorUtils.isAnnotationPresent(field.getElement(), Transient.class)
+                )
+                .map(field ->
+                        "\n    public boolean " + field.getFieldName() + "IsLazy() {\n" +
+                                "        return this." + field.getFieldName() + "Lazy;\n" +
+                                "    }"
+                )
+                .reduce(StringUtils.EMPTY, String::concat);
     }
 
     private static String getGettersCode(EntityClassDto entityClassDto) {
@@ -799,6 +821,31 @@ public class EntityClassBuilder {
                 "    }";
     }
 
+    private static String getSkipLockedCode(EntityClassDto entityClassDto) {
+        return  "    @Override\n" +
+                "    public List<" + entityClassDto.getTargetClassName() + "> skipLocked(\n" +
+                "            Integer limit,\n" +
+                "            String condition,\n" +
+                "            Object... binds) {\n" +
+                "        return findAll(\n" +
+                "                entityManager\n" +
+                "                        .createQuery(\n" +
+                "                                " + entityClassDto.getTargetClassName() + ".class,\n" +
+                "                                getSelectQuery(null) +\n" +
+                "                                        Optional.ofNullable(condition)\n" +
+                "                                                .map(it -> \" and \" + it)\n" +
+                "                                                .orElse(StringUtils.EMPTY) +\n" +
+                "                                \" FOR UPDATE SKIP LOCKED\",\n" +
+                "                                QueryType.LOCK\n" +
+                "                        )\n" +
+                "                        .fetchLimit(limit)\n" +
+                "                        .bindAll(binds)\n" +
+                "                        .getResult(),\n" +
+                "                null\n" +
+                "        );\n" +
+                "    }";
+    }
+
     private static String getFindAllParentCode(EntityClassDto entityClassDto) {
         return  "    @Override\n" +
                 "    public List<" + entityClassDto.getTargetClassName() +
@@ -996,43 +1043,76 @@ public class EntityClassBuilder {
         StringBuilder code = new StringBuilder(
                 "    @Override\n" +
                         "    public void persist(" + entityClassDto.getTargetClassName() +
-                        " entity, boolean onlyChanged) {\n"
+                        " entity, boolean delete, boolean onlyChanged) {\n" +
+                        "        if (delete) {\n" +
+                        entityClassDto
+                                .getFields()
+                                .stream()
+                                .filter(field ->
+                                        Objects.nonNull(field.getGetter()) &&
+                                                ProcessorUtils.isAnnotationPresentInArgument(
+                                                        field.getElement(), ShardEntity.class
+                                                )
+                                )
+                                .map(field ->
+                                        "            entityManager.persistAll(entity." +
+                                                field.getGetter() + "(), true, false);\n"
+                                )
+                                .reduce(StringUtils.EMPTY, String::concat) +
+                        (
+                                entityClassDto.getUniqueFields().isEmpty() ?
+                                        StringUtils.EMPTY :
+                                        "            if (!entity.hasMainShard()) {\n" +
+                                                "                entityManager.createQuery(entity, DELETE_QUERY, " +
+                                                "QueryType.DML, QueryStrategy.MAIN_SHARD)\n" +
+                                                "                        .bind(entity.getId())\n" +
+                                                "                        .addBatch();\n" +
+                                                "            }\n"
+                        ) +
+                        "            entityManager\n" +
+                        "                    .createQueries(entity, DELETE_QUERY, QueryType.DML)\n" +
+                        "                    .forEach(query -> query.bind(entity.getId()).addBatch());\n" +
+                        "        } else {\n"
         );
         StringBuilder persistCode =
                 new StringBuilder(
-                        """
-                                        String sql = entity.isStored() ? (onlyChanged ? getUpdateSQL(entity.getChanges())\
-                                 : UPD_QUERY) : INS_QUERY;
-                                        if (Objects.nonNull(sql)) {
-                                            boolean checkChanges = onlyChanged && entity.isStored();
-                                            entityManager
-                                                    .createQueries(entity, sql, QueryType.DML)
-                                                    .forEach(query ->
-                                                            query
-                                                                    .bind(entityManager.getTransactionUUID())
-                                                                    .bindShardMap(entity)
-                                """
+                        """            
+                                       String sql = entity.isStored() ? (onlyChanged ? getUpdateSQL(entity.getChanges()) : UPD_QUERY) : INS_QUERY;
+                                       if (Objects.nonNull(sql)) {
+                                           boolean checkChanges = onlyChanged && entity.isStored();
+                                           entityManager
+                                                   .createQueries(entity, sql, QueryType.DML)
+                                                   .forEach(query ->
+                                                           query
+                                                                   .bind(entityManager.getTransactionUUID())
+                                                                   .bindShardMap(entity)
+                           """
                 );
-
-        StringBuilder childPersistCode = new StringBuilder(StringUtils.EMPTY);
+        StringBuilder childPersistCode = new StringBuilder();
         for (EntityFieldDto field : entityClassDto.getFields()) {
             if (Objects.nonNull(field.getGetter())) {
                 if (ProcessorUtils.isAnnotationPresentByType(field.getElement(), ShardEntity.class)) {
                     code
-                            .append("        entityManager.persist(entity.")
+                            .append("            entityManager.persist(entity.")
                             .append(field.getGetter())
                             .append("(), onlyChanged);\n");
                 }
                 if (ProcessorUtils.isAnnotationPresentInArgument(field.getElement(), ShardEntity.class)) {
                     childPersistCode
-                            .append("        entityManager.persistAll(entity.")
+                            .append("            if (!((")
+                            .append(entityClassDto.getTargetClassName())
+                            .append(ProcessorUtils.CLASS_INTERCEPT_POSTFIX)
+                            .append(") entity).")
+                            .append(field.getFieldName())
+                            .append("IsLazy()) {\n")
+                            .append("                entityManager.persistAll(entity.")
                             .append(field.getGetter())
-                            .append("(), onlyChanged);\n");
+                            .append("(), false, onlyChanged);\n")
+                            .append("            }\n");
                 }
-
                 if (field.getColumnIndex() > 0) {
                     persistCode
-                            .append("                                    .bind(entity.")
+                            .append("                                        .bind(entity.")
                             .append(field.getGetter())
                             .append(
                                     ProcessorUtils.isAnnotationPresentByType(field.getElement(), ShardEntity.class) ?
@@ -1049,14 +1129,15 @@ public class EntityClassBuilder {
                 .append(persistCode)
                 .append(
                         """
-                                                                    .bind(entity.getId())
-                                                                    .addBatch()
-                                                    );
-                                        }
-                                        additionalPersist(entity);
+                                                                        .bind(entity.getId())
+                                                                        .addBatch()
+                                                        );
+                                            }
+                                            additionalPersist(entity);
                                 """
                 )
                 .append(childPersistCode)
+                .append("        }\n")
                 .append("    }")
                 .toString();
     }

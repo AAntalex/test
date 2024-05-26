@@ -16,14 +16,17 @@ import java.util.UUID;
 
 public class ResultSQLQuery implements ResultQuery {
     private final ResultSet result;
+    private final Integer fetchLimit;
+    private int count;
 
-    ResultSQLQuery(ResultSet result) {
+    ResultSQLQuery(ResultSet result, Integer fetchLimit) {
         this.result = result;
+        this.fetchLimit = fetchLimit;
     }
 
     @Override
     public boolean next() throws SQLException {
-        return result.next();
+        return (fetchLimit == null || ++count <= fetchLimit) && result.next();
     }
 
     @Override

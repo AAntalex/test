@@ -6,7 +6,6 @@ import com.antalex.db.model.StorageContext;
 
 import javax.persistence.EntityTransaction;
 import java.util.List;
-import java.util.Map;
 
 public interface ShardInstance {
     Long getId();
@@ -21,4 +20,6 @@ public interface ShardInstance {
     boolean setTransactionalContext(EntityTransaction transaction);
     List<AttributeStorage> getAttributeStorage();
     void setAttributeStorage(List<AttributeStorage> attributeStorage);
+    boolean hasDomain();
+    void setHasDomain(boolean hasDomain);
 }

@@ -27,6 +27,7 @@ public class AttributeStorageRepository implements ShardEntityRepository<Attribu
     private static final String UPD_QUERY = "UPDATE $$$.APP_ATTRIBUTE_STORAGE SET SN=SN+1,ST=?,SHARD_MAP=?,C_ENTITY_ID=?,C_STORAGE_NAME=?,C_DATA=?,C_DATA_FORMAT=? WHERE ID=?";
     private static final String LOCK_QUERY = "SELECT ID FROM $$$.APP_ATTRIBUTE_STORAGE WHERE ID=? FOR UPDATE NOWAIT";
     private static final String SELECT_QUERY = "SELECT x0.ID,x0.SHARD_MAP,x0.C_ENTITY_ID,x0.C_STORAGE_NAME,x0.C_DATA,x0.C_DATA_FORMAT FROM $$$.APP_ATTRIBUTE_STORAGE x0 WHERE x0.SHARD_MAP>=0";
+    private static final String DELETE_QUERY = "DELETE FROM $$$.APP_ATTRIBUTE_STORAGE WHERE ID=?";
 
     private static final List<String> COLUMNS = Arrays.asList(
             "C_ENTITY_ID",
@@ -83,25 +84,31 @@ public class AttributeStorageRepository implements ShardEntityRepository<Attribu
     }
 
     @Override
-    public void persist(AttributeStorage entity, boolean onlyChanged) {
-        String sql = entity.isStored() ? (onlyChanged ? getUpdateSQL(entity.getChanges()) : UPD_QUERY) : INS_QUERY;
-        if (Objects.nonNull(sql)) {
-            boolean checkChanges = onlyChanged && entity.isStored();
+    public void persist(AttributeStorage entity, boolean delete, boolean onlyChanged) {
+        if (delete) {
             entityManager
-                    .createQueries(entity, sql, QueryType.DML)
-                    .forEach(query ->
-                            query
-                                    .bind(entityManager.getTransactionUUID())
-                                    .bindShardMap(entity)
-                                    .bind(entity.getEntityId(), checkChanges && !entity.isChanged(1))
-                                    .bind(entity.getStorageName(), checkChanges && !entity.isChanged(2))
-                                    .bind(entity.getData(), checkChanges && !entity.isChanged(3))
-                                    .bind(entity.getDataFormat(), checkChanges && !entity.isChanged(4))
-                                    .bind(entity.getId())
-                                    .addBatch()
-                    );
+                    .createQueries(entity, DELETE_QUERY, QueryType.DML)
+                    .forEach(query -> query.bind(entity.getId()).addBatch());
+        } else {
+            String sql = entity.isStored() ? (onlyChanged ? getUpdateSQL(entity.getChanges()) : UPD_QUERY) : INS_QUERY;
+            if (Objects.nonNull(sql)) {
+                boolean checkChanges = onlyChanged && entity.isStored();
+                entityManager
+                        .createQueries(entity, sql, QueryType.DML)
+                        .forEach(query ->
+                                query
+                                        .bind(entityManager.getTransactionUUID())
+                                        .bindShardMap(entity)
+                                        .bind(entity.getEntityId(), checkChanges && !entity.isChanged(1))
+                                        .bind(entity.getStorageName(), checkChanges && !entity.isChanged(2))
+                                        .bind(entity.getData(), checkChanges && !entity.isChanged(3))
+                                        .bind(entity.getDataFormat(), checkChanges && !entity.isChanged(4))
+                                        .bind(entity.getId())
+                                        .addBatch()
+                        );
+            }
+            additionalPersist(entity);
         }
-        additionalPersist(entity);
     }
 
     @Override
@@ -220,6 +227,29 @@ public class AttributeStorageRepository implements ShardEntityRepository<Attribu
                                                 .orElse(StringUtils.EMPTY),
                                 QueryType.SELECT
                         )
+                        .bindAll(binds)
+                        .getResult()
+        );
+    }
+
+    @Override
+    public List<AttributeStorage> skipLocked(
+            Integer limit,
+            String condition,
+            Object... binds) {
+
+        return findAll(
+                entityManager
+                        .createQuery(
+                                AttributeStorage.class,
+                                SELECT_QUERY +
+                                        Optional.ofNullable(condition)
+                                                .map(it -> " and " + it)
+                                                .orElse(StringUtils.EMPTY) +
+                                        " FOR UPDATE OF x0 SKIP LOCKED",
+                                QueryType.LOCK
+                        )
+                        .fetchLimit(limit)
                         .bindAll(binds)
                         .getResult()
         );

@@ -13,6 +13,7 @@ public interface TransactionalQuery {
     void bindOriginal(int idx, Object o) throws Exception;
     TransactionalQuery bindShardMap(ShardInstance entity);
     TransactionalQuery addBatch();
+    TransactionalQuery fetchLimit(Integer fetchLimit);
     void addBatchOriginal() throws Exception;
     void addRelatedQuery(TransactionalQuery query);
     String getQuery();

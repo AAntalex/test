@@ -23,11 +23,13 @@ public interface ShardEntityManager {
     <T extends ShardInstance> Iterable<T> saveAll(Iterable<T> entities);
     <T extends ShardInstance> T update(T entity);
     <T extends ShardInstance> Iterable<T> updateAll(Iterable<T> entities);
+    <T extends ShardInstance> void delete(T entity);
+    <T extends ShardInstance> void deleteAll(Iterable<T> entities);
     <T extends ShardInstance> void setDependentStorage(T entity);
     <T extends ShardInstance> void generateId(T entity, boolean force);
     <T extends ShardInstance> void generateId(T entity);
     <T extends ShardInstance> void persist(T entity, boolean onlyChanged);
-    <T extends ShardInstance> void persistAll(Iterable<T> entities, boolean onlyChanged);
+    <T extends ShardInstance> void persistAll(Iterable<T> entities, boolean delete, boolean onlyChanged);
     <T extends ShardInstance> void generateAllId(Iterable<T> entities);
     <T extends ShardInstance> void generateDependentId(T entity);
     <T extends ShardInstance> void setStorage(T entity, ShardInstance parent, boolean force);
@@ -75,6 +77,11 @@ public interface ShardEntityManager {
             String condition,
             Object... binds
     );
+    <T extends ShardInstance> List<T> skipLocked(
+            Class<T> clazz,
+            Integer limit,
+            String condition,
+            Object... binds);
     <T extends ShardInstance> T extractValues(T entity, ResultQuery result, int index);
     <T extends ShardInstance> T extractValues(Class<T> clazz, ResultQuery result, int index);
     List<AttributeStorage> extractAttributeStorage(
@@ -115,6 +122,14 @@ public interface ShardEntityManager {
 
     default  <T extends ShardInstance> List<T> findAll(Class<T> clazz) {
         return findAll(clazz, null);
+    }
+
+    default <T extends ShardInstance> List<T> skipLocked(
+            Class<T> clazz,
+            String condition,
+            Object... binds)
+    {
+        return skipLocked(clazz, 1, condition, binds);
     }
 
     default <T extends ShardInstance> List<T> findAll(

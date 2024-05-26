@@ -23,6 +23,7 @@ public abstract class AbstractTransactionalQuery implements TransactionalQuery, 
     protected QueryType queryType;
     protected String query;
     protected ResultQuery result;
+    protected Integer fetchLimit;
 
     private int resultUpdate;
     private int[] resultUpdateBatch;
@@ -214,6 +215,7 @@ public abstract class AbstractTransactionalQuery implements TransactionalQuery, 
         this.resultUpdate = 0;
         this.error = null;
         this.parallelResult = null;
+        this.fetchLimit = null;
         this.relatedQueries.clear();
     }
 
@@ -226,6 +228,13 @@ public abstract class AbstractTransactionalQuery implements TransactionalQuery, 
                     .map(TransactionalQuery::getResultUpdate)
                     .reduce(resultUpdate, Integer::sum);
         }
+    }
+
+    @Override
+    public TransactionalQuery fetchLimit(Integer fetchLimit) {
+        this.fetchLimit = fetchLimit;
+        relatedQueries.forEach(relatedQuery -> relatedQuery.fetchLimit(fetchLimit));
+        return this;
     }
 
     public int[] getResultUpdateBatch() {

@@ -15,6 +15,7 @@ public abstract class BaseShardEntity implements ShardInstance {
     protected Long id;
     private StorageContext storageContext;
     private List<AttributeStorage> attributeStorage = new ArrayList<>();
+    private boolean hasDomain;
 
     public BaseShardEntity () {
         if (this.getClass().isAnnotationPresent(ShardEntity.class)) {
@@ -98,6 +99,16 @@ public abstract class BaseShardEntity implements ShardInstance {
     @Override
     public void setAttributeStorage(List<AttributeStorage> attributeStorage) {
         this.attributeStorage = attributeStorage;
+    }
+
+    @Override
+    public boolean hasDomain() {
+        return hasDomain;
+    }
+
+    @Override
+    public void setHasDomain(boolean hasDomain) {
+        this.hasDomain = hasDomain;
     }
 
     public boolean hasMainShard() {

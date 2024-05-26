@@ -13,4 +13,5 @@ public interface Domain {
     boolean isLazy(String storageName);
     void setLazy(boolean lazy);
     void setLazy(String storageName, boolean lazy);
+    void setStorageChanged();
 }

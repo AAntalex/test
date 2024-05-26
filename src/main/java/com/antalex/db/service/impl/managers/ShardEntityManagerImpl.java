@@ -133,6 +133,32 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
     }
 
     @Override
+    public <T extends ShardInstance> void delete(T entity) {
+        if (entity == null) {
+            return;
+        }
+        boolean isAurTransaction = startTransaction();
+        persist(entity, false, false, true);
+        entity.getAttributeStorage()
+                .forEach(it -> persist(it, false, false, true));
+        if (isAurTransaction) {
+            flush(true);
+        }
+    }
+
+    @Override
+    public  <T extends ShardInstance> void deleteAll(Iterable<T> entities) {
+        if (entities == null) {
+            return;
+        }
+        boolean isAurTransaction = startTransaction();
+        entities.forEach(this::delete);
+        if (isAurTransaction) {
+            flush(false);
+        }
+    }
+
+    @Override
     public <T extends ShardInstance> void setDependentStorage(T entity) {
         if (entity == null) {
             return;
@@ -295,15 +321,15 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
 
     @Override
     public <T extends ShardInstance> void persist(T entity, boolean onlyChanged) {
-        persist(entity, onlyChanged,false);
+        persist(entity, onlyChanged, false, false);
     }
 
     @Override
-    public <T extends ShardInstance> void persistAll(Iterable<T> entities, boolean onlyChanged) {
+    public <T extends ShardInstance> void persistAll(Iterable<T> entities, boolean delete, boolean onlyChanged) {
         if (entities == null) {
             return;
         }
-        entities.forEach(it -> persist(it, onlyChanged, false));
+        entities.forEach(it -> persist(it, onlyChanged, false, delete));
     }
 
     @Override
@@ -457,6 +483,17 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
     }
 
     @Override
+    public <T extends ShardInstance> List<T> skipLocked(
+            Class<T> clazz,
+            Integer limit,
+            String condition,
+            Object... binds)
+    {
+        ShardEntityRepository<T> repository = getEntityRepository(clazz);
+        return repository.skipLocked(limit, condition, binds);
+    }
+
+    @Override
     public <T extends ShardInstance> T extractValues(T entity, ResultQuery result, int index) {
         if (entity == null) {
             return null;
@@ -525,7 +562,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
         setStorage(entity, null, true);
         generateId(entity, true);
         boolean isAurTransaction = startTransaction();
-        persist(entity, onlyChanged, true);
+        persist(entity, onlyChanged, true, false);
         entity.getAttributeStorage()
                 .forEach(attributeStorage -> {
                     if (Objects.isNull(attributeStorage.getCluster())) {
@@ -554,18 +591,29 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
         return entities;
     }
 
-    private <T extends ShardInstance> void persist(T entity, boolean onlyChanged, boolean force) {
-        if (entity == null) {
+    private <T extends ShardInstance> void persist(T entity, boolean onlyChanged, boolean force, boolean delete) {
+        if (
+                Optional.ofNullable(entity)
+                        .map(ShardInstance::getStorageContext)
+                        .map(it -> it.isLazy() && !delete)
+                        .orElse(true))
+        {
             return;
         }
         if (entity.setTransactionalContext(getTransaction())) {
             ShardEntityRepository<T> repository = getEntityRepository(entity.getClass());
-            checkShardMap(entity, repository.getShardType(entity));
-            if (force || !entity.isStored() || entity.isChanged() || entity.hasNewShards())
-            {
-                repository.persist(entity, onlyChanged);
-                entity.getStorageContext().persist();
-                addEntity(entity.getId(), entity);
+            if (!delete) {
+                checkShardMap(entity, repository.getShardType(entity));
+            }
+            if (
+                    delete && entity.isStored() ||
+                            !delete && (force || !entity.isStored() || entity.isChanged() || entity.hasNewShards())
+            ) {
+                repository.persist(entity, delete, onlyChanged);
+                entity.getStorageContext().persist(delete);
+                if (!delete) {
+                    addEntity(entity.getId(), entity);
+                }
             }
         }
     }

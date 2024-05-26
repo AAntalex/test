@@ -10,6 +10,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Currency;
 import java.util.Date;
+import java.util.Optional;
 import java.util.UUID;
 
 public class TransactionalSQLQuery extends AbstractTransactionalQuery {
@@ -89,7 +90,7 @@ public class TransactionalSQLQuery extends AbstractTransactionalQuery {
 
     @Override
     public ResultQuery executeQuery() throws SQLException {
-        this.preparedStatement.setFetchSize(FETCH_SIZE);
-        return new ResultSQLQuery(this.preparedStatement.executeQuery());
+        this.preparedStatement.setFetchSize(Optional.ofNullable(this.fetchLimit).orElse(FETCH_SIZE));
+        return new ResultSQLQuery(this.preparedStatement.executeQuery(), this.fetchLimit);
     }
 }

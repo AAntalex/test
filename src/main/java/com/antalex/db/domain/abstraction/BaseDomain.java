@@ -66,6 +66,11 @@ public abstract class BaseDomain implements Domain {
         lazyStore.put(storageName, lazy);
     }
 
+    @Override
+    public void setStorageChanged() {
+        storage.keySet().forEach(k -> changedStore.put(k, true));
+    }
+
     public void setChanges(int index) {
         this.changes = Utils.addChanges(index, this.changes);
     }

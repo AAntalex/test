@@ -521,6 +521,7 @@ public class DomainClassBuilder {
                 ) +
                 "\n        domain.dropChanges();\n" +
                 "        entity.setAttributeStorage(mapStorage(domain));\n" +
+                "        entity.setHasDomain(true);\n" +
                 "        return entity;\n" +
                 "    }";
     }

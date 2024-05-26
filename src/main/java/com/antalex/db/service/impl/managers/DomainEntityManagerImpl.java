@@ -99,6 +99,20 @@ public class DomainEntityManagerImpl implements DomainEntityManager {
     }
 
     @Override
+    public <T extends Domain> List<T> skipLocked(Class<T> clazz, Integer limit, String condition, Object... binds) {
+        Mapper mapper = getMapper(clazz);
+        return mapAllToDomains(
+                clazz,
+                entityManager.skipLocked(
+                        mapper.entityClass,
+                        limit,
+                        condition,
+                        binds
+                )
+        );
+    }
+
+    @Override
     public <T extends Domain> T newDomain(Class<T> clazz) {
         Mapper mapper = getMapper(clazz);
         return (T) mapper.domainEntityMapper.newDomain(entityManager.newEntity(mapper.entityClass));
@@ -156,6 +170,36 @@ public class DomainEntityManagerImpl implements DomainEntityManager {
     @Override
     public <T extends Domain> List<T> updateAll(List<T> domains) {
         return saveAll(domains, true);
+    }
+
+    @Override
+    public <T extends Domain> void delete(T domain) {
+        if (domain == null) {
+            return;
+        }
+        Mapper mapper = getMapper(domain.getClass());
+        ShardInstance entity = mapper.domainEntityMapper.map(domain);
+        entity.setAttributeStorage(
+                entityManager.findAll(AttributeStorage.class, "C_ENTITY_ID=?", domain.getId())
+        );
+        domain.getStorage().putAll(
+                entity.getAttributeStorage()
+                        .stream()
+                        .collect(Collectors.toMap(AttributeStorage::getStorageName, it -> it))
+        );
+        entityManager.delete(entity);
+        domain.setStorageChanged();
+    }
+
+    @Override
+    public <T extends Domain> void deleteAll(List<T> domains) {
+        if (domains == null) {
+            return;
+        }
+        Class clazz = domains.stream().map(Object::getClass).findAny().orElse(null);
+        if (clazz != null) {
+            entityManager.deleteAll(mapAllToEntities(clazz, domains));
+        }
     }
 
     @Override
