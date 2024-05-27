@@ -477,6 +477,7 @@ public class DomainClassBuilder {
                         "                .forEach(attributeStorage -> storage.put(attributeStorage.getStorageName()," +
                         " attributeStorage));\n" +
                         "        domain.setLazy(true);\n" +
+                        "        entity.setHasDomain(true);\n" +
                         "        return domain;\n" +
                         "    }";
     }

@@ -196,10 +196,10 @@ public class DomainEntityManagerImpl implements DomainEntityManager {
         if (domains == null) {
             return;
         }
-        Class clazz = domains.stream().map(Object::getClass).findAny().orElse(null);
-        if (clazz != null) {
-            entityManager.deleteAll(mapAllToEntities(clazz, domains));
+        if (!getTransaction().isActive()) {
+            getTransaction().begin();
         }
+        domains.forEach(this::delete);
     }
 
     @Override
