@@ -460,13 +460,14 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
 
     @Override
     public <T extends ShardInstance> List<T> findAll(
-            Map<String, DataStorage> storageMap,
             Class<T> clazz,
+            Map<String, DataStorage> storageMap,
+            Integer limit,
             String condition,
             Object... binds)
     {
         ShardEntityRepository<T> repository = getEntityRepository(clazz);
-        return repository.findAll(storageMap, condition, binds);
+        return repository.findAll(storageMap, limit, condition, binds);
     }
 
 

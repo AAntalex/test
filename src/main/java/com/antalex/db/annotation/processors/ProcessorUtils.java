@@ -24,16 +24,16 @@ public class ProcessorUtils {
                 .collect(Collectors.toMap(String::toLowerCase, it -> it));
     }
 
-    public static String findGetter(Map<String, String> getters, Element element) {
-        return Optional.ofNullable(
-                getters.get("get" + element.getSimpleName().toString().toLowerCase())
-        ).orElse(null);
+    public static String findGetter(Map<String, String> getters, Element element, boolean isFluent) {
+        return isFluent ?
+                element.getSimpleName().toString() :
+                getters.get("get" + element.getSimpleName().toString().toLowerCase());
     }
 
-    public static String findSetter(Map<String, String> setters, Element element) {
-        return Optional.ofNullable(
-                setters.get("set" + element.getSimpleName().toString().toLowerCase())
-        ).orElse(null);
+    public static String findSetter(Map<String, String> setters, Element element, boolean isFluent) {
+        return isFluent ?
+                element.getSimpleName().toString() :
+                setters.get("set" + element.getSimpleName().toString().toLowerCase());
     }
 
     public static String getPackage(String className) {

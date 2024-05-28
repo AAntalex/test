@@ -194,7 +194,11 @@ public class AttributeStorageRepository implements ShardEntityRepository<Attribu
     }
 
     @Override
-    public List<AttributeStorage> findAll(Map<String, DataStorage> storageMap, String condition, Object... binds) {
+    public List<AttributeStorage> findAll(
+            Map<String, DataStorage> storageMap,
+            Integer limit,
+            String condition,
+            Object... binds) {
         return findAll(
                 entityManager
                         .createQuery(

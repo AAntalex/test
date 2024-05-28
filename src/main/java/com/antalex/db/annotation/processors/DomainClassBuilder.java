@@ -46,8 +46,12 @@ public class DomainClassBuilder {
                     .map(EntityClassBuilder::getClassDtoByElement)
                     .orElse(null);
 
+            boolean isFluent = Optional.ofNullable(classElement.getAnnotation(Accessors.class))
+                    .map(Accessors::fluent)
+                    .orElse(false);
             Map<String, String> getters = ProcessorUtils.getMethodsByPrefix(classElement, "get");
             Map<String, String> setters = ProcessorUtils.getMethodsByPrefix(classElement, "set");
+
             StorageDto mainStorage = getMainStorage(elementName, domainEntity);
             Map<String, StorageDto> storageDtoMap = getStorageMap(mainStorage, domainEntity);
 
@@ -72,8 +76,14 @@ public class DomainClassBuilder {
                                                     DomainFieldDto
                                                             .builder()
                                                             .fieldName(fieldElement.getSimpleName().toString())
-                                                            .getter(ProcessorUtils.findGetter(getters, fieldElement))
-                                                            .setter(ProcessorUtils.findSetter(setters, fieldElement))
+                                                            .getter(
+                                                                    ProcessorUtils.
+                                                                            findGetter(getters, fieldElement, isFluent)
+                                                            )
+                                                            .setter(
+                                                                    ProcessorUtils.
+                                                                            findSetter(setters, fieldElement, isFluent)
+                                                            )
                                                             .element(fieldElement)
                                                             .entityField(getEntityField(fieldElement, entityClass))
                                                             .storage(

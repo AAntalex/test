@@ -65,8 +65,9 @@ public interface ShardEntityManager {
     <T extends ShardInstance> T find(T entity, Map<String, DataStorage> storageMap);
     AttributeStorage findAttributeStorage(ShardInstance parent, DataStorage storage);
     <T extends ShardInstance> List<T> findAll(
-            Map<String, DataStorage> storageMap,
             Class<T> clazz,
+            Map<String, DataStorage> storageMap,
+            Integer limit,
             String condition,
             Object... binds
     );
@@ -116,12 +117,20 @@ public interface ShardEntityManager {
         return find(entity, null);
     }
 
+    default <T extends ShardInstance> List<T> findAll(Class<T> clazz, Integer limit, String condition, Object... binds) {
+        return findAll(clazz, null, limit, condition, binds);
+    }
+
     default <T extends ShardInstance> List<T> findAll(Class<T> clazz, String condition, Object... binds) {
-        return findAll(null, clazz, condition, binds);
+        return findAll(clazz, (Map<String, DataStorage>) null, null, condition, binds);
+    }
+
+    default  <T extends ShardInstance> List<T> findAll(Class<T> clazz, Integer limit) {
+        return findAll(clazz, (Map<String, DataStorage>) null, limit, null);
     }
 
     default  <T extends ShardInstance> List<T> findAll(Class<T> clazz) {
-        return findAll(clazz, null);
+        return findAll(clazz, (Map<String, DataStorage>) null, null, null);
     }
 
     default <T extends ShardInstance> List<T> skipLocked(

@@ -66,6 +66,9 @@ public class EntityClassBuilder {
         if (!ENTITY_CLASSES.containsKey(classElement)) {
             String elementName = classElement.getSimpleName().toString();
 
+            boolean isFluent = Optional.ofNullable(classElement.getAnnotation(Accessors.class))
+                    .map(Accessors::fluent)
+                    .orElse(false);
             Map<String, String> getters = ProcessorUtils.getMethodsByPrefix(classElement, "get");
             Map<String, String> setters = ProcessorUtils.getMethodsByPrefix(classElement, "set");
 
@@ -101,8 +104,14 @@ public class EntityClassBuilder {
                                                                     )
                                                             )
                                                             .isLinked(isLinkedField(fieldElement))
-                                                            .getter(ProcessorUtils.findGetter(getters, fieldElement))
-                                                            .setter(ProcessorUtils.findSetter(setters, fieldElement))
+                                                            .getter(
+                                                                    ProcessorUtils.
+                                                                            findGetter(getters, fieldElement, isFluent)
+                                                            )
+                                                            .setter(
+                                                                    ProcessorUtils.
+                                                                            findSetter(setters, fieldElement, isFluent)
+                                                            )
                                                             .element(fieldElement)
                                                             .build()
                                     )
@@ -804,7 +813,12 @@ public class EntityClassBuilder {
     private static String getFindAllCode(EntityClassDto entityClassDto) {
         return  "    @Override\n" +
                 "    public List<" + entityClassDto.getTargetClassName() +
-                "> findAll(Map<String, DataStorage> storageMap, String condition, Object... binds) {\n" +
+                ">  findAll(\n" +
+                "            Map<String, DataStorage> storageMap,\n" +
+                "            Integer limit,\n" +
+                "            String condition,\n" +
+                "            Object... binds)\n" +
+                "    {\n" +
                 "        return findAll(\n" +
                 "                entityManager\n" +
                 "                        .createQuery(\n" +
@@ -856,7 +870,7 @@ public class EntityClassBuilder {
                 "            Object... binds)\n" +
                 "    {\n" +
                 "        if (parent.getStorageContext().getCluster() != this.cluster) {\n" +
-                "            return findAll(storageMap, condition, binds);\n" +
+                "            return findAll(storageMap, null, condition, binds);\n" +
                 "        }\n" +
                 "        return findAll(\n" +
                 "                entityManager\n" +
@@ -1062,12 +1076,13 @@ public class EntityClassBuilder {
                         (
                                 entityClassDto.getUniqueFields().isEmpty() ?
                                         StringUtils.EMPTY :
-                                        "            if (!entity.hasMainShard()) {\n" +
-                                                "                entityManager.createQuery(entity, DELETE_QUERY, " +
-                                                "QueryType.DML, QueryStrategy.MAIN_SHARD)\n" +
-                                                "                        .bind(entity.getId())\n" +
-                                                "                        .addBatch();\n" +
-                                                "            }\n"
+                                        """
+                                                            if (!entity.hasMainShard()) {
+                                                                entityManager.createQuery(entity, DELETE_QUERY, QueryType.DML, QueryStrategy.MAIN_SHARD)
+                                                                        .bind(entity.getId())
+                                                                        .addBatch();
+                                                            }
+                                                """
                         ) +
                         "            entityManager\n" +
                         "                    .createQueries(entity, DELETE_QUERY, QueryType.DML)\n" +
