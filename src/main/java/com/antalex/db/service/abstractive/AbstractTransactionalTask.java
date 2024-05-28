@@ -198,11 +198,6 @@ public abstract class AbstractTransactionalTask implements TransactionalTask {
         return this.errorCompletion;
     }
 
-    @Override
-    public void setParallelCommit(boolean parallelCommit) {
-        this.parallelCommit = parallelCommit;
-    }
-
     private record Step(Runnable target, String name) {
     }
 

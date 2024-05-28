@@ -1,12 +1,10 @@
 package com.antalex.db.model;
 
-import com.antalex.db.entity.AttributeStorage;
 import com.antalex.db.service.impl.SharedEntityTransaction;
 import com.antalex.db.utils.ShardUtils;
 import com.antalex.db.utils.Utils;
 import lombok.Builder;
 
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -116,7 +114,7 @@ public class StorageContext {
 
     public boolean hasMainShard() {
         return this.shardMap.equals(0L) ||
-                Long.compare(ShardUtils.getShardMap(this.cluster.getMainShard().getId()) & this.shardMap, 0L) > 0;
+                (ShardUtils.getShardMap(this.cluster.getMainShard().getId()) & this.shardMap) > 0L;
     }
 
     public Shard getShard() {
@@ -155,7 +153,7 @@ public class StorageContext {
         return isLazy;
     }
 
-    private class TransactionalContext {
+    private static class TransactionalContext {
         private SharedEntityTransaction transaction;
         private Long changes;
         private Long originalShardMap;

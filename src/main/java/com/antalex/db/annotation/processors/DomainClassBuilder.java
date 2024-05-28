@@ -1,11 +1,13 @@
 package com.antalex.db.annotation.processors;
 
-import com.antalex.db.annotation.*;
 import com.antalex.db.domain.abstraction.Domain;
+import com.antalex.db.model.dto.*;
+import com.antalex.db.annotation.Attribute;
+import com.antalex.db.annotation.DomainEntity;
+import com.antalex.db.annotation.ShardEntity;
 import com.antalex.db.entity.AttributeStorage;
 import com.antalex.db.entity.abstraction.ShardInstance;
 import com.antalex.db.model.DataStorage;
-import com.antalex.db.model.dto.*;
 import com.antalex.db.model.enums.DataFormat;
 import com.antalex.db.model.enums.MappingType;
 import com.antalex.db.model.enums.ShardType;
@@ -18,6 +20,7 @@ import lombok.experimental.Accessors;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import com.antalex.db.annotation.Storage;
 
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.Element;

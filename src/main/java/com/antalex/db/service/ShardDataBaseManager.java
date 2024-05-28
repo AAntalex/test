@@ -1,10 +1,10 @@
 package com.antalex.db.service;
 
-import com.antalex.db.entity.abstraction.ShardInstance;
 import com.antalex.db.model.Cluster;
 import com.antalex.db.model.Shard;
 import com.antalex.db.model.StorageContext;
 import com.antalex.db.service.api.TransactionalTask;
+import com.antalex.db.entity.abstraction.ShardInstance;
 
 import javax.sql.DataSource;
 import java.sql.Connection;

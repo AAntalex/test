@@ -29,7 +29,6 @@ public interface TransactionalTask {
     void addStepAfterCommit(Runnable target, String name);
     String getName();
     void setName(String name);
-    void setParallelCommit(boolean parallelCommit);
     String getError();
     String getErrorCompletion();
     void setMainTask(TransactionalTask task);

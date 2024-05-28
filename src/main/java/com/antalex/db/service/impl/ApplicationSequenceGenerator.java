@@ -1,9 +1,9 @@
 package com.antalex.db.service.impl;
 
-import com.antalex.db.exception.ShardDataBaseException;
-import com.antalex.db.model.Shard;
 import com.antalex.db.service.abstractive.AbstractSequenceGenerator;
 import com.antalex.db.utils.ShardUtils;
+import com.antalex.db.exception.ShardDataBaseException;
+import com.antalex.db.model.Shard;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -13,14 +13,15 @@ import java.util.Objects;
 import java.util.Optional;
 
 public class ApplicationSequenceGenerator extends AbstractSequenceGenerator {
-    private static final String QUERY_LOCK = "SELECT LAST_VALUE,MIN_VALUE,CACHE_SIZE,MAX_VALUE,CYCLE_FLAG\n" +
-            "  FROM $$$.APP_SEQUENCE\n" +
-            "WHERE SEQUENCE_NAME = ? FOR UPDATE";
+    private static final String QUERY_LOCK = """
+            SELECT LAST_VALUE,MIN_VALUE,CACHE_SIZE,MAX_VALUE,CYCLE_FLAG
+              FROM $$$.APP_SEQUENCE
+            WHERE SEQUENCE_NAME = ? FOR UPDATE""";
 
     private static final String QUERY_UPDATE = "UPDATE $$$.APP_SEQUENCE SET LAST_VALUE = ? WHERE SEQUENCE_NAME = ?";
 
-    private String name;
-    private Shard shard;
+    private final String name;
+    private final Shard shard;
     private Integer cacheSize;
     private Connection connection;
 

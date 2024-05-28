@@ -1,12 +1,12 @@
 package com.antalex.db.entity.abstraction;
 
 import com.antalex.db.annotation.ShardEntity;
-import com.antalex.db.entity.AttributeStorage;
 import com.antalex.db.exception.ShardDataBaseException;
 import com.antalex.db.model.Shard;
 import com.antalex.db.model.StorageContext;
 import com.antalex.db.service.impl.SharedEntityTransaction;
 import com.antalex.db.utils.ShardUtils;
+import com.antalex.db.entity.AttributeStorage;
 
 import javax.persistence.EntityTransaction;
 import java.util.*;

@@ -1,9 +1,9 @@
 package com.antalex.db.service;
 
 import com.antalex.db.domain.abstraction.Domain;
+import com.antalex.db.model.DataStorage;
 import com.antalex.db.entity.AttributeStorage;
 import com.antalex.db.entity.abstraction.ShardInstance;
-import com.antalex.db.model.DataStorage;
 
 import javax.persistence.EntityTransaction;
 import java.util.List;
@@ -41,7 +41,7 @@ public interface DomainEntityManager {
     }
 
     default  <T extends Domain> List<T> findAll(Class<T> clazz) {
-        return findAll(clazz, null, null);
+        return findAll(clazz, null);
     }
 
     default  <T extends Domain> List<T> skipLocked(Class<T> clazz, String condition, Object... binds) {

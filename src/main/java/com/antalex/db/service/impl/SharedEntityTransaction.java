@@ -189,6 +189,7 @@ public class SharedEntityTransaction implements EntityTransaction {
         this.buckets.values()
                 .stream()
                 .map(Bucket::mainTask)
+                .filter(Objects::nonNull)
                 .filter(it -> !it.getDmlQueries().isEmpty())
                 .forEach(task -> {
                     TransactionalQuery saveTransactionQuery = task.createQuery(SAVE_TRANSACTION_QUERY, QueryType.DML)

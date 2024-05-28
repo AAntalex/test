@@ -1,7 +1,7 @@
 package com.antalex.db.service.api;
 
-import com.antalex.db.entity.abstraction.ShardInstance;
 import com.antalex.db.model.Shard;
+import com.antalex.db.entity.abstraction.ShardInstance;
 import com.antalex.db.model.enums.QueryType;
 
 import java.util.concurrent.ExecutorService;
@@ -28,7 +28,7 @@ public interface TransactionalQuery {
     void setMainQuery(TransactionalQuery mainQuery);
     TransactionalQuery getMainQuery();
     void setExecutorService(ExecutorService executorService);
-    public void setParallelRun(Boolean parallelRun);
+    void setParallelRun(Boolean parallelRun);
     void setShard(Shard shard);
     Shard getShard();
     void init();

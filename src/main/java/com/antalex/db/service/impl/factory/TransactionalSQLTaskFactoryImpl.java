@@ -16,7 +16,7 @@ public class TransactionalSQLTaskFactoryImpl implements TransactionalSQLTaskFact
 
     @Override
     public TransactionalTask createTask(Shard shard, Connection connection) {
-        return new TransactionalSQLTask(shard, connection, executorService);
+        return new TransactionalSQLTask(shard, connection, executorService, parallelCommit);
     }
 
     @Override

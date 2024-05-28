@@ -10,7 +10,7 @@ import java.util.UUID;
 
 @Component
 public class SharedTransactionManagerImpl implements SharedTransactionManager {
-    private ThreadLocal<SharedEntityTransaction> transaction = new ThreadLocal<>();
+    private final ThreadLocal<SharedEntityTransaction> transaction = new ThreadLocal<>();
     private Boolean parallelRun;
 
     @Override

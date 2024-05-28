@@ -1,6 +1,9 @@
 package com.antalex.db.exception;
 
+import java.io.Serial;
+
 public class ShardDataBaseException extends RuntimeException {
+    @Serial
     private static final long serialVersionUID = -2083713320278095296L;
 
     public ShardDataBaseException() {
