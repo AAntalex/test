@@ -28,6 +28,7 @@ import org.hibernate.engine.jdbc.dialect.spi.DatabaseMetaDataDialectResolutionIn
 import org.hibernate.engine.jdbc.dialect.spi.DialectResolver;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.postgresql.core.v3.QueryExecutorImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
@@ -303,7 +304,7 @@ public class ApplicationTests {
 		System.out.println(profiler.printTimeCounter());
 	}
 
-	@Test
+//	@Test
 	public void deleteDomain() {
 		List<TestBDomain> bList = domainEntityManager.findAll(
 				TestBDomain.class,
