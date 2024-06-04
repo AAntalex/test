@@ -1,8 +1,9 @@
 package com.antalex.db.entity.abstraction;
 
+import com.antalex.db.entity.AttributeStorage;
+import com.antalex.db.model.Cluster;
 import com.antalex.db.model.Shard;
 import com.antalex.db.model.StorageContext;
-import com.antalex.db.entity.AttributeStorage;
 
 import javax.persistence.EntityTransaction;
 import java.util.List;
@@ -22,4 +23,6 @@ public interface ShardInstance {
     void setAttributeStorage(List<AttributeStorage> attributeStorage);
     boolean hasDomain();
     void setHasDomain(boolean hasDomain);
+    Cluster getCluster();
+    void setCluster(Cluster cluster);
 }

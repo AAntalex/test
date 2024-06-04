@@ -1,7 +1,7 @@
 package com.antalex.db.service.impl;
 
-import com.antalex.db.service.abstractive.AbstractTransactionalQuery;
 import com.antalex.db.model.enums.QueryType;
+import com.antalex.db.service.abstractive.AbstractTransactionalQuery;
 import com.antalex.db.service.api.ResultQuery;
 
 import java.net.URL;

@@ -1,9 +1,9 @@
 package com.antalex.db.service.impl;
 
 import com.antalex.db.service.abstractive.AbstractSequenceGenerator;
-import com.antalex.db.utils.ShardUtils;
 import com.antalex.db.exception.ShardDataBaseException;
 import com.antalex.db.model.Shard;
+import com.antalex.db.utils.ShardUtils;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;

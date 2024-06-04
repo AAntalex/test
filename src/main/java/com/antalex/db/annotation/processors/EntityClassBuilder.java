@@ -1,8 +1,5 @@
 package com.antalex.db.annotation.processors;
 
-import com.antalex.db.model.dto.EntityClassDto;
-import com.antalex.db.model.dto.EntityFieldDto;
-import com.antalex.db.model.dto.IndexDto;
 import com.antalex.db.annotation.ParentShard;
 import com.antalex.db.annotation.ShardEntity;
 import com.antalex.db.entity.AttributeStorage;
@@ -22,6 +19,9 @@ import lombok.experimental.Accessors;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import com.antalex.db.model.dto.EntityClassDto;
+import com.antalex.db.model.dto.EntityFieldDto;
+import com.antalex.db.model.dto.IndexDto;
 
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.Element;
@@ -1250,7 +1250,7 @@ public class EntityClassBuilder {
                 "    }\n\n" +
                 "    @Override\n" +
                 "    public Cluster getCluster(" + entityClassDto.getTargetClassName() + " entity) {\n" +
-                "        return cluster;\n" +
+                "        return Optional.ofNullable(entity).map(ShardInstance::getCluster).orElse(cluster);\n" +
                 "    }";
     }
 

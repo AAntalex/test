@@ -1,8 +1,8 @@
 package com.antalex.db.service;
 
 import com.antalex.db.domain.abstraction.Domain;
-import com.antalex.db.model.DataStorage;
 import com.antalex.db.entity.abstraction.ShardInstance;
+import com.antalex.db.model.DataStorage;
 
 import java.util.Map;
 

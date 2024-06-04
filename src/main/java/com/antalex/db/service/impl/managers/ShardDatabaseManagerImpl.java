@@ -1,15 +1,15 @@
 package com.antalex.db.service.impl.managers;
 
 import com.antalex.db.config.*;
-import com.antalex.db.model.*;
-import com.antalex.db.service.api.*;
-import com.antalex.db.service.impl.*;
-import com.antalex.db.utils.ShardUtils;
 import com.antalex.db.entity.abstraction.ShardInstance;
 import com.antalex.db.exception.ShardDataBaseException;
+import com.antalex.db.model.*;
 import com.antalex.db.model.enums.QueryType;
 import com.antalex.db.service.ShardDataBaseManager;
 import com.antalex.db.service.SharedTransactionManager;
+import com.antalex.db.service.api.*;
+import com.antalex.db.service.impl.*;
+import com.antalex.db.utils.ShardUtils;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import liquibase.command.CommandScope;
@@ -151,18 +151,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
 
     @Override
     public Cluster getCluster(String clusterName) {
-        if (clusterName == null) {
-            throw new ShardDataBaseException("Не указано наименование кластера");
-        }
-        if (ShardUtils.DEFAULT_CLUSTER_NAME.equals(clusterName)) {
-            return defaultCluster;
-        } else {
-            Cluster cluster = clusters.get(clusterName);
-            if (cluster == null) {
-                throw new ShardDataBaseException("Отсутсвует кластер с наименованием " + clusterName);
-            }
-            return cluster;
-        }
+        return Optional.ofNullable(clusterName).map(clusters::get).orElse(defaultCluster);
     }
 
     @Override
@@ -731,7 +720,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         this.liquibaseEnable = Optional
                 .ofNullable(shardDataBaseConfig.getLiquibase())
                 .map(LiquibaseConfig::getEnabled)
-                .orElse(true);
+                .orElse(false);
     }
 
     private void processThreadPoolConfig() {
@@ -936,7 +925,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                     database.setDefaultCatalogName(shard.getOwner());
                     database.setDefaultSchemaName(shard.getOwner());
                     new CommandScope(UpdateCommandStep.COMMAND_NAME)
-                            .addArgumentValue("database", database)
+                            .addArgumentValue(DbUrlConnectionArgumentsCommandStep.DATABASE_ARG, database)
                             .addArgumentValue(
                                     UpdateCommandStep.CHANGELOG_FILE_ARG,
                                     changeLog.startsWith(CLASSPATH) ?

@@ -1,7 +1,7 @@
 package com.antalex.db.service.api;
 
-import com.antalex.db.model.Shard;
 import com.antalex.db.entity.abstraction.ShardInstance;
+import com.antalex.db.model.Shard;
 import com.antalex.db.model.enums.QueryType;
 
 import java.util.concurrent.ExecutorService;

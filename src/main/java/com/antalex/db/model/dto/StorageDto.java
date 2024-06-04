@@ -1,7 +1,7 @@
 package com.antalex.db.model.dto;
 
-import com.antalex.db.model.enums.DataFormat;
 import com.antalex.db.model.enums.ShardType;
+import com.antalex.db.model.enums.DataFormat;
 import lombok.Builder;
 import lombok.Data;
 
