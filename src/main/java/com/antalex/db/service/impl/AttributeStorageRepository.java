@@ -13,6 +13,8 @@ import com.antalex.db.model.enums.ShardType;
 import com.antalex.db.service.ShardEntityManager;
 import com.antalex.db.service.ShardEntityRepository;
 import com.antalex.db.service.api.ResultQuery;
+import com.antalex.db.utils.Utils;
+import com.google.common.collect.ImmutableMap;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 
@@ -35,6 +37,14 @@ public class AttributeStorageRepository implements ShardEntityRepository<Attribu
             "C_DATA",
             "C_DATA_FORMAT"
     );
+
+    private static final Map<String, String> FIELD_MAP = ImmutableMap.<String, String>builder()
+            .put("entityId", "C_ENTITY_ID")
+            .put("storageName", "C_STORAGE_NAME")
+            .put("data", "C_DATA")
+            .put("dataFormat", "C_DATA_FORMAT")
+            .build();
+
     private final Map<Long, String> updateQueries = new HashMap<>();
 
     private ShardEntityManager entityManager;
@@ -113,6 +123,11 @@ public class AttributeStorageRepository implements ShardEntityRepository<Attribu
 
     @Override
     public void generateDependentId(AttributeStorage entity) {
+    }
+
+    @Override
+    public Map<String, String> getFieldMap() {
+        return FIELD_MAP;
     }
 
     @Override
@@ -204,7 +219,7 @@ public class AttributeStorageRepository implements ShardEntityRepository<Attribu
                         .createQuery(
                                 AttributeStorage.class, 
                                 SELECT_QUERY +
-                                        Optional.ofNullable(condition)
+                                        Optional.ofNullable(Utils.transform(condition, FIELD_MAP))
                                                 .map(it -> " and " + it)
                                                 .orElse(StringUtils.EMPTY),
                                 QueryType.SELECT
@@ -226,7 +241,7 @@ public class AttributeStorageRepository implements ShardEntityRepository<Attribu
                         .createQuery(
                                 parent,
                                 SELECT_QUERY +
-                                        Optional.ofNullable(condition)
+                                        Optional.ofNullable(Utils.transform(condition, FIELD_MAP))
                                                 .map(it -> " and " + it)
                                                 .orElse(StringUtils.EMPTY),
                                 QueryType.SELECT
@@ -247,7 +262,7 @@ public class AttributeStorageRepository implements ShardEntityRepository<Attribu
                         .createQuery(
                                 AttributeStorage.class,
                                 SELECT_QUERY +
-                                        Optional.ofNullable(condition)
+                                        Optional.ofNullable(Utils.transform(condition, FIELD_MAP))
                                                 .map(it -> " and " + it)
                                                 .orElse(StringUtils.EMPTY) +
                                         " FOR UPDATE OF x0 SKIP LOCKED",

@@ -17,6 +17,7 @@ import com.antalex.db.service.DomainEntityMapper;
 import com.antalex.db.service.ShardDataBaseManager;
 import com.antalex.db.service.ShardEntityManager;
 import com.antalex.db.service.api.DataWrapper;
+import com.google.common.collect.ImmutableMap;
 import lombok.experimental.Accessors;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -272,7 +273,8 @@ public class DomainClassBuilder {
                                             ShardDataBaseManager.class.getCanonicalName(),
                                             DataWrapper.class.getCanonicalName(),
                                             FetchType.class.getCanonicalName(),
-                                            Cluster.class.getCanonicalName()
+                                            Cluster.class.getCanonicalName(),
+                                            ImmutableMap.class.getCanonicalName()
                                     )
                             )
                     )
@@ -282,7 +284,8 @@ public class DomainClassBuilder {
                     "public class " + className + " implements DomainEntityMapper<" +
                             domainClassDto.getTargetClassName() + ", " +
                             domainClassDto.getEntityClass().getTargetClassName() + "> {\n" +
-                            "    private DomainEntityManager domainManager;\n\n" +
+                            getFieldMapCode(domainClassDto) +
+                            "\n\n    private DomainEntityManager domainManager;\n\n" +
                             "    private ThreadLocal<Map<Long, Domain>> domains = " +
                             "ThreadLocal.withInitial(HashMap::new);\n" +
                             "    private final Map<String, DataStorage> storageMap = new HashMap<>();\n" +
@@ -307,6 +310,8 @@ public class DomainClassBuilder {
                             ProcessorUtils.CLASS_INTERCEPT_POSTFIX + "(entity, domainManager);\n" +
                             "    }\n"
             );
+            out.println();
+            out.println(getFieldMapCode());
             out.println(getMapToEntityCode(domainClassDto));
             out.println();
             out.println(getMapToDomainCode(domainClassDto));
@@ -741,5 +746,29 @@ public class DomainClassBuilder {
                                 "dataBaseManager.getCluster(String.valueOf(\"" + classDto.getCluster() + "\"));"
                 )  +
                 "\n    }";
+    }
+
+    private static String getFieldMapCode(DomainClassDto classDto) {
+        return classDto.getFields()
+                .stream()
+                .filter(field -> Objects.nonNull(field.getEntityField()))
+                .map(field ->
+                        "\n            .put(\"" + field.getFieldName() + "\", \"" +
+                                field.getEntityField().getColumnName() + "\")"
+                )
+                .reduce(
+                        "    private static final Map<String, String> FIELD_MAP = " +
+                                "ImmutableMap.<String, String>builder()",
+                        String::concat
+                ) + "\n            .build();";
+    }
+
+    private static String getFieldMapCode() {
+        return """
+                    @Override
+                    public Map<String, String> getFieldMap() {
+                        return FIELD_MAP;
+                    }\
+                """;
     }
 }

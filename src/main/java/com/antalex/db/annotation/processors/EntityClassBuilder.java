@@ -14,7 +14,9 @@ import com.antalex.db.service.ShardDataBaseManager;
 import com.antalex.db.service.ShardEntityManager;
 import com.antalex.db.service.ShardEntityRepository;
 import com.antalex.db.service.api.ResultQuery;
+import com.antalex.db.utils.Utils;
 import com.google.common.base.CaseFormat;
+import com.google.common.collect.ImmutableMap;
 import lombok.experimental.Accessors;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -367,7 +369,9 @@ public class EntityClassBuilder {
                                             SerialClob.class.getCanonicalName(),
                                             AttributeStorage.class.getCanonicalName(),
                                             DataStorage.class.getCanonicalName(),
-                                            FetchType.class.getCanonicalName()
+                                            FetchType.class.getCanonicalName(),
+                                            ImmutableMap.class.getCanonicalName(),
+                                            Utils.class.getCanonicalName()
                                     )
                             )
                     )
@@ -420,12 +424,10 @@ public class EntityClassBuilder {
                                 getUniqueColumnsValueCode(entityClassDto) + "L;"
                 );
             }
+            out.println(getColumnListCode(entityClassDto));
+            out.println(getFieldMapCode(entityClassDto));
             out.println();
-            out.println(getColumnsCode(entityClassDto));
             out.println("    private Map<Long, String> updateQueries = new HashMap<>();");
-
-
-            out.println();
             out.println("    private ShardEntityManager entityManager;");
             out.println("    private final Cluster cluster;");
 
@@ -433,6 +435,8 @@ public class EntityClassBuilder {
             out.println(getConstructorCode(entityClassDto, className));
             out.println();
             out.println(getSetEntityManagerCode());
+            out.println();
+            out.println(getFieldMapCode());
             out.println();
             out.println(getNewEntityCode(entityClassDto));
             out.println();
@@ -683,7 +687,7 @@ public class EntityClassBuilder {
                 .reduce(StringUtils.EMPTY, String::concat);
     }
 
-    private static String getColumnsCode(EntityClassDto entityClassDto) {
+    private static String getColumnListCode(EntityClassDto entityClassDto) {
         return entityClassDto.getColumnFields()
                 .stream()
                 .map(field ->
@@ -694,6 +698,19 @@ public class EntityClassBuilder {
                         "    private static final List<String> COLUMNS = Arrays.asList(",
                         String::concat
                 ) + "\n    );";
+    }
+
+    private static String getFieldMapCode(EntityClassDto classDto) {
+        return classDto.getColumnFields()
+                .stream()
+                .map(field ->
+                        "\n            .put(\"" + field.getFieldName() + "\", \"" + field.getColumnName() + "\")"
+                )
+                .reduce(
+                        "    private static final Map<String, String> FIELD_MAP = " +
+                                "ImmutableMap.<String, String>builder()",
+                        String::concat
+                ) + "\n            .build();";
     }
 
     private static String getConstructorCode(EntityClassDto entityClassDto, String className) {
@@ -826,8 +843,9 @@ public class EntityClassBuilder {
                 "                        .createQuery(\n" +
                 "                                " + entityClassDto.getTargetClassName() + ".class, \n" +
                 "                                getSelectQuery(storageMap) +\n" +
-                "                                        Optional.ofNullable(condition).map(it -> \" and \" + it)" +
-                ".orElse(StringUtils.EMPTY),\n" +
+                "                                        Optional.ofNullable(Utils.transform(condition, FIELD_MAP))\n" +
+                "                                                .map(it -> \" and \" + it)\n" +
+                "                                                .orElse(StringUtils.EMPTY),\n" +
                 "                                QueryType.SELECT\n" +
                 "                        )\n" +
                 "                        .bindAll(binds)\n" +
@@ -848,7 +866,7 @@ public class EntityClassBuilder {
                 "                        .createQuery(\n" +
                 "                                " + entityClassDto.getTargetClassName() + ".class,\n" +
                 "                                getSelectQuery(null) +\n" +
-                "                                        Optional.ofNullable(condition)\n" +
+                "                                        Optional.ofNullable(Utils.transform(condition, FIELD_MAP))\n" +
                 "                                                .map(it -> \" and \" + it)\n" +
                 "                                                .orElse(StringUtils.EMPTY) +\n" +
                 "                                \" FOR UPDATE SKIP LOCKED\",\n" +
@@ -879,8 +897,9 @@ public class EntityClassBuilder {
                 "                        .createQuery(\n" +
                 "                                parent,\n" +
                 "                                getSelectQuery(storageMap) +\n" +
-                "                                        Optional.ofNullable(condition).map(it -> \" and \" + it)" +
-                ".orElse(StringUtils.EMPTY),\n" +
+                "                                        Optional.ofNullable(Utils.transform(condition, FIELD_MAP))\n" +
+                "                                                .map(it -> \" and \" + it)\n" +
+                "                                                .orElse(StringUtils.EMPTY),\n" +
                 "                                QueryType.SELECT\n" +
                 "                        )\n" +
                 "                        .bindAll(binds)\n" +
@@ -1259,6 +1278,15 @@ public class EntityClassBuilder {
                     @Override
                     public void setEntityManager(ShardEntityManager entityManager) {
                         this.entityManager = entityManager;
+                    }\
+                """;
+    }
+
+    private static String getFieldMapCode() {
+        return """
+                    @Override
+                    public Map<String, String> getFieldMap() {
+                        return FIELD_MAP;
                     }\
                 """;
     }
