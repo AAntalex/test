@@ -218,7 +218,7 @@ public class ApplicationTests {
 		profiler.start("findAllDomain");
 		List<TestBDomain> bList = domainEntityManager.findAll(
 				TestBDomain.class,
-				"x0.C_VALUE like ?",
+				"${value} like ?",
 				"Domain%");
 		System.out.println("FIND B bList.size() = " + bList.size());
 /*
