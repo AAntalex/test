@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -40,7 +41,7 @@ public class TestDomainServiceImpl implements TestDomainService {
 
             b.setValue(prefix + "B");
             b.setNewValue(prefix + "newB" + i);
-            b.setExecuteTime(LocalDateTime.now());
+            b.setExecuteTime(OffsetDateTime.now());
 
             b.setDateDoc(new Date());
             b.setNote(prefix + "B_NOTE");

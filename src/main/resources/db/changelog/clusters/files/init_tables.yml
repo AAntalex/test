@@ -39,7 +39,7 @@ databaseChangeLog:
               type: VARCHAR(128)
           - column:
               name: C_EXECUTE_TIME
-              type: date
+              type: timestamp
       - createTable:
           tableName: TEST_B
           columns:
@@ -75,7 +75,7 @@ databaseChangeLog:
                 nullable: true
           - column:
               name: C_EXECUTE_TIME
-              type: date
+              type: timestamp
       - createIndex:
           columns:
           - column:
@@ -117,7 +117,7 @@ databaseChangeLog:
                 nullable: true
           - column:
               name: C_EXECUTE_TIME
-              type: date
+              type: timestamp
       - createIndex:
           columns:
           - column:
