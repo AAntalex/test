@@ -1,7 +1,12 @@
+import com.antalex.db.entity.AttributeStorage;
+import com.antalex.db.model.DataStorage;
+import com.antalex.db.model.enums.DataFormat;
 import com.antalex.db.model.enums.QueryType;
+import com.antalex.db.model.enums.ShardType;
 import com.antalex.db.service.DomainEntityManager;
 import com.antalex.db.service.ShardDataBaseManager;
 import com.antalex.db.service.ShardEntityManager;
+import com.antalex.db.service.api.DataWrapper;
 import com.antalex.db.utils.ShardUtils;
 import com.antalex.domain.persistence.domain.TestADomain;
 import com.antalex.domain.persistence.domain.TestBDomain;
@@ -34,6 +39,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import javax.persistence.EntityManagerFactory;
+import javax.persistence.FetchType;
 import java.sql.Connection;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
@@ -73,7 +79,7 @@ public class ApplicationTests {
 	public void dialect() {
 		try {
 			DialectResolver dialectResolver = new StandardDialectResolver();
-			Connection connection = databaseManager.getCluster(ShardUtils.DEFAULT_CLUSTER_NAME).getMainShard().getDataSource().getConnection();
+			Connection connection = databaseManager.getCluster("").getMainShard().getDataSource().getConnection();
 
 			Dialect dialect = dialectResolver.resolveDialect(
 					new DatabaseMetaDataDialectResolutionInfoAdapter(connection.getMetaData())
@@ -221,6 +227,8 @@ public class ApplicationTests {
 				"${value} like ?",
 				"Domain%");
 		System.out.println("FIND B bList.size() = " + bList.size());
+
+
 /*
 		bList.forEach(b -> {
 			int cSize = b.getCList().size();
@@ -235,6 +243,13 @@ public class ApplicationTests {
 		System.out.println("b.routing.name = " + bList.get(0).getRouting().getName());
 		System.out.println("b.numDoc = " + bList.get(0).getNumDoc());
 */
+
+		TestBDomain b = bList.get(bList.size() - 1);
+		b.getRouting().setName("TESt1");
+
+
+		domainEntityManager.updateAll(bList);
+
 		domainEntityManager.getTransaction().commit();
 		profiler.stop();
 		System.out.println(profiler.printTimeCounter());
@@ -457,12 +472,34 @@ public class ApplicationTests {
 		*/
 	}
 
+
+
 //	@Test
 	public void saveDomain() {
 		databaseManager.sequenceNextVal();
 		profiler.start("saveDomain.generate");
 		List<TestBDomain> testBDomains = domainService.generate(1000, 100, "Domain");
 		profiler.stop();
+
+
+		DataStorage dataStorage = DataStorage
+				.builder()
+				.name("routingSection")
+				.shardType(ShardType.SHARDABLE)
+				.dataFormat(DataFormat.JSON)
+				.fetchType(FetchType.LAZY)
+				.build();
+
+		TestBDomain domain = testBDomains.get(0);
+
+		profiler.start("Hash");
+		for (int i = 0; i < 1000000; i++) {
+			int hash = domain.getTestList().hashCode();
+
+		}
+		profiler.stop();
+
+
 		System.out.println(profiler.printTimeCounter());
 
 		profiler.start("saveDomain.save");
