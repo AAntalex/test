@@ -1,19 +1,18 @@
 package com.antalex.db.service.impl.managers;
 
 import com.antalex.db.domain.abstraction.Domain;
+import com.antalex.db.service.DomainEntityManager;
 import com.antalex.db.entity.AttributeStorage;
 import com.antalex.db.entity.abstraction.ShardInstance;
 import com.antalex.db.exception.ShardDataBaseException;
 import com.antalex.db.model.DataStorage;
 import com.antalex.db.service.api.DataWrapper;
 import com.antalex.db.service.api.DataWrapperFactory;
-import com.antalex.db.utils.Utils;
 import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Primary;
 import org.springframework.core.GenericTypeResolver;
 import org.springframework.stereotype.Component;
-import com.antalex.db.service.DomainEntityManager;
 import com.antalex.db.service.DomainEntityMapper;
 import com.antalex.db.service.ShardEntityManager;
 
@@ -96,7 +95,7 @@ public class DomainEntityManagerImpl implements DomainEntityManager {
                         mapper.entityClass,
                         mapper.domainEntityMapper.getDataStorage(),
                         limit,
-                        Utils.transform(condition, mapper.domainEntityMapper.getFieldMap()),
+                        condition,
                         binds
                 )
         );
@@ -110,15 +109,10 @@ public class DomainEntityManagerImpl implements DomainEntityManager {
                 entityManager.skipLocked(
                         mapper.entityClass,
                         limit,
-                        Utils.transform(condition, mapper.domainEntityMapper.getFieldMap()),
+                        condition,
                         binds
                 )
         );
-    }
-
-    @Override
-    public <T extends Domain> Map<String, String> getFieldMap(Class<T> clazz) {
-        return getMapper(clazz).domainEntityMapper.getFieldMap();
     }
 
     @Override

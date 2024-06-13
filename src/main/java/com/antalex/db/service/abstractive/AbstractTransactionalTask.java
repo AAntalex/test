@@ -1,11 +1,11 @@
 package com.antalex.db.service.abstractive;
 
-import com.antalex.db.exception.ShardDataBaseException;
-import com.antalex.db.model.Shard;
 import com.antalex.db.model.enums.QueryType;
 import com.antalex.db.model.enums.TaskStatus;
-import com.antalex.db.service.api.TransactionalQuery;
 import com.antalex.db.service.api.TransactionalTask;
+import com.antalex.db.exception.ShardDataBaseException;
+import com.antalex.db.model.Shard;
+import com.antalex.db.service.api.TransactionalQuery;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.*;

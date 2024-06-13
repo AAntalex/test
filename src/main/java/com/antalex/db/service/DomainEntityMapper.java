@@ -12,5 +12,4 @@ public interface DomainEntityMapper<T extends Domain, M extends ShardInstance> {
     M map(T domain);
     Map<String, DataStorage> getDataStorage();
     void setDomainManager(DomainEntityManager domainManager);
-    Map<String, String> getFieldMap();
 }

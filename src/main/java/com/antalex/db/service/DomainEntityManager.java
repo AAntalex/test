@@ -1,8 +1,8 @@
 package com.antalex.db.service;
 
 import com.antalex.db.domain.abstraction.Domain;
-import com.antalex.db.entity.abstraction.ShardInstance;
 import com.antalex.db.entity.AttributeStorage;
+import com.antalex.db.entity.abstraction.ShardInstance;
 import com.antalex.db.model.DataStorage;
 
 import javax.persistence.EntityTransaction;
@@ -18,7 +18,6 @@ public interface DomainEntityManager {
     <T extends Domain> T find(Class<T> clazz, Long id);
     <T extends Domain> List<T> findAll(Class<T> clazz, Integer limit, String condition, Object... binds);
     <T extends Domain> List<T> skipLocked(Class<T> clazz, Integer limit, String condition, Object... binds);
-    <T extends Domain> Map<String, String> getFieldMap(Class<T> clazz);
     <T extends Domain> T save(T domain);
     <T extends Domain> List<T> saveAll(List<T> domains);
     <T extends Domain> T update(T domain);

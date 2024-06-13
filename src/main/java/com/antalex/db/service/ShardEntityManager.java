@@ -1,14 +1,14 @@
 package com.antalex.db.service;
 
-import com.antalex.db.entity.abstraction.ShardInstance;
+import com.antalex.db.entity.AttributeStorage;
+import com.antalex.db.model.Cluster;
 import com.antalex.db.model.enums.QueryStrategy;
 import com.antalex.db.model.enums.QueryType;
 import com.antalex.db.model.enums.ShardType;
+import com.antalex.db.entity.abstraction.ShardInstance;
+import com.antalex.db.model.DataStorage;
 import com.antalex.db.service.api.ResultQuery;
 import com.antalex.db.service.api.TransactionalQuery;
-import com.antalex.db.entity.AttributeStorage;
-import com.antalex.db.model.Cluster;
-import com.antalex.db.model.DataStorage;
 
 import javax.persistence.EntityTransaction;
 import java.util.List;
@@ -85,7 +85,6 @@ public interface ShardEntityManager {
             Object... binds);
     <T extends ShardInstance> T extractValues(T entity, ResultQuery result, int index);
     <T extends ShardInstance> T extractValues(Class<T> clazz, ResultQuery result, int index);
-    <T extends ShardInstance> Map<String, String> getFieldMap(Class<T> clazz);
     List<AttributeStorage> extractAttributeStorage(
             Map<String, DataStorage> storageMap,
             ResultQuery result,

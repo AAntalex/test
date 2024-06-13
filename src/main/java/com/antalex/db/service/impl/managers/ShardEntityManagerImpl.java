@@ -1,24 +1,24 @@
 package com.antalex.db.service.impl.managers;
 
-import com.antalex.db.entity.AttributeStorage;
-import com.antalex.db.entity.abstraction.ShardInstance;
-import com.antalex.db.exception.ShardDataBaseException;
 import com.antalex.db.model.Cluster;
-import com.antalex.db.model.DataStorage;
-import com.antalex.db.model.Shard;
-import com.antalex.db.model.StorageContext;
 import com.antalex.db.model.enums.QueryStrategy;
 import com.antalex.db.model.enums.QueryType;
 import com.antalex.db.model.enums.ShardType;
+import com.antalex.db.service.ShardEntityRepository;
+import com.antalex.db.utils.ShardUtils;
+import com.antalex.db.entity.AttributeStorage;
+import com.antalex.db.entity.abstraction.ShardInstance;
+import com.antalex.db.exception.ShardDataBaseException;
+import com.antalex.db.model.DataStorage;
+import com.antalex.db.model.Shard;
+import com.antalex.db.model.StorageContext;
 import com.antalex.db.service.ShardDataBaseManager;
 import com.antalex.db.service.ShardEntityManager;
-import com.antalex.db.service.ShardEntityRepository;
 import com.antalex.db.service.SharedTransactionManager;
 import com.antalex.db.service.api.ResultQuery;
 import com.antalex.db.service.api.TransactionalQuery;
 import com.antalex.db.service.impl.AttributeStorageRepository;
 import com.antalex.db.service.impl.SharedEntityTransaction;
-import com.antalex.db.utils.ShardUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Primary;
 import org.springframework.core.GenericTypeResolver;
@@ -193,9 +193,6 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
             return;
         }
         Cluster cluster = getCluster(entity);
-
-
-
         ShardType shardType = getShardType(entity);
         if (
                 Optional.ofNullable(entity.getStorageContext())
@@ -510,11 +507,6 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
     public <T extends ShardInstance> T extractValues(Class<T> clazz, ResultQuery result, int index) {
         ShardEntityRepository<T> repository = getEntityRepository(clazz);
         return repository.extractValues(null, result, index);
-    }
-
-    @Override
-    public <T extends ShardInstance> Map<String, String> getFieldMap(Class<T> clazz) {
-        return getEntityRepository(clazz).getFieldMap();
     }
 
     @Override

@@ -1,15 +1,15 @@
 package com.antalex.db.service.impl.managers;
 
 import com.antalex.db.config.*;
-import com.antalex.db.entity.abstraction.ShardInstance;
-import com.antalex.db.exception.ShardDataBaseException;
 import com.antalex.db.model.*;
 import com.antalex.db.model.enums.QueryType;
-import com.antalex.db.service.ShardDataBaseManager;
-import com.antalex.db.service.SharedTransactionManager;
 import com.antalex.db.service.api.*;
 import com.antalex.db.service.impl.*;
 import com.antalex.db.utils.ShardUtils;
+import com.antalex.db.entity.abstraction.ShardInstance;
+import com.antalex.db.exception.ShardDataBaseException;
+import com.antalex.db.service.ShardDataBaseManager;
+import com.antalex.db.service.SharedTransactionManager;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import liquibase.command.CommandScope;
@@ -151,7 +151,18 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
 
     @Override
     public Cluster getCluster(String clusterName) {
-        return Optional.ofNullable(clusterName).map(clusters::get).orElse(defaultCluster);
+        if (clusterName == null) {
+            throw new ShardDataBaseException("Не указано наименование кластера");
+        }
+        if (ShardUtils.DEFAULT_CLUSTER_NAME.equals(clusterName)) {
+            return defaultCluster;
+        } else {
+            Cluster cluster = clusters.get(clusterName);
+            if (cluster == null) {
+                throw new ShardDataBaseException("Отсутсвует кластер с наименованием " + clusterName);
+            }
+            return cluster;
+        }
     }
 
     @Override
@@ -720,7 +731,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         this.liquibaseEnable = Optional
                 .ofNullable(shardDataBaseConfig.getLiquibase())
                 .map(LiquibaseConfig::getEnabled)
-                .orElse(false);
+                .orElse(true);
     }
 
     private void processThreadPoolConfig() {

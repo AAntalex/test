@@ -1,8 +1,8 @@
 package com.antalex.db.service.impl;
 
+import com.antalex.db.model.enums.QueryType;
 import com.antalex.db.exception.ShardDataBaseException;
 import com.antalex.db.model.Shard;
-import com.antalex.db.model.enums.QueryType;
 import com.antalex.db.service.api.TransactionalQuery;
 import com.antalex.db.service.api.TransactionalTask;
 import lombok.Getter;

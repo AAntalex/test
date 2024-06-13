@@ -1,11 +1,11 @@
 package com.antalex.db.service;
 
 import com.antalex.db.entity.abstraction.ShardInstance;
-import com.antalex.db.model.enums.ShardType;
-import com.antalex.db.service.api.ResultQuery;
 import com.antalex.db.model.Cluster;
 import com.antalex.db.model.DataStorage;
 import com.antalex.db.model.StorageContext;
+import com.antalex.db.model.enums.ShardType;
+import com.antalex.db.service.api.ResultQuery;
 
 import java.util.List;
 import java.util.Map;
@@ -27,5 +27,4 @@ public interface ShardEntityRepository<T extends ShardInstance> {
     List<T> skipLocked(Integer limit, String condition, Object... binds);
     T extractValues(T entity, ResultQuery result, int index);
     void setEntityManager(ShardEntityManager entityManager);
-    Map<String, String> getFieldMap();
 }

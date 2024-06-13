@@ -3,7 +3,6 @@ package com.antalex.db.annotation.processors;
 import org.apache.commons.lang3.StringUtils;
 
 import javax.lang.model.element.Element;
-import javax.lang.model.element.Modifier;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.ElementFilter;
@@ -50,17 +49,14 @@ public class ProcessorUtils {
     }
 
     public static <A extends Annotation> boolean isAnnotationPresentByType(Element element, Class<A> annotation) {
-        return Optional
-                .ofNullable(getDeclaredType(element))
-                .map(DeclaredType::asElement)
-                .map(e -> e.getAnnotation(annotation))
-                .isPresent();
+        return Objects.nonNull(
+                getDeclaredType(element)
+                        .asElement()
+                        .getAnnotation(annotation)
+        );
     }
 
     public static String getTypeField(Element element) {
-        if (isPrimitive(element)) {
-            return element.asType().toString();
-        }
         DeclaredType type = getDeclaredType(element);
         return IntStream.range(0, type.getTypeArguments().size())
                 .mapToObj(idx ->
@@ -72,9 +68,6 @@ public class ProcessorUtils {
     }
 
     public static String getFinalType(Element element) {
-        if (isPrimitive(element)) {
-            return element.asType().toString();
-        }
         DeclaredType type = getDeclaredType(element);
         return type.getTypeArguments().size() > 0 ?
                 ((DeclaredType) type.getTypeArguments().get(0)).asElement().getSimpleName().toString() :
@@ -84,22 +77,7 @@ public class ProcessorUtils {
     public static DeclaredType getDeclaredType(Element element) {
         return (DeclaredType) Optional.ofNullable(element)
                 .map(Element::asType)
-                .filter(it -> !it.getKind().isPrimitive())
                 .orElse(null);
-    }
-
-    public static boolean hasFinalType(Element element) {
-        return isPrimitive(element) ||
-                Optional
-                        .ofNullable(getDeclaredType(element))
-                        .map(DeclaredType::asElement)
-                        .map(Element::getModifiers)
-                        .filter(it -> it.contains(Modifier.FINAL))
-                        .isPresent();
-    }
-
-    public static boolean isPrimitive(Element element) {
-        return element.asType().getKind().isPrimitive();
     }
 
     public static <A extends Annotation> boolean isAnnotationPresentInArgument(Element element, Class<A> annotation) {

@@ -1,13 +1,12 @@
 package com.antalex.db.entity.abstraction;
 
-import com.antalex.db.service.impl.SharedEntityTransaction;
-import com.antalex.db.annotation.ShardEntity;
 import com.antalex.db.entity.AttributeStorage;
-import com.antalex.db.exception.ShardDataBaseException;
-import com.antalex.db.model.Cluster;
 import com.antalex.db.model.Shard;
 import com.antalex.db.model.StorageContext;
+import com.antalex.db.service.impl.SharedEntityTransaction;
 import com.antalex.db.utils.ShardUtils;
+import com.antalex.db.annotation.ShardEntity;
+import com.antalex.db.exception.ShardDataBaseException;
 
 import javax.persistence.EntityTransaction;
 import java.util.*;
@@ -17,7 +16,6 @@ public abstract class BaseShardEntity implements ShardInstance {
     private StorageContext storageContext;
     private List<AttributeStorage> attributeStorage = new ArrayList<>();
     private boolean hasDomain;
-    private Cluster cluster;
 
     public BaseShardEntity () {
         if (this.getClass().isAnnotationPresent(ShardEntity.class)) {
@@ -111,16 +109,6 @@ public abstract class BaseShardEntity implements ShardInstance {
     @Override
     public void setHasDomain(boolean hasDomain) {
         this.hasDomain = hasDomain;
-    }
-
-    @Override
-    public Cluster getCluster() {
-        return cluster;
-    }
-
-    @Override
-    public void setCluster(Cluster cluster) {
-        this.cluster = cluster;
     }
 
     public boolean hasMainShard() {
