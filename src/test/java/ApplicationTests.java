@@ -44,6 +44,7 @@ import java.sql.Connection;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Objects;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes = OptimizerApplication.class)
@@ -244,7 +245,13 @@ public class ApplicationTests {
 		System.out.println("b.numDoc = " + bList.get(0).getNumDoc());
 */
 
-		TestBDomain b = bList.get(bList.size() - 1);
+		TestBDomain b = bList.stream()
+				.filter(it -> Objects.nonNull(it.getRouting()))
+				.findAny()
+				.orElse(null);
+
+		System.out.println("b.routing.name = " + b.getRouting().getName());
+
 		b.getRouting().setName("TESt1");
 
 
