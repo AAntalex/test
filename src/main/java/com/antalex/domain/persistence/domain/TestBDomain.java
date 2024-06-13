@@ -11,6 +11,7 @@ import lombok.Data;
 import javax.persistence.FetchType;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -29,7 +30,7 @@ public class TestBDomain extends BaseDomain {
     @Attribute
     private String newValue;
     @Attribute
-    private LocalDateTime executeTime;
+    private OffsetDateTime executeTime;
     @Attribute(name = "a")
     private TestADomain TestA;
     @Attribute(name = "cList")

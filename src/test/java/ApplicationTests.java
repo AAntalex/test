@@ -224,8 +224,8 @@ public class ApplicationTests {
 		profiler.start("findAllDomain");
 		List<TestBDomain> bList = domainEntityManager.findAll(
 				TestBDomain.class,
-				"${value} like ?",
-				"Domain%");
+				"${value} like ? and ${x0.newValue} like ?",
+				"Domain%", "Domain%");
 		System.out.println("FIND B bList.size() = " + bList.size());
 
 

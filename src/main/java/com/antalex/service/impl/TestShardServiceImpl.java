@@ -15,6 +15,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.sql.*;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -56,7 +57,7 @@ public class TestShardServiceImpl implements TestShardService {
 
             b.setValue(prefix + "B");
             b.setNewValue(prefix + "newB" + i);
-            b.setExecuteTime(LocalDateTime.now());
+            b.setExecuteTime(OffsetDateTime.now());
 
             List<TestCShardEntity> cEntities = new ArrayList<>();
             for (int j = 0; j < cntArray; j++) {
