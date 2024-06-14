@@ -245,15 +245,19 @@ public class ApplicationTests {
 		System.out.println("b.numDoc = " + bList.get(0).getNumDoc());
 */
 
-		TestBDomain b = bList.stream()
-				.filter(it -> Objects.nonNull(it.getRouting()))
-				.findAny()
-				.orElse(null);
+		TestBDomain b = bList.get(0);
+
 
 		System.out.println("b.routing.name = " + b.getRouting().getName());
 
-		b.getRouting().setName("TESt1");
+		b.getRouting().setName("TESt2");
+		domainEntityManager.updateAll(bList);
 
+		b.getRouting().setName("TESt2");
+		domainEntityManager.updateAll(bList);
+
+		b.getRouting().setName("TESt3");
+		domainEntityManager.updateAll(bList);
 
 		domainEntityManager.updateAll(bList);
 

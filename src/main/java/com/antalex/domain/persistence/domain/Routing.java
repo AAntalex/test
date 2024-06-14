@@ -6,7 +6,7 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 @Data
-public class Routing extends BaseDomain {
+public class Routing {
     private String name;
     private LocalDateTime executeTime;
 }
