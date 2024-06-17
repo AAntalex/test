@@ -18,10 +18,10 @@ import java.util.List;
 
 @DomainEntity(
         value = TestBShardEntity.class,
-        storage = @Storage(value = "TestBDomain"),
+        storage = @Storage(fetchType = FetchType.LAZY),
         additionalStorage = {
                 @Storage(value = "routingSection", fetchType = FetchType.LAZY),
-                @Storage(value = "accountingSection", cluster = "RAW"),
+                @Storage(value = "accountingSection", cluster = "RAW", fetchType = FetchType.LAZY),
         })
 @Data
 public class TestBDomain extends BaseDomain {

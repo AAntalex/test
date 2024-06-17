@@ -9,14 +9,14 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-@Table(name = "TEST_B", schema = "pmts_main")
+@Table(name = "TEST_B", schema = "pmts_integr")
 @Data
 @Entity
 public class TestBEntity extends BaseShardEntity {
     @Id
     @Column(name = "ID")
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "seq_id")
-    @SequenceGenerator(name = "seq_id", sequenceName = "SEQ_ID", schema = "pmts_main")
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "test_seq")
+    @SequenceGenerator(name = "test_seq", sequenceName = "test_seq_id", schema = "pmts_integr", allocationSize = 1000000)
     private Long id;
     @Column(name = "SHARD_MAP")
     private Long shardMap;
@@ -25,7 +25,7 @@ public class TestBEntity extends BaseShardEntity {
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "C_A_REF")
     private TestAEntity a;
-    @OneToMany(cascade = CascadeType.ALL)
+    @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     @JoinColumn(name = "C_B_REF")
     private List<TestCEntity> cList = new ArrayList<>();
     @Column(name = "C_NEW_VALUE")

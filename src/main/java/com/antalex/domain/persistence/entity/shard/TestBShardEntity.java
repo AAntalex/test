@@ -17,7 +17,7 @@ import java.util.List;
 @Table(
         name = "TEST_B",
         indexes = {
-                @Index(name = "IDX_TEST_B_VALUE", columnList = "value", unique = true)
+                @Index(name = "IDX_TEST_B_VALUE", columnList = "value", unique = false)
         })
 @Data
 @Accessors(chain = true)
@@ -30,7 +30,7 @@ public class TestBShardEntity extends BaseShardEntity {
     private TestAShardEntity a;
     private String newValue;
     @ParentShard
-    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     @JoinColumn(name = "C_B_REF")
     private List<TestCShardEntity> cList = new ArrayList<>();
     private OffsetDateTime executeTime;

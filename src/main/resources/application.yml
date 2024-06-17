@@ -8,13 +8,14 @@ hibernate:
   order_inserts: true
   order_updates: true
   enable_lazy_load_no_trans: true
+  ddl-auto: update
   show_sql: false
   format_sql: false
-  id.new_generator_mappings: false
+  id.new_generator_mappings: true
 
 logging:
   level:
-    com.antalex.db: trace
+    com.antalex.db: info
     org.hibernate.type:
       descriptor:
         sql.BasicBinder: INFO
@@ -22,6 +23,9 @@ logging:
 spring:
   liquibase:
     enabled: false
+  jpa:
+    hibernate:
+      ddl-auto: update
 
 shardDbConfig:
   timeOut: 10
@@ -51,20 +55,15 @@ shardDbConfig:
       defaultCluster: true
       shards:
         - datasource:
-            url: ${PMTS_DATASOURCE_JDBC_URL_PUBLIC_1:jdbc:postgresql://d5pmts-pgc001lk.corp.dev.vtb:5432/pmts_public_1}
-            user: ${PMTS_DB_PUBLIC_1_USER:pmts_public_1_admin}
-            pass: ${PMTS_DB_PUBLIC_1_PASSWORD:123}
-            owner: pmts_public_1
+            url: ${PMTS_DATASOURCE_JDBC_URL_PUBLIC_1:jdbc:postgresql://d5pmts-pgc008lk.corp.dev.vtb:5432/segment_integr}
+            user: ${PMTS_DB_PUBLIC_1_USER:segment_integr_admin}
+            pass: ${PMTS_DB_PUBLIC_1_PASSWORD:8hLQfz8Fu7OqycZFW_BBtWpmUNgp38Kq636Sc8bSM8NIS.eIyrXJA_hiklDLjmiJU5rC7U_.ls9JILGsJlBodYR}
+            owner: segment_integr
         - datasource:
-            url: ${PMTS_DATASOURCE_JDBC_URL_PUBLIC_1:jdbc:postgresql://d5pmts-pgc001lk.corp.dev.vtb:5432/pmts_public_2}
-            user: ${PMTS_DB_PUBLIC_2_USER:pmts_public_2_admin}
-            pass: ${PMTS_DB_PUBLIC_2_PASSWORD:123}
-            owner: pmts_public_2
-        - datasource:
-            url: ${PMTS_DATASOURCE_JDBC_URL_PUBLIC_1:jdbc:postgresql://d5pmts-pgc001lk.corp.dev.vtb:5432/pmts_main}
-            user: ${PMTS_DB_MAIN_USER:pmts_main_admin}
-            pass: ${PMTS_DB_MAIN_PASSWORD:123}
-            owner: pmts_main
+            url: ${PMTS_DATASOURCE_JDBC_URL_PUBLIC_1:jdbc:postgresql://d5pmts-pgc003lk.corp.dev.vtb:5432/pmts_integr}
+            user: ${PMTS_DB_PUBLIC_2_USER:pmts_integr_admin}
+            pass: ${PMTS_DB_PUBLIC_2_PASSWORD:Swspjfeax9r4Dr5E5VjvynU_myBaWMywcg4uZzLojj_w3zekpwckHpkvUHxh6w_b8ryaBIh0Do.i.OuLK5OC721JaDiqeSDY6ECYR2LZeSX7UrEH59i1.AFf3qfX}
+            owner: pmts_integr
           main: true
           id: 63
         - datasource:

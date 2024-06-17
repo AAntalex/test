@@ -1,4 +1,6 @@
+import com.antalex.db.domain.abstraction.Domain;
 import com.antalex.db.entity.AttributeStorage;
+import com.antalex.db.entity.abstraction.ShardInstance;
 import com.antalex.db.model.DataStorage;
 import com.antalex.db.model.enums.DataFormat;
 import com.antalex.db.model.enums.QueryType;
@@ -16,6 +18,7 @@ import com.antalex.domain.persistence.entity.hiber.TestAEntity;
 import com.antalex.domain.persistence.entity.hiber.TestBEntity;
 import com.antalex.domain.persistence.entity.hiber.TestCEntity;
 import com.antalex.domain.persistence.entity.shard.*;
+import com.antalex.domain.persistence.entity.shard.TestBShardEntity$Interceptor;
 import com.antalex.domain.persistence.repository.AdditionalParameterRepository;
 import com.antalex.domain.persistence.repository.TestARepository;
 import com.antalex.domain.persistence.repository.TestBRepository;
@@ -45,6 +48,7 @@ import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes = OptimizerApplication.class)
@@ -205,7 +209,7 @@ public class ApplicationTests {
 		System.out.println(profiler.printTimeCounter());
 	}
 
-//	@Test
+	@Test
 	public void findAllJPA() {
 		profiler.start("findAllJPA");
 		List<TestBEntity> bList = testBRepository.findAllByValueLike("JPA%");
@@ -244,7 +248,7 @@ public class ApplicationTests {
 		System.out.println("b.routing.name = " + bList.get(0).getRouting().getName());
 		System.out.println("b.numDoc = " + bList.get(0).getNumDoc());
 */
-
+/*
 		TestBDomain b = bList.get(0);
 
 
@@ -260,10 +264,52 @@ public class ApplicationTests {
 		domainEntityManager.updateAll(bList);
 
 		domainEntityManager.updateAll(bList);
+*/
 
-		domainEntityManager.getTransaction().commit();
+//		domainEntityManager.getTransaction().commit();
 		profiler.stop();
 		System.out.println(profiler.printTimeCounter());
+
+		List<TestBShardEntity> entities =
+				bList
+						.stream()
+						.map(Domain::getEntity)
+						.map(it -> (TestBShardEntity) it)
+						.toList();
+
+		profiler.start("find C");
+
+
+		entityManager.findAll(
+				TestCShardEntity.class,
+				String.format(
+						"x0.C_B_REF in (%s)",
+						entities
+								.stream()
+								.map(it -> "?")
+								.collect(Collectors.joining(", "))
+				),
+				entities
+						.stream()
+						.map(ShardInstance::getId)
+						.toList()
+						.toArray()
+		)
+				.forEach(l ->
+						((TestBShardEntity$Interceptor) entityManager.getEntity(TestBShardEntity.class, l.getB()))
+								.getCList(false)
+								.add(l)
+				);
+
+
+
+
+		System.out.println("FIND C entities.get(0).getCList().size() = " + entities.get(0).getCList().size());
+
+		profiler.stop();
+		System.out.println(profiler.printTimeCounter());
+
+
 	}
 
 //	@Test

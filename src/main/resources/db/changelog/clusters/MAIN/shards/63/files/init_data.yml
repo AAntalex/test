@@ -7,8 +7,8 @@ databaseChangeLog:
           cacheSize: 1000
           cycle: true
           dataType: bigint
-          incrementBy: 1
+          incrementBy: 1000000
           maxValue: 1000000000000
           minValue: 0
-          sequenceName: SEQ_ID
+          sequenceName: test_seq_id
           startValue: 10000000000
