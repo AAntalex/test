@@ -15,7 +15,7 @@ hibernate:
 
 logging:
   level:
-    com.antalex.db: info
+    com.antalex.db: trace
     org.hibernate.type:
       descriptor:
         sql.BasicBinder: INFO

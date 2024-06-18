@@ -267,49 +267,27 @@ public class ApplicationTests {
 */
 
 //		domainEntityManager.getTransaction().commit();
+
+
+
+
+//		System.out.println("FIND C bList.get(0).getCList().size() = " + bList.get(0).getTestList().size());
+
 		profiler.stop();
 		System.out.println(profiler.printTimeCounter());
+/*
+		TestBDomain b = bList.get(0);
+		profiler.start("ADD findDomain");
 
-		List<TestBShardEntity> entities =
-				bList
-						.stream()
-						.map(Domain::getEntity)
-						.map(it -> (TestBShardEntity) it)
-						.toList();
-
-		profiler.start("find C");
-
-
-		entityManager.findAll(
-				TestCShardEntity.class,
-				String.format(
-						"x0.C_B_REF in (%s)",
-						entities
-								.stream()
-								.map(it -> "?")
-								.collect(Collectors.joining(", "))
-				),
-				entities
-						.stream()
-						.map(ShardInstance::getId)
-						.toList()
-						.toArray()
-		)
-				.forEach(l ->
-						((TestBShardEntity$Interceptor) entityManager.getEntity(TestBShardEntity.class, l.getB()))
-								.getCList(false)
-								.add(l)
-				);
-
-
-
-
-		System.out.println("FIND C entities.get(0).getCList().size() = " + entities.get(0).getCList().size());
+		for (int i = 0; i < 100; i++) {
+			b = domainEntityManager.find(TestBDomain.class, b.getId());
+		}
 
 		profiler.stop();
 		System.out.println(profiler.printTimeCounter());
 
-
+		System.out.println("FIND C b.getCList().size() = " + b.getTestList().size());
+*/
 	}
 
 //	@Test
@@ -416,7 +394,7 @@ public class ApplicationTests {
 	}
 
 
-//	@Test
+	@Test
 	public void saveJPA() {
         databaseManager.sequenceNextVal();
 		profiler.start("testService.generate");
