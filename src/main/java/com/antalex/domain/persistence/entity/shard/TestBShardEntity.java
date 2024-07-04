@@ -17,7 +17,7 @@ import java.util.List;
 @Table(
         name = "TEST_B",
         indexes = {
-                @Index(name = "IDX_TEST_B_VALUE", columnList = "value", unique = false)
+                @Index(name = "IDX_TEST_B_VALUE", columnList = "value", unique = true)
         })
 @Data
 @Accessors(chain = true)

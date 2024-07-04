@@ -96,6 +96,20 @@ public class ApplicationTests {
 		}
 	}
 
+	@Test
+	public void findDomain() {
+		profiler.start("findDomain");
+		TestBDomain b = domainEntityManager.find(TestBDomain.class, 6301297863L);
+		System.out.println("FIND B b.getValue() = " + b.getValue());
+
+		b.setNewValue("TEST1");
+		domainEntityManager.update(b);
+
+		profiler.stop();
+		System.out.println(profiler.printTimeCounter());
+
+	}
+
 //	@Test
 	public void findShard() {
 		profiler.start("findShard");
@@ -209,7 +223,7 @@ public class ApplicationTests {
 		System.out.println(profiler.printTimeCounter());
 	}
 
-	@Test
+//	@Test
 	public void findAllJPA() {
 		profiler.start("findAllJPA");
 		List<TestBEntity> bList = testBRepository.findAllByValueLike("JPA%");
@@ -224,7 +238,7 @@ public class ApplicationTests {
 		System.out.println(profiler.printTimeCounter());
 	}
 
-	@Test
+//	@Test
 	public void findAllDomain() {
 		profiler.start("findAllDomain");
 		List<TestBDomain> bList = domainEntityManager.findAll(
@@ -394,7 +408,7 @@ public class ApplicationTests {
 	}
 
 
-	@Test
+//	@Test
 	public void saveJPA() {
         databaseManager.sequenceNextVal();
 		profiler.start("testService.generate");
@@ -515,27 +529,6 @@ public class ApplicationTests {
 		profiler.start("saveDomain.generate");
 		List<TestBDomain> testBDomains = domainService.generate(1000, 100, "Domain");
 		profiler.stop();
-
-
-		DataStorage dataStorage = DataStorage
-				.builder()
-				.name("routingSection")
-				.shardType(ShardType.SHARDABLE)
-				.dataFormat(DataFormat.JSON)
-				.fetchType(FetchType.LAZY)
-				.build();
-
-		TestBDomain domain = testBDomains.get(0);
-
-		profiler.start("Hash");
-		for (int i = 0; i < 1000000; i++) {
-			int hash = domain.getTestList().hashCode();
-
-		}
-		profiler.stop();
-
-
-		System.out.println(profiler.printTimeCounter());
 
 		profiler.start("saveDomain.save");
 

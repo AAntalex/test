@@ -56,45 +56,33 @@ shardDbConfig:
       shards:
         - datasource:
             url: ${PMTS_DATASOURCE_JDBC_URL_INTEGR_S1:jdbc:postgresql://d5pmts-pgc008lk.corp.dev.vtb:5432/segment_integr}
-            user: ${PMTS_DB_NTEGR_S1_USER:segment_integr_admin}
-            pass: ${PMTS_DB_NTEGR_S1_PASSWORD:8hLQfz8Fu7OqycZFW_BBtWpmUNgp38Kq636Sc8bSM8NIS.eIyrXJA_hiklDLjmiJU5rC7U_.ls9JILGsJlBodYR}
+            username: ${PMTS_DB_NTEGR_S1_USER:segment_integr_admin}
+            password: ${PMTS_DB_NTEGR_S1_PASSWORD:8hLQfz8Fu7OqycZFW_BBtWpmUNgp38Kq636Sc8bSM8NIS.eIyrXJA_hiklDLjmiJU5rC7U_.ls9JILGsJlBodYR}
             owner: segment_integr
         - datasource:
             url: ${PMTS_DATASOURCE_JDBC_URL_INTEGR_S2:jdbc:postgresql://d5pmts-pgc004lk.corp.dev.vtb:5432/segment_integr}
-            user: ${PMTS_DB_NTEGR_S2_USER:segment_integr_admin}
-            pass: ${PMTS_DB_NTEGR_S2_PASSWORD:eRgF58deSaB-EvQATUdpVVBjnyyh63MtOYOVMvgAkHNT3zCpCPTS5yKuzq5Eq.LsCPcWxomluk}
+            username: ${PMTS_DB_NTEGR_S2_USER:segment_integr_admin}
+            password: ${PMTS_DB_NTEGR_S2_PASSWORD:eRgF58deSaB-EvQATUdpVVBjnyyh63MtOYOVMvgAkHNT3zCpCPTS5yKuzq5Eq.LsCPcWxomluk}
             owner: segment_integr
-        - datasource:
-            url: ${PMTS_DATASOURCE_JDBC_URL_INTEGR:jdbc:postgresql://d5pmts-pgc003lk.corp.dev.vtb:5432/pmts_integr}
-            user: ${PMTS_DB_INTEGR_USER:pmts_integr_admin}
-            pass: ${PMTS_DB_INTEGR_PASSWORD:Swspjfeax9r4Dr5E5VjvynU_myBaWMywcg4uZzLojj_w3zekpwckHpkvUHxh6w_b8ryaBIh0Do.i.OuLK5OC721JaDiqeSDY6ECYR2LZeSX7UrEH59i1.AFf3qfX}
-            owner: pmts_integr
-        - datasource:
-            url: ${PMTS_DATASOURCE_JDBC_URL_CMN_INTEGR:jdbc:postgresql://d5pmts-pgc003lk.corp.dev.vtb:5432/common_integr}
-            user: ${PMTS_DB_CMN_INTEGR_USER:common_integr_admin}
-            pass: ${PMTS_DB_CMN_INTEGR_PASSWORD:6to43yM5Y5giWnDQDtkYAoFyI_-io3kfjfBGfvgh6H9s3.v.Fr4YbumIOFX8g3qq5v7P29T7wLD99ZRs9m2D-AK3u-ThRbIh8F2_e8lt41lSCUChNg}
-            owner: common_integr
-          main: true
-          id: 63
         - datasource:
             driver: oracle.jdbc.driver.OracleDriver
             url: jdbc:oracle:thin:@d5cftm-apc005ln.corp.dev.vtb:1521/ELVIS
-            user: IBS
-            pass: IBS
+            username: IBS
+            password: IBS
           id: 1
         - datasource:
             driver: org.h2.Driver
             url: jdbc:h2:file:C:/LocalPPRB/H2DB2;MV_STORE=TRUE;INIT=CREATE SCHEMA IF NOT EXISTS TEST
-            user: TEST
-            pass: TEST
+            username: TEST
+            password: TEST
             owner: TEST
         - id: 33
           url: https://test
         - datasource:
             driver: oracle.jdbc.driver.OracleDriver
             url: jdbc:oracle:thin:@localhost:1521/eks
-            user: TEST
-            pass: TEST
+            username: TEST
+            password: TEST
             owner: IBS
           id: 2
           hikari:
@@ -102,6 +90,13 @@ shardDbConfig:
             maximumPoolSize: 200
           TransactionConfig:
             activeConnectionParallelLimit: 100
+    - name: COMMON_INTEGR
+      shards:
+        - datasource:
+            url: ${PMTS_DATASOURCE_JDBC_URL_CMN_INTEGR:jdbc:postgresql://d5pmts-pgc003lk.corp.dev.vtb:5432/common_integr}
+            username: ${PMTS_DB_CMN_INTEGR_USER:common_integr_admin}
+            password: ${PMTS_DB_CMN_INTEGR_PASSWORD:6to43yM5Y5giWnDQDtkYAoFyI_-io3kfjfBGfvgh6H9s3.v.Fr4YbumIOFX8g3qq5v7P29T7wLD99ZRs9m2D-AK3u-ThRbIh8F2_e8lt41lSCUChNg}
+            owner: common_integr
     - name: RAW
       id: 1
       hikari:
@@ -113,5 +108,5 @@ shardDbConfig:
         - datasource:
             driver: oracle.jdbc.driver.OracleDriver
             url: jdbc:oracle:thin:@d5ubss-or5001lk.corp.dev.vtb:1521/TARIFA
-            user: IBS
-            pass: IBS
+            username: IBS
+            password: IBS
