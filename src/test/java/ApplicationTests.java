@@ -9,6 +9,7 @@ import com.antalex.db.service.DomainEntityManager;
 import com.antalex.db.service.ShardDataBaseManager;
 import com.antalex.db.service.ShardEntityManager;
 import com.antalex.db.service.api.DataWrapper;
+import com.antalex.db.service.api.DataWrapperFactory;
 import com.antalex.db.utils.ShardUtils;
 import com.antalex.domain.persistence.domain.TestADomain;
 import com.antalex.domain.persistence.domain.TestBDomain;
@@ -43,9 +44,13 @@ import org.springframework.test.context.junit4.SpringRunner;
 
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.FetchType;
+import java.math.BigDecimal;
 import java.sql.Connection;
+import java.sql.Date;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -79,6 +84,8 @@ public class ApplicationTests {
 	private TestDomainService domainService;
 	@Autowired
 	private DomainEntityManager domainEntityManager;
+	@Autowired
+	private DataWrapperFactory dataWrapperFactory;
 
 //	@Test
 	public void dialect() {
@@ -621,6 +628,42 @@ public class ApplicationTests {
 		}
 		profiler.stop();
 		System.out.println(profiler.printTimeCounter());
+	}
+
+	@Test
+	public void testJson3() {
+		DataWrapper dataWrapper = dataWrapperFactory.createDataWrapper(DataFormat.JSON);
+
+		List<Object> list = new ArrayList<>();
+		list.add(1L);
+		list.add("test");
+		list.add(2);
+		list.add(OffsetDateTime.now());
+		list.add(BigDecimal.valueOf(1.1));
+		list.add(Date.valueOf(LocalDate.now()));
+
+		try {
+			dataWrapper.init(null);
+
+			dataWrapper.put("test", list);
+			System.out.println("AAA content = " + dataWrapper.getContent());
+
+			DataWrapper dataWrapper2 = dataWrapperFactory.createDataWrapper(DataFormat.JSON);
+			dataWrapper2.init(dataWrapper.getContent());
+
+			List<Object> list2 = dataWrapper2.getList("test", Object.class);
+
+			System.out.println("AAA list2.size = " + list2.size());
+
+		} catch (Exception err) {
+			throw new RuntimeException(err);
+		}
+
+
+
+
+
+
 	}
 
 //	@Test
