@@ -1,8 +1,6 @@
 package com.antalex.config;
 
-import com.antalex.db.service.ShardDataBaseManager;
-import com.antalex.db.service.api.TransactionalExternalTaskFactory;
-import com.antalex.service.impl.TestTaskFactoryImpl;
+import jakarta.persistence.EntityManagerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -13,12 +11,15 @@ import org.springframework.orm.jpa.JpaVendorAdapter;
 import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
 import org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter;
 import org.springframework.transaction.PlatformTransactionManager;
+import ru.vtb.pmts.db.service.ShardDataBaseManager;
 
 import javax.sql.DataSource;
 import java.util.Properties;
 
 @Configuration
-@EnableJpaRepositories("com.antalex.domain.persistence.repository")
+@EnableJpaRepositories(
+        basePackages = "com.antalex.domain.persistence.repository"
+)
 public class SpringJdbcConfig {
     @Autowired
     private Environment env;
@@ -31,7 +32,7 @@ public class SpringJdbcConfig {
         LocalContainerEntityManagerFactoryBean lcemfb = new LocalContainerEntityManagerFactoryBean();
         lcemfb.setJpaVendorAdapter(getJpaVendorAdapter());
         lcemfb.setDataSource(getDataSource());
-        lcemfb.setPackagesToScan("com.antalex.domain.persistence.entity");
+        lcemfb.setPackagesToScan("com.antalex");
         lcemfb.setJpaProperties(jpaProperties());
         return lcemfb;
     }
@@ -47,9 +48,9 @@ public class SpringJdbcConfig {
     }
 
     @Bean(name="transactionManager")
-    public PlatformTransactionManager txManager(){
-        JpaTransactionManager jpaTransactionManager = new JpaTransactionManager(
-                getEntityManagerFactoryBean().getObject());
+    public PlatformTransactionManager transactionManager(EntityManagerFactory entityManagerFactory){
+        JpaTransactionManager jpaTransactionManager = new JpaTransactionManager();
+        jpaTransactionManager.setEntityManagerFactory(entityManagerFactory);
         return jpaTransactionManager;
     }
     private Properties jpaProperties() {

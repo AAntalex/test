@@ -1,14 +1,12 @@
 package com.antalex.service.impl;
 
-import com.antalex.config.SpringJdbcConfig;
-import com.antalex.db.service.ShardDataBaseManager;
 import com.antalex.domain.persistence.entity.hiber.TestAEntity;
 import com.antalex.domain.persistence.entity.hiber.TestBEntity;
 import com.antalex.domain.persistence.entity.hiber.TestCEntity;
 import com.antalex.domain.persistence.repository.TestBRepository;
 import com.antalex.domain.persistence.repository.TestCRepository;
 import com.antalex.profiler.service.ProfilerService;
-import com.antalex.service.mapper.EntityMapper;
+import com.antalex.service.mapper.MBatisEntityMapper;
 import com.antalex.service.TestService;
 import org.apache.ibatis.session.ExecutorType;
 import org.apache.ibatis.session.SqlSession;
@@ -16,6 +14,7 @@ import org.apache.ibatis.session.SqlSessionFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.vtb.pmts.db.service.ShardDataBaseManager;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
@@ -105,12 +104,12 @@ public class TestServiceImpl implements TestService{
         profiler.startTimeCounter("Prepare saveMyBatis", "AAA");
         SqlSession sqlSession = sqlSessionFactory.openSession(ExecutorType.BATCH);
         try {
-            EntityMapper entityMapper = sqlSession.getMapper(EntityMapper.class);
+            MBatisEntityMapper MBatisEntityMapper = sqlSession.getMapper(MBatisEntityMapper.class);
             testBEntities.forEach(
                     entity -> {
                         try {
                             entity.setId(databaseManager.sequenceNextVal() * 10000L);
-                            entityMapper.insert("TEST_B", entity);
+                            MBatisEntityMapper.insert("TEST_B", entity);
                         } catch (Exception err) {
                             throw new RuntimeException(err);
                         }
@@ -123,7 +122,7 @@ public class TestServiceImpl implements TestService{
                                 try {
                                     cEntity.setId(databaseManager.sequenceNextVal() * 10000L);
                                     cEntity.setB(entity.getId());
-                                    entityMapper.insertC("TEST_C", cEntity);
+                                    MBatisEntityMapper.insertC("TEST_C", cEntity);
                                 } catch (Exception err) {
                                     throw new RuntimeException(err);
                                 }
@@ -143,10 +142,10 @@ public class TestServiceImpl implements TestService{
         profiler.startTimeCounter("Prepare saveMyBatis", "AAA");
         SqlSession sqlSession = sqlSessionFactory.openSession(ExecutorType.BATCH);
         try {
-            EntityMapper entityMapper = sqlSession.getMapper(EntityMapper.class);
+            MBatisEntityMapper MBatisEntityMapper = sqlSession.getMapper(MBatisEntityMapper.class);
             try {
                 entity.setId(databaseManager.sequenceNextVal() * 10000L);
-                entityMapper.insert("TEST_B", entity);
+                MBatisEntityMapper.insert("TEST_B", entity);
             } catch (Exception err) {
                 throw new RuntimeException(err);
             }
@@ -154,7 +153,7 @@ public class TestServiceImpl implements TestService{
                 try {
                     cEntity.setId(databaseManager.sequenceNextVal() * 10000L);
                     cEntity.setB(entity.getId());
-                    entityMapper.insertC("TEST_C", cEntity);
+                    MBatisEntityMapper.insertC("TEST_C", cEntity);
                 } catch (Exception err) {
                     throw new RuntimeException(err);
                 }
@@ -178,9 +177,9 @@ public class TestServiceImpl implements TestService{
     public TestBEntity findBByIdMBatis(Long id) {
         SqlSession sqlSession = sqlSessionFactory.openSession();
         try {
-            EntityMapper entityMapper = sqlSession.getMapper(EntityMapper.class);
-            TestBEntity entity =  entityMapper.findById("TEST_B", id);
-            entity.setCList(findAllCMBatis(id, entityMapper));
+            MBatisEntityMapper MBatisEntityMapper = sqlSession.getMapper(MBatisEntityMapper.class);
+            TestBEntity entity =  MBatisEntityMapper.findById("TEST_B", id);
+            entity.setCList(findAllCMBatis(id, MBatisEntityMapper));
             return entity;
         } catch (Exception err) {
             throw new RuntimeException(err);
@@ -193,8 +192,8 @@ public class TestServiceImpl implements TestService{
     public List<TestBEntity> findAllByValueLikeMBatis(String value) {
         SqlSession sqlSession = sqlSessionFactory.openSession();
         try {
-            EntityMapper entityMapper = sqlSession.getMapper(EntityMapper.class);
-            List<TestBEntity> entities =  entityMapper.findAllByValueLike("TEST_B", value);
+            MBatisEntityMapper MBatisEntityMapper = sqlSession.getMapper(MBatisEntityMapper.class);
+            List<TestBEntity> entities =  MBatisEntityMapper.findAllByValueLike("TEST_B", value);
 //            entities.forEach(b -> b.setCList(findAllCMBatis(b.getId(), entityMapper)));
             return entities;
         } catch (Exception err) {
@@ -205,22 +204,22 @@ public class TestServiceImpl implements TestService{
     }
 
     @Override
-    public List<TestCEntity> findAllCMBatis(Long id, EntityMapper entityMapper) {
+    public List<TestCEntity> findAllCMBatis(Long id, MBatisEntityMapper MBatisEntityMapper) {
         try {
-            return entityMapper.findAllC("TEST_C", id);
+            return MBatisEntityMapper.findAllC("TEST_C", id);
         } catch (Exception err) {
             throw new RuntimeException(err);
         }
     }
 
     @Override
-    public List<TestBEntity> findAllB(String value, EntityMapper entityMapper) {
+    public List<TestBEntity> findAllB(String value, MBatisEntityMapper MBatisEntityMapper) {
         try {
-            if (entityMapper == null) {
+            if (MBatisEntityMapper == null) {
                 SqlSession sqlSession = sqlSessionFactory.openSession();
-                entityMapper = sqlSession.getMapper(EntityMapper.class);
+                MBatisEntityMapper = sqlSession.getMapper(MBatisEntityMapper.class);
             }
-            return entityMapper.findAllB("TEST_B", value);
+            return MBatisEntityMapper.findAllB("TEST_B", value);
         } catch (Exception err) {
             throw new RuntimeException(err);
         }

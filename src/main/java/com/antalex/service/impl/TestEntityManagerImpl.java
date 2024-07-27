@@ -1,10 +1,10 @@
 package com.antalex.service.impl;
 
-import com.antalex.db.entity.abstraction.ShardInstance;
-import com.antalex.db.service.ShardEntityManager;
 import com.antalex.service.TestEntityManager;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import ru.vtb.pmts.db.entity.abstraction.ShardInstance;
+import ru.vtb.pmts.db.service.ShardEntityManager;
 
 @Service
 public class TestEntityManagerImpl implements TestEntityManager {

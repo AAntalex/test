@@ -1,12 +1,12 @@
 package com.antalex.domain.persistence.domain;
 
-import com.antalex.db.annotation.Attribute;
-import com.antalex.db.annotation.DomainEntity;
-import com.antalex.db.annotation.Storage;
-import com.antalex.db.domain.abstraction.BaseDomain;
-import com.antalex.db.model.enums.MappingType;
 import com.antalex.domain.persistence.entity.shard.TestBShardEntity;
 import lombok.Data;
+import ru.vtb.pmts.db.annotation.Attribute;
+import ru.vtb.pmts.db.annotation.DomainEntity;
+import ru.vtb.pmts.db.annotation.Storage;
+import ru.vtb.pmts.db.domain.abstraction.BaseDomain;
+import ru.vtb.pmts.db.model.enums.MappingType;
 
 import javax.persistence.FetchType;
 import java.math.BigDecimal;

@@ -7,7 +7,7 @@ import org.apache.ibatis.annotations.*;
 import java.util.List;
 
 @Mapper
-public interface EntityMapper {
+public interface MBatisEntityMapper {
     @Insert("Insert into ${tablename} " +
             "(ID," +
             "SHARD_MAP," +
