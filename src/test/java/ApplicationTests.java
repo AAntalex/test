@@ -36,12 +36,14 @@ import ru.vtb.pmts.db.service.ShardDataBaseManager;
 import ru.vtb.pmts.db.service.ShardEntityManager;
 import ru.vtb.pmts.db.service.api.DataWrapper;
 import ru.vtb.pmts.db.service.api.DataWrapperFactory;
+import ru.vtb.pmts.db.service.impl.managers.ShardDatabaseManagerImpl;
 
 import javax.persistence.FetchType;
 import java.math.BigDecimal;
 import java.sql.Blob;
 import java.sql.Connection;
 import java.sql.Date;
+import java.sql.PreparedStatement;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
@@ -81,8 +83,10 @@ public class ApplicationTests {
 	private DomainEntityManager domainEntityManager;
 	@Autowired
 	private DataWrapperFactory dataWrapperFactory;
+    @Autowired
+    private ShardDatabaseManagerImpl shardDatabaseManagerImpl;
 
-//	@Test
+	//	@Test
 	public void dialect() {
 		try {
 			DialectResolver dialectResolver = new StandardDialectResolver();
@@ -389,6 +393,29 @@ public class ApplicationTests {
 		domainEntityManager.saveAll(bList);
 
 		domainEntityManager.getTransaction().commit();
+	}
+
+//	@Test
+	public void updateOther() {
+		profiler.start("saveOther");
+
+		try {
+			Connection connection = shardDatabaseManagerImpl.getConnection();
+			PreparedStatement preparedStatement = connection.prepareStatement(
+					"UPDATE segment_integr.TEST_OTHER SET SN=SN+1,C_STATUS=?,C_URL=? WHERE ID=?");
+			preparedStatement.setString(1, "ST1");
+			preparedStatement.setString(2, "URL1");
+			preparedStatement.setLong(3, 20790000L);
+			preparedStatement.addBatch();
+			preparedStatement.addBatch();
+			preparedStatement.setString(1, "ST12");
+			preparedStatement.addBatch();
+			preparedStatement.executeBatch();
+		} catch (Exception err) {
+			throw new RuntimeException(err);
+		}
+		profiler.stop();
+		System.out.println(profiler.printTimeCounter());
 	}
 
 	@Test
