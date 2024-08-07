@@ -418,18 +418,24 @@ public class ApplicationTests {
 		System.out.println(profiler.printTimeCounter());
 	}
 
-	@Test
+//	@Test
 	public void saveOther() {
 		profiler.start("saveOther");
-		entityManager.saveAll(testShardService.generateOther(100));
+		List<TestOtherShardEntity> list = testShardService.generateOther(100);
+		entityManager.saveAll(list);
+
+		list.get(0).setStatus(TestStatus.TIMEOUT);
+		entityManager.updateAll(list);
+
+		shardDatabaseManagerImpl.saveTransactionInfo();
 		profiler.stop();
 		System.out.println(profiler.printTimeCounter());
 	}
 
-	//	@Test
+//	@Test
 	public void findAllOther() {
 		profiler.start("findAllOther");
-		List<TestOtherShardEntity> entities = entityManager.findAll(TestOtherShardEntity.class);
+		List<TestOtherShardEntity> entities = entityManager.findAll(TestOtherShardEntity.class, "st=?", "3a21c0ed-dbc0-4fc1-a748-337bd7b9c01b");
 		System.out.println("entities.size() = " + entities.size());
 		profiler.stop();
 		System.out.println(profiler.printTimeCounter());
@@ -551,7 +557,7 @@ public class ApplicationTests {
 
 
 
-//	@Test
+	@Test
 	public void saveDomain() {
 		databaseManager.sequenceNextVal();
 		profiler.start("saveDomain.generate");

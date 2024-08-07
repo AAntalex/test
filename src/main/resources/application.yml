@@ -34,6 +34,7 @@ shardDbConfig:
     activeConnectionParallelLimit: 12
     parallelRun: true
   ThreadPool:
+    nameFormat: Multi-DB-%d
     corePoolSize: 10
     keepAliveTime: 60
     maximumPoolSize: 1000
@@ -51,31 +52,6 @@ shardDbConfig:
     checkMainShard: false
     checkClusterDefault: false
   clusters:
-    - name: APPLICATION
-      id: 3
-      defaultCluster: true
-      shards:
-        - datasource:
-            url: ${PMTS_DATASOURCE_JDBC_URL_INTEGR_S1:jdbc:postgresql://d5pmts-pgc008lk.corp.dev.vtb:5432/segment_main}
-            username: ${PMTS_DB_NTEGR_S1_USER:segment_main_admin}
-            password: ${PMTS_DB_NTEGR_S1_PASSWORD:4-H1XZduqfZgEinGS_ppQ2I5Y-pG1q7pyDfRzaK4OISv9KX-dKPXfhrrSAxb82dzFQTUI1WbeJj.9}
-            owner: segment_main
-        - remote:
-            url: http://localhost:8080
-            owner: segment_main
-          id: 2
-        - datasource:
-            url: ${PMTS_DATASOURCE_JDBC_URL_INTEGR_S2:jdbc:postgresql://d5pmts-pgc004lk.corp.dev.vtb:5432/segment_main}
-            username: ${PMTS_DB_NTEGR_S2_USER:segment_main_admin}
-            password: ${PMTS_DB_NTEGR_S2_PASSWORD:h4Zn3xA92735fTv7sKJjckw.Bce8_.8PA2ucggJohx4UTMYeabXPx8RM.DpsEwJBIXgt0DKBo3k8m7Ysiff6fUG}
-            owner: segment_main
-    - name: COMMON
-      shards:
-        - datasource:
-            url: ${PMTS_DATASOURCE_JDBC_URL_CMN_INTEGR:jdbc:postgresql://d5pmts-pgc003lk.corp.dev.vtb:5432/common_main}
-            username: ${PMTS_DB_CMN_INTEGR_USER:common_main_admin}
-            password: ${PMTS_DB_CMN_INTEGR_PASSWORD:-bg6FR9v_Uvy2Y3HEUikfxlfWOdAn1STNqFzsT9u48h88JQmVxla2-Gwkg6-fzRIy1BfkKn_UVgV.wiepuFnCZGDOaoBnByAp70RSK06voS-wXgAzm}
-            owner: common_main
     - name: INTEGR
       shards:
         - datasource:
@@ -85,7 +61,7 @@ shardDbConfig:
             owner: segment_integr
         - remote:
             url: http://localhost:8080
-            owner: segment_main
+            owner: segment_integr
           id: 2
         - datasource:
             url: ${PMTS_DATASOURCE_JDBC_URL_INTEGR_S2:jdbc:postgresql://d5pmts-pgc004lk.corp.dev.vtb:5432/segment_integr}
