@@ -1,8 +1,8 @@
-#dialect: org.hibernate.dialect.PostgreSQL82Dialect
+#dialect: org.hibernate.dialect.PostgreSQLDialect
 #dialect: org.hibernate.dialect.Oracle10gDialect
 
 hibernate:
-  dialect: org.hibernate.dialect.PostgreSQL82Dialect
+  dialect: org.hibernate.dialect.PostgreSQLDialect
   jdbc:
     batch_size: 1000000
   order_inserts: true
@@ -15,7 +15,7 @@ hibernate:
 
 logging:
   level:
-    com.antalex.db: trace
+    ru.vtb.pmts.db: trace
     org.hibernate.type:
       descriptor:
         sql.BasicBinder: INFO
@@ -32,15 +32,16 @@ shardDbConfig:
   sequenceCacheSize: 1000000
   TransactionConfig:
     activeConnectionParallelLimit: 12
-    parallelCommit: true
+    parallelRun: true
   ThreadPool:
+    nameFormat: Multi-DB-%d
     corePoolSize: 10
     keepAliveTime: 60
     maximumPoolSize: 1000
   liquibase:
     changeLogSrc: classpath:db/changelog
     changeLogName: db.changelog-master.yaml
-    enabled: false
+    enabled: true
   hikari:
     minimumIdle: 3
     maximumPoolSize: 20
@@ -51,19 +52,24 @@ shardDbConfig:
     checkMainShard: false
     checkClusterDefault: false
   clusters:
-    - name: MAIN
-      defaultCluster: true
+    - name: INTEGR
       shards:
         - datasource:
             url: ${PMTS_DATASOURCE_JDBC_URL_INTEGR_S1:jdbc:postgresql://d5pmts-pgc008lk.corp.dev.vtb:5432/segment_integr}
             username: ${PMTS_DB_NTEGR_S1_USER:segment_integr_admin}
             password: ${PMTS_DB_NTEGR_S1_PASSWORD:8hLQfz8Fu7OqycZFW_BBtWpmUNgp38Kq636Sc8bSM8NIS.eIyrXJA_hiklDLjmiJU5rC7U_.ls9JILGsJlBodYR}
             owner: segment_integr
+        - remote:
+            url: http://localhost:8080
+            owner: segment_integr
+          id: 2
         - datasource:
             url: ${PMTS_DATASOURCE_JDBC_URL_INTEGR_S2:jdbc:postgresql://d5pmts-pgc004lk.corp.dev.vtb:5432/segment_integr}
             username: ${PMTS_DB_NTEGR_S2_USER:segment_integr_admin}
             password: ${PMTS_DB_NTEGR_S2_PASSWORD:eRgF58deSaB-EvQATUdpVVBjnyyh63MtOYOVMvgAkHNT3zCpCPTS5yKuzq5Eq.LsCPcWxomluk}
             owner: segment_integr
+    - name: MAIN
+      shards:
         - datasource:
             driver: oracle.jdbc.driver.OracleDriver
             url: jdbc:oracle:thin:@d5cftm-apc005ln.corp.dev.vtb:1521/ELVIS

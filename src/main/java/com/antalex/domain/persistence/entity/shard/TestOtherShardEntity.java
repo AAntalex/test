@@ -1,16 +1,17 @@
 package com.antalex.domain.persistence.entity.shard;
 
 
-import com.antalex.db.annotation.ShardEntity;
-import com.antalex.db.entity.abstraction.BaseShardEntity;
 import lombok.Data;
 import lombok.experimental.Accessors;
+import ru.vtb.pmts.db.annotation.ShardEntity;
+import ru.vtb.pmts.db.entity.abstraction.BaseShardEntity;
 
 import javax.persistence.Table;
 import java.math.BigDecimal;
 import java.net.URL;
 import java.sql.*;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.Date;
 import java.util.UUID;
 
@@ -35,6 +36,7 @@ public class TestOtherShardEntity extends BaseShardEntity {
     private RowId rowId;
     private SQLXML sqlxml;
     private LocalDateTime localDateTime;
+    private OffsetDateTime offsetDateTime;
     private TestStatus status;
     private UUID uid;
 }

@@ -1,8 +1,7 @@
 package com.antalex.domain.persistence.entity;
 
 
-import com.antalex.db.annotation.ShardEntity;
-import com.antalex.db.entity.abstraction.BaseShardEntity;
+import ru.vtb.pmts.db.entity.abstraction.BaseShardEntity;
 
 import javax.persistence.*;
 

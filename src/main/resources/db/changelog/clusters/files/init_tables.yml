@@ -189,6 +189,9 @@ databaseChangeLog:
               name: C_LOCAL_DATE_TIME
               type: datetime
           - column:
+                name: C_OFFSET_DATE_TIME
+                type: timestamp
+          - column:
               name: C_EXECUTE_TIME
               type: date
           - column:

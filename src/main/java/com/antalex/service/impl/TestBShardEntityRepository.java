@@ -1,15 +1,15 @@
 package com.antalex.service.impl;
 
-import com.antalex.db.entity.abstraction.ShardInstance;
-import com.antalex.db.model.Cluster;
-import com.antalex.db.model.StorageContext;
-import com.antalex.db.model.enums.ShardType;
-import com.antalex.db.service.ShardDataBaseManager;
-import com.antalex.db.utils.ShardUtils;
 import com.antalex.domain.persistence.entity.shard.TestBShardEntity;
 import com.antalex.domain.persistence.entity.shard.TestBShardEntityExt;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import ru.vtb.pmts.db.entity.abstraction.ShardInstance;
+import ru.vtb.pmts.db.model.Cluster;
+import ru.vtb.pmts.db.model.StorageContext;
+import ru.vtb.pmts.db.model.enums.ShardType;
+import ru.vtb.pmts.db.service.ShardDataBaseManager;
+import ru.vtb.pmts.db.utils.ShardUtils;
 
 import java.util.Objects;
 import java.util.Optional;

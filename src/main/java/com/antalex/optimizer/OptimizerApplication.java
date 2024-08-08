@@ -4,8 +4,10 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.ComponentScan;
 
-@SpringBootApplication
-@ComponentScan("com.antalex")
+@SpringBootApplication(scanBasePackages = {
+        "com.antalex",
+        "ru.vtb.pmts.db"
+})
 public class OptimizerApplication {
     public static void main(String[] args) {
 

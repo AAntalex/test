@@ -1,12 +1,13 @@
 package com.antalex.service.impl;
 
-import com.antalex.db.service.ShardDataBaseManager;
-import com.antalex.db.service.ShardEntityManager;
+
 import com.antalex.domain.persistence.entity.shard.*;
 import com.antalex.profiler.service.ProfilerService;
 import com.antalex.service.TestShardService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import ru.vtb.pmts.db.service.ShardDataBaseManager;
+import ru.vtb.pmts.db.service.ShardEntityManager;
 
 import javax.sql.rowset.serial.SerialBlob;
 import javax.sql.rowset.serial.SerialClob;
@@ -92,7 +93,9 @@ public class TestShardServiceImpl implements TestShardService {
             entity.setAFloat(3f);
             entity.setAShort((short) 4);
             entity.setBigDecimal(BigDecimal.valueOf(3.14));
-            entity.setInteger(7);
+            if (i % 2 == 1) {
+                entity.setInteger(7);
+            }
             try {
                 entity.setBlob(new SerialBlob("TEST BLOB".getBytes()));
                 entity.setClob(new SerialClob("TEST CLOB".toCharArray()));
@@ -101,6 +104,7 @@ public class TestShardServiceImpl implements TestShardService {
             }
             entity.setExecuteTime(new Date());
             entity.setLocalDateTime(LocalDateTime.now());
+            entity.setOffsetDateTime(OffsetDateTime.now());
             entity.setTime(new Time(System.currentTimeMillis()));
             entity.setTimestamp(new Timestamp(System.currentTimeMillis()));
 

@@ -1,16 +1,3 @@
-import com.antalex.db.domain.abstraction.Domain;
-import com.antalex.db.entity.AttributeStorage;
-import com.antalex.db.entity.abstraction.ShardInstance;
-import com.antalex.db.model.DataStorage;
-import com.antalex.db.model.enums.DataFormat;
-import com.antalex.db.model.enums.QueryType;
-import com.antalex.db.model.enums.ShardType;
-import com.antalex.db.service.DomainEntityManager;
-import com.antalex.db.service.ShardDataBaseManager;
-import com.antalex.db.service.ShardEntityManager;
-import com.antalex.db.service.api.DataWrapper;
-import com.antalex.db.service.api.DataWrapperFactory;
-import com.antalex.db.utils.ShardUtils;
 import com.antalex.domain.persistence.domain.TestADomain;
 import com.antalex.domain.persistence.domain.TestBDomain;
 import com.antalex.domain.persistence.domain.TestCDomain;
@@ -31,6 +18,7 @@ import com.antalex.service.TestShardService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import jakarta.persistence.EntityManagerFactory;
 import org.hibernate.dialect.Dialect;
 import org.hibernate.engine.jdbc.dialect.internal.StandardDialectResolver;
 import org.hibernate.engine.jdbc.dialect.spi.DatabaseMetaDataDialectResolutionInfoAdapter;
@@ -41,12 +29,21 @@ import org.postgresql.core.v3.QueryExecutorImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
+import ru.vtb.pmts.db.model.enums.DataFormat;
+import ru.vtb.pmts.db.model.enums.QueryType;
+import ru.vtb.pmts.db.service.DomainEntityManager;
+import ru.vtb.pmts.db.service.ShardDataBaseManager;
+import ru.vtb.pmts.db.service.ShardEntityManager;
+import ru.vtb.pmts.db.service.api.DataWrapper;
+import ru.vtb.pmts.db.service.api.DataWrapperFactory;
+import ru.vtb.pmts.db.service.impl.managers.ShardDatabaseManagerImpl;
 
-import javax.persistence.EntityManagerFactory;
 import javax.persistence.FetchType;
 import java.math.BigDecimal;
+import java.sql.Blob;
 import java.sql.Connection;
 import java.sql.Date;
+import java.sql.PreparedStatement;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
@@ -86,8 +83,10 @@ public class ApplicationTests {
 	private DomainEntityManager domainEntityManager;
 	@Autowired
 	private DataWrapperFactory dataWrapperFactory;
+    @Autowired
+    private ShardDatabaseManagerImpl shardDatabaseManagerImpl;
 
-//	@Test
+	//	@Test
 	public void dialect() {
 		try {
 			DialectResolver dialectResolver = new StandardDialectResolver();
@@ -96,14 +95,14 @@ public class ApplicationTests {
 			Dialect dialect = dialectResolver.resolveDialect(
 					new DatabaseMetaDataDialectResolutionInfoAdapter(connection.getMetaData())
 			);
-			String sql = dialect.getSequenceNextValString("$$$.SEQ_ID");
-			System.out.println("AAA sql = " + sql);
+//			String sql = dialect.getSequenceNextValString("$$$.SEQ_ID");
+//			System.out.println("AAA sql = " + sql);
 		} catch (Exception err) {
 			throw new RuntimeException(err);
 		}
 	}
 
-	@Test
+//	@Test
 	public void findDomain() {
 		profiler.start("findDomain");
 		TestBDomain b = domainEntityManager.find(TestBDomain.class, 6301297863L);
@@ -396,11 +395,39 @@ public class ApplicationTests {
 		domainEntityManager.getTransaction().commit();
 	}
 
+//	@Test
+	public void updateOther() {
+		profiler.start("saveOther");
 
-	//	@Test
+		try {
+			Connection connection = shardDatabaseManagerImpl.getConnection();
+			PreparedStatement preparedStatement = connection.prepareStatement(
+					"UPDATE segment_integr.TEST_OTHER SET SN=SN+1,C_STATUS=?,C_URL=? WHERE ID=?");
+			preparedStatement.setString(1, "ST1");
+			preparedStatement.setString(2, "URL1");
+			preparedStatement.setLong(3, 20790000L);
+			preparedStatement.addBatch();
+			preparedStatement.addBatch();
+			preparedStatement.setString(1, "ST12");
+			preparedStatement.addBatch();
+			preparedStatement.executeBatch();
+		} catch (Exception err) {
+			throw new RuntimeException(err);
+		}
+		profiler.stop();
+		System.out.println(profiler.printTimeCounter());
+	}
+
+//	@Test
 	public void saveOther() {
 		profiler.start("saveOther");
-		entityManager.saveAll(testShardService.generateOther(100));
+		List<TestOtherShardEntity> list = testShardService.generateOther(100);
+		entityManager.saveAll(list);
+
+		list.get(0).setStatus(TestStatus.TIMEOUT);
+		entityManager.updateAll(list);
+
+		shardDatabaseManagerImpl.saveTransactionInfo();
 		profiler.stop();
 		System.out.println(profiler.printTimeCounter());
 	}
@@ -408,7 +435,7 @@ public class ApplicationTests {
 //	@Test
 	public void findAllOther() {
 		profiler.start("findAllOther");
-		List<TestOtherShardEntity> entities = entityManager.findAll(TestOtherShardEntity.class);
+		List<TestOtherShardEntity> entities = entityManager.findAll(TestOtherShardEntity.class, "st=?", "3a21c0ed-dbc0-4fc1-a748-337bd7b9c01b");
 		System.out.println("entities.size() = " + entities.size());
 		profiler.stop();
 		System.out.println(profiler.printTimeCounter());
@@ -530,7 +557,7 @@ public class ApplicationTests {
 
 
 
-//	@Test
+	@Test
 	public void saveDomain() {
 		databaseManager.sequenceNextVal();
 		profiler.start("saveDomain.generate");
@@ -630,7 +657,7 @@ public class ApplicationTests {
 		System.out.println(profiler.printTimeCounter());
 	}
 
-	@Test
+	//@Test
 	public void testJson3() {
 		DataWrapper dataWrapper = dataWrapperFactory.createDataWrapper(DataFormat.JSON);
 
