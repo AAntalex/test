@@ -92,9 +92,11 @@ public class ApplicationTests {
 			DialectResolver dialectResolver = new StandardDialectResolver();
 			Connection connection = databaseManager.getCluster("").getMainShard().getDataSource().getConnection();
 
+
 			Dialect dialect = dialectResolver.resolveDialect(
 					new DatabaseMetaDataDialectResolutionInfoAdapter(connection.getMetaData())
 			);
+
 //			String sql = dialect.getSequenceNextValString("$$$.SEQ_ID");
 //			System.out.println("AAA sql = " + sql);
 		} catch (Exception err) {
@@ -556,8 +558,31 @@ public class ApplicationTests {
 	}
 
 
-
 	@Test
+	public void deadLock() {
+		databaseManager.sequenceNextVal();
+		profiler.start("testShardService.generate");
+
+		List<TestBShardEntity> bList = entityManager.findAll(
+				TestBShardEntity.class,
+				"id in (?, ?, ?)",
+				699230133001L, 693000126000L, 2709012978002L);
+
+
+		System.out.println("bList.size = " + bList.size());
+
+		bList.get(0).setValue("Test1");
+		bList.get(1).setValue("Test2");
+		bList.get(2).setValue("Test3");
+
+		entityManager.updateAll(bList);
+
+		profiler.stop();
+		System.out.println(profiler.printTimeCounter());
+	}
+
+
+	//	@Test
 	public void saveDomain() {
 		databaseManager.sequenceNextVal();
 		profiler.start("saveDomain.generate");

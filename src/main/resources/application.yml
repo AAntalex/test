@@ -59,15 +59,17 @@ shardDbConfig:
             username: ${PMTS_DB_NTEGR_S1_USER:segment_integr_admin}
             password: ${PMTS_DB_NTEGR_S1_PASSWORD:8hLQfz8Fu7OqycZFW_BBtWpmUNgp38Kq636Sc8bSM8NIS.eIyrXJA_hiklDLjmiJU5rC7U_.ls9JILGsJlBodYR}
             owner: segment_integr
-        - remote:
-            url: http://localhost:8080
-            owner: segment_integr
-          id: 2
         - datasource:
             url: ${PMTS_DATASOURCE_JDBC_URL_INTEGR_S2:jdbc:postgresql://d5pmts-pgc004lk.corp.dev.vtb:5432/segment_integr}
             username: ${PMTS_DB_NTEGR_S2_USER:segment_integr_admin}
             password: ${PMTS_DB_NTEGR_S2_PASSWORD:eRgF58deSaB-EvQATUdpVVBjnyyh63MtOYOVMvgAkHNT3zCpCPTS5yKuzq5Eq.LsCPcWxomluk}
             owner: segment_integr
+        - datasource:
+            driver: oracle.jdbc.driver.OracleDriver
+            url: jdbc:oracle:thin:@d5cftm-apc005ln.corp.dev.vtb:1521/ELVIS
+            username: IBS
+            password: IBS
+
     - name: MAIN
       shards:
         - datasource:
