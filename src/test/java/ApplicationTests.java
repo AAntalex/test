@@ -571,9 +571,9 @@ public class ApplicationTests {
 
 		System.out.println("bList.size = " + bList.size());
 
-		bList.get(0).setValue("Test1");
-		bList.get(1).setValue("Test2");
-		bList.get(2).setValue("Test3");
+		bList.get(0).setValue("Test11");
+		bList.get(1).setValue("Test22");
+		bList.get(2).setValue("Test33");
 
 		entityManager.updateAll(bList);
 

@@ -28,11 +28,14 @@ spring:
       ddl-auto: update
 
 shardDbConfig:
-  timeOut: 10
+  processorTimeOut: 10
   sequenceCacheSize: 1000000
   TransactionConfig:
     activeConnectionParallelLimit: 12
     parallelRun: true
+  LockProcessor:
+    timeOut: 10
+    delay: 1
   ThreadPool:
     nameFormat: Multi-DB-%d
     corePoolSize: 10
@@ -69,7 +72,10 @@ shardDbConfig:
             url: jdbc:oracle:thin:@d5cftm-apc005ln.corp.dev.vtb:1521/ELVIS
             username: IBS
             password: IBS
-
+        - remote:
+            url: http://localhost:8080
+            owner: segment_integr
+          id: 2
     - name: MAIN
       shards:
         - datasource:
