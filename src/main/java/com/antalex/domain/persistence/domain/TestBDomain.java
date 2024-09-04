@@ -4,6 +4,7 @@ import com.antalex.domain.persistence.entity.shard.TestBShardEntity;
 import lombok.Data;
 import ru.vtb.pmts.db.annotation.Attribute;
 import ru.vtb.pmts.db.annotation.DomainEntity;
+import ru.vtb.pmts.db.annotation.Historical;
 import ru.vtb.pmts.db.annotation.Storage;
 import ru.vtb.pmts.db.domain.abstraction.BaseDomain;
 import ru.vtb.pmts.db.model.enums.MappingType;
@@ -30,6 +31,7 @@ public class TestBDomain extends BaseDomain {
     @Attribute
     private String newValue;
     @Attribute
+    @Historical(cluster = "RAW")
     private OffsetDateTime executeTime;
     @Attribute(name = "a")
     private TestADomain TestA;
@@ -42,6 +44,7 @@ public class TestBDomain extends BaseDomain {
     private LocalDateTime dateProc;
 
     @Attribute(name = "amount", storage = "accountingSection", mappingType = MappingType.STORAGE)
+    @Historical(cluster = "RAW")
     private BigDecimal sum;
     @Attribute(storage = "accountingSection", mappingType = MappingType.STORAGE)
     private Integer numDoc;

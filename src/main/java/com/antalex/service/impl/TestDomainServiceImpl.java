@@ -43,7 +43,7 @@ public class TestDomainServiceImpl implements TestDomainService {
             b.setNewValue(prefix + "newB" + i);
             b.setExecuteTime(OffsetDateTime.now());
 
-            /*
+
             b.setDateDoc(new Date());
             b.setNote(prefix + "B_NOTE");
             b.setNumDoc(1234);
@@ -54,7 +54,7 @@ public class TestDomainServiceImpl implements TestDomainService {
             routing.setName("Test");
             routing.setExecuteTime(LocalDateTime.now());
             b.setRouting(routing);
-*/
+
             List<TestCDomain> cEntities = new ArrayList<>();
             for (int j = 0; j < cntArray; j++) {
                 TestCDomain c = domainEntityManager.newDomain(TestCDomain.class);

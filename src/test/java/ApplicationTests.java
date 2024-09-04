@@ -29,6 +29,7 @@ import org.postgresql.core.v3.QueryExecutorImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
+import ru.vtb.pmts.db.model.dto.AttributeHistory;
 import ru.vtb.pmts.db.model.enums.DataFormat;
 import ru.vtb.pmts.db.model.enums.QueryType;
 import ru.vtb.pmts.db.service.DomainEntityManager;
@@ -558,7 +559,7 @@ public class ApplicationTests {
 	}
 
 
-	@Test
+//	@Test
 	public void deadLock() {
 		databaseManager.sequenceNextVal();
 		profiler.start("testShardService.generate");
@@ -582,7 +583,7 @@ public class ApplicationTests {
 	}
 
 
-	//	@Test
+	@Test
 	public void saveDomain() {
 		databaseManager.sequenceNextVal();
 		profiler.start("saveDomain.generate");
@@ -599,8 +600,27 @@ public class ApplicationTests {
 
 		System.out.println("testBDomains.size = " + testBDomains.size());
 
-/*
+
 		TestBDomain b = testBDomains.get(0);
+		System.out.println("B ID = " + b.getId());
+
+		b.setExecuteTime(OffsetDateTime.now());
+		b.setExecuteTime(OffsetDateTime.now());
+		b.setExecuteTime(OffsetDateTime.now());
+
+		b.setSum(BigDecimal.valueOf(10.1));
+		b.setSum(BigDecimal.valueOf(10.2));
+		b.setSum(BigDecimal.valueOf(10.3));
+
+		List<AttributeHistory> history = domainEntityManager.getAttributeHistory(b, "executeTime");
+		System.out.println("1 history.size = " + history.size());
+
+		domainEntityManager.updateAll(testBDomains);
+
+		history = domainEntityManager.getAttributeHistory(b, "sum");
+		System.out.println("2 history.size = " + history.size());
+
+/*
 		TestADomain a = b.getTestA();
 
 		b.setNewValue("DomainNewVal_B!!!");
