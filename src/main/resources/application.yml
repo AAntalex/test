@@ -48,6 +48,7 @@ shardDbConfig:
   hikari:
     minimumIdle: 3
     maximumPoolSize: 20
+    idleTimeout: 60
   checks:
     checkShardID: true
     checkClusterID: true

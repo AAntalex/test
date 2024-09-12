@@ -29,6 +29,7 @@ import org.postgresql.core.v3.QueryExecutorImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
+import ru.vtb.pmts.db.exception.ShardDataBaseException;
 import ru.vtb.pmts.db.model.dto.AttributeHistory;
 import ru.vtb.pmts.db.model.enums.DataFormat;
 import ru.vtb.pmts.db.model.enums.QueryType;
@@ -51,6 +52,9 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
 @RunWith(SpringRunner.class)
@@ -247,14 +251,39 @@ public class ApplicationTests {
 		System.out.println(profiler.printTimeCounter());
 	}
 
-//	@Test
+	@Test
 	public void findAllDomain() {
 		profiler.start("findAllDomain");
+
+		/*
 		List<TestBDomain> bList = domainEntityManager.findAll(
 				TestBDomain.class,
 				"${value} like ? and ${x0.newValue} like ?",
 				"Domain%", "Domain%");
 		System.out.println("FIND B bList.size() = " + bList.size());
+*/
+
+		Runnable target = () -> {
+			System.out.println("START SQL 1!");
+			List<TestBDomain> bList = domainEntityManager.findAll(
+					TestBDomain.class,
+					"${value} like ? and ${x0.newValue} like ?",
+					"Domain%", "Domain%");
+			System.out.println("FIND B bList.size() = " + bList.size());
+		};
+
+		ExecutorService executorService = Executors.newFixedThreadPool(10);
+
+		Future future = null;
+		for (int i = 0; i < 10; i++) {
+			future = executorService.submit(target);
+		}
+
+		try {
+			future.get();
+		} catch (Exception err) {
+			throw new ShardDataBaseException(err);
+		}
 
 
 /*
@@ -583,7 +612,7 @@ public class ApplicationTests {
 	}
 
 
-	@Test
+//	@Test
 	public void saveDomain() {
 		databaseManager.sequenceNextVal();
 		profiler.start("saveDomain.generate");
