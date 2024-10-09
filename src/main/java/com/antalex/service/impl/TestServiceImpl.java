@@ -96,7 +96,8 @@ public class TestServiceImpl implements TestService{
 
     @Override
     public void saveJPA(List<TestBEntity> testBEntities) {
-        testBRepository.saveAll(testBEntities);
+//        testBRepository.saveAll(testBEntities);
+        testBEntities.forEach(testBRepository::save);
     }
 
     @Override
@@ -165,6 +166,10 @@ public class TestServiceImpl implements TestService{
         } finally {
             sqlSession.close();
         }
+    }
+
+    private void t() {
+
     }
 
     @Transactional

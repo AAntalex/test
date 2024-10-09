@@ -10,7 +10,7 @@ public class AdditionalParameterEntity {
     @Id
     @Column(name = "ID")
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "test_seq")
-    @SequenceGenerator(name = "test_seq", sequenceName = "test_seq_id", schema = "pmts_integr", allocationSize = 1000000)
+    @SequenceGenerator(name = "test_seq", sequenceName = "test_seq_id", schema = "segment_integr", allocationSize = 1000000)
     private Long id;
     @Column(name = "C_PARENT_ID")
     private String parentId;

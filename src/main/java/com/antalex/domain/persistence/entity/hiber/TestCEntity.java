@@ -7,14 +7,14 @@ import ru.vtb.pmts.db.entity.abstraction.BaseShardEntity;
 import jakarta.persistence.*;
 import java.util.Date;
 
-@Table(name = "TEST_C", schema = "pmts_integr")
+@Table(name = "TEST_C", schema = "segment_integr")
 @Data
 @Entity
 public class TestCEntity extends BaseShardEntity {
     @Id
     @Column(name = "ID")
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "test_seq")
-    @SequenceGenerator(name = "test_seq", sequenceName = "test_seq_id", schema = "pmts_integr", allocationSize = 1000000)
+    @SequenceGenerator(name = "test_seq", sequenceName = "test_seq_id", schema = "segment_integr", allocationSize = 1000000)
     private Long id;
     @Column(name = "SHARD_MAP")
     private Long shardMap;

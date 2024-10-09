@@ -60,6 +60,8 @@ import java.util.stream.Collectors;
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes = OptimizerApplication.class)
 public class ApplicationTests {
+	private final ThreadLocal<String> testLocal = new ThreadLocal<>();
+
 	@Autowired
 	private ProfilerService profiler;
 
@@ -251,7 +253,7 @@ public class ApplicationTests {
 		System.out.println(profiler.printTimeCounter());
 	}
 
-	@Test
+//	@Test
 	public void findAllDomain() {
 		profiler.start("findAllDomain");
 
@@ -850,4 +852,43 @@ public class ApplicationTests {
 		System.out.println(profiler.printTimeCounter());
 	}
 
+	@Test
+	public void testJPAPersistenceContext() {
+		testLocal.set("MainThread");
+
+		System.out.println("MAIN testLocal = " + testLocal.get());
+		Runnable target = () -> {
+			try {
+				System.out.println("START SQL! testLocal = " + testLocal.get());
+				Thread.sleep(1000L);
+				testLocal.set("Thread threadId = " + Thread.currentThread().getId());
+//				TestBShardEntity b = entityManager.find(TestBShardEntity.class, 27090062L);
+				TestBEntity b = testBRepository.findById(27090062L).orElse(null);
+				Thread.sleep(1000L);
+				System.out.println("FIND B = " + b.hashCode() + " identityHashCode " + System.identityHashCode(b) + " threadId = " + Thread.currentThread().getId() + " testLocal = " + testLocal.get());
+//				b = entityManager.find(TestBShardEntity.class, 27090062L);
+				b = testBRepository.findById(27090062L).orElse(null);
+				Thread.sleep(1000L);
+				System.out.println("FIND 2 B = " + b.hashCode() + " identityHashCode " + System.identityHashCode(b) + " threadId = " + Thread.currentThread().getId() + " testLocal = " + testLocal.get());
+			} catch (Exception err) {
+				System.out.println("ERR = " + err.getLocalizedMessage());
+				throw new ShardDataBaseException(err);
+			}
+		};
+
+		ExecutorService executorService = Executors.newFixedThreadPool(10);
+
+		Future future = null;
+		for (int i = 0; i < 2; i++) {
+			future = executorService.submit(target);
+		}
+
+		try {
+			future.get();
+		} catch (Exception err) {
+			throw new ShardDataBaseException(err);
+		}
+
+		TestBEntity b = testBRepository.findById(27090062L).orElse(null);
+	}
 }
