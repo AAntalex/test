@@ -1,6 +1,46 @@
 #dialect: org.hibernate.dialect.PostgreSQLDialect
 #dialect: org.hibernate.dialect.Oracle10gDialect
 
+test:
+  scheduler:
+    scheduler-thread-count: 10
+    intervalSec: 10
+
+spring:
+  liquibase:
+    enabled: false
+  jpa:
+    hibernate:
+      ddl-auto: update
+  application:
+    name: AAA-test
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,heapdump,threaddump,loggers,refresh
+  endpoint:
+    health:
+      enabled: true
+      probes.enabled: true
+      show-details: always
+    prometheus:
+      enabled: true
+    info:
+      enabled: true
+    loggers:
+      enabled: true
+  metrics:
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+    tags:
+      application: ${spring.application.name}
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+
 hibernate:
   dialect: org.hibernate.dialect.PostgreSQLDialect
   jdbc:
@@ -16,19 +56,13 @@ hibernate:
 logging:
   level:
     ru.vtb.pmts.db: trace
+    com.antalex.service: trace
     org.hibernate.type:
       descriptor:
         sql.BasicBinder: INFO
 
-spring:
-  liquibase:
-    enabled: false
-  jpa:
-    hibernate:
-      ddl-auto: update
-
 shardDbConfig:
-  processorTimeOut: 10
+  processorTimeOut: 3600
   sequenceCacheSize: 1000000
   TransactionConfig:
     activeConnectionParallelLimit: 12
