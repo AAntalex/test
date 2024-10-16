@@ -9,7 +9,6 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 @Configuration
 @EnableScheduling
 public class SchedulingConfiguration {
-
     @Value("${test.scheduler.scheduler-thread-count}")
     public int schedulerThreadCount;
 

@@ -863,13 +863,18 @@ public class ApplicationTests {
 				Thread.sleep(1000L);
 				testLocal.set("Thread threadId = " + Thread.currentThread().getId());
 //				TestBShardEntity b = entityManager.find(TestBShardEntity.class, 27090062L);
-				TestBEntity b = testBRepository.findById(27090062L).orElse(null);
+				TestBEntity b = testBRepository.findById(63000L).orElse(null);
 				Thread.sleep(1000L);
 				System.out.println("FIND B = " + b.hashCode() + " identityHashCode " + System.identityHashCode(b) + " threadId = " + Thread.currentThread().getId() + " testLocal = " + testLocal.get());
 //				b = entityManager.find(TestBShardEntity.class, 27090062L);
-				b = testBRepository.findById(27090062L).orElse(null);
+				TestBEntity b2 = testBRepository.findById(63000L).orElse(null);
 				Thread.sleep(1000L);
-				System.out.println("FIND 2 B = " + b.hashCode() + " identityHashCode " + System.identityHashCode(b) + " threadId = " + Thread.currentThread().getId() + " testLocal = " + testLocal.get());
+				System.out.println("FIND 2 B = " + b2.hashCode() + " identityHashCode " + System.identityHashCode(b2) + " threadId = " + Thread.currentThread().getId() + " testLocal = " + testLocal.get());
+				if (b == b2) {
+					System.out.println("B == B2 is TRUE");
+				} else {
+					System.out.println("B == B2 is FALSE");
+				}
 			} catch (Exception err) {
 				System.out.println("ERR = " + err.getLocalizedMessage());
 				throw new ShardDataBaseException(err);
