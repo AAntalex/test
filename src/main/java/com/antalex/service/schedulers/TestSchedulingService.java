@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ru.vtb.pmts.db.service.ShardEntityManager;
 
 import java.time.LocalDateTime;
@@ -27,6 +28,18 @@ public class TestSchedulingService {
     private final TestShardService testShardService;
     private final ShardEntityManager entityManager;
 
+    @Transactional
+    private void processShard() {
+        List<TestBShardEntity>  testBEntities = testShardService.generate(1000, 100, "Shard_Schedule");
+        entityManager.updateAll(testBEntities);
+    }
+
+    @Transactional
+    private void processHibernate() {
+        List<TestBEntity> testBEntities = testService.generate(1000, 100, null, "JPA_Schedule");
+        testService.saveTransactionalJPA(testBEntities);
+    }
+
     @Scheduled(initialDelay = 1, fixedDelayString = "${test.scheduler.intervalSec}", timeUnit = TimeUnit.SECONDS)
     public void jobTestProcess() {
         try {
@@ -35,13 +48,10 @@ public class TestSchedulingService {
                     Thread.currentThread().getName(),
                     LocalDateTime.now(ZoneId.of("UTC+3")));
 
-            List<TestBShardEntity>  testBEntities = testShardService.generate(1000, 100, "Shard_Schedule");
-            entityManager.updateAll(testBEntities);
 
-/*
-            List<TestBEntity> testBEntities = testService.generate(1000, 100, null, "JPA_Schedule");
-            testService.saveTransactionalJPA(testBEntities);
-*/
+//            processShard();
+            processHibernate();
+
             log.trace(
                     "AAA STOP тестового планировщика thread: {}, время запуска: {}",
                     Thread.currentThread().getName(),
