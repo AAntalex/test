@@ -3,6 +3,7 @@ package com.antalex.service.schedulers;
 import com.antalex.domain.persistence.entity.hiber.TestBEntity;
 import com.antalex.domain.persistence.entity.shard.TestBShardEntity;
 import com.antalex.domain.persistence.repository.TestBRepository;
+import com.antalex.profiler.service.ProfilerService;
 import com.antalex.service.TestService;
 import com.antalex.service.TestShardService;
 import io.micrometer.core.annotation.Timed;
@@ -41,6 +42,7 @@ public class TestSchedulingService {
     private final ShardDataBaseManager dataBaseManager;
     private final MeterRegistry meterRegistry;
     private final TestBRepository testBRepository;
+    private final ProfilerService profiler;
 
     private AtomicLong counter;
     private AtomicLong counterSpeed;
@@ -50,13 +52,13 @@ public class TestSchedulingService {
         List<TestBShardEntity> testBEntities = entityManager.findAll(
                 TestBShardEntity.class,
                 "${value} like ?",
-                "Shard%");
+                "Domain%");
         log.trace("AAA testBEntities.count: {}", testBEntities.size());
     }
 
     @Transactional
     protected void findAllHibernate() {
-        List<TestBEntity> testBEntities = testBRepository.findAllByValueLike("Shard%");
+        List<TestBEntity> testBEntities = testBRepository.findAllByValueLike("JPA%");
         log.trace("AAA testBEntities.count: {}", testBEntities.size());
     }
 
@@ -89,11 +91,16 @@ public class TestSchedulingService {
                     LocalDateTime.now(ZoneId.of("UTC+3")));
 
 
+            profiler.start("process");
+
 //            processShard();
 //            processHibernate();
 
-            findAllShard();
+                findAllShard();
 //            findAllHibernate();
+
+            profiler.stop();
+            System.out.println(profiler.printTimeCounter());
 
             log.trace(
                     "AAA STOP тестового планировщика thread: {}, время запуска: {}",

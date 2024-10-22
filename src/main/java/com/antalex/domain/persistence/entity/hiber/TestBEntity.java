@@ -25,7 +25,7 @@ public class TestBEntity extends BaseShardEntity {
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "C_A_REF")
     private TestAEntity a;
-    @OneToMany(cascade = CascadeType.ALL)
+    @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     @JoinColumn(name = "C_B_REF")
     private List<TestCEntity> cList = new ArrayList<>();
     @Column(name = "C_NEW_VALUE")

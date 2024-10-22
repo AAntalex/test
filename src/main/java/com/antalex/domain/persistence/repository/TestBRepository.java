@@ -7,4 +7,5 @@ import java.util.List;
 
 public interface TestBRepository extends CrudRepository<TestBEntity, Long> {
     List<TestBEntity> findAllByValueLike(String value);
+    List<TestBEntity> findAllByValueLikeAndShardMapGreaterThanEqual(String value, Long shardMap);
 }

@@ -29,6 +29,7 @@ import org.postgresql.core.v3.QueryExecutorImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.transaction.annotation.Transactional;
 import ru.vtb.pmts.db.exception.ShardDataBaseException;
 import ru.vtb.pmts.db.model.dto.AttributeHistory;
 import ru.vtb.pmts.db.model.enums.DataFormat;
@@ -70,8 +71,8 @@ public class ApplicationTests {
 
 	@Autowired
 	private ShardEntityManager entityManager;
-    @Autowired
-    private ShardDataBaseManager databaseManager;
+	@Autowired
+	private ShardDataBaseManager databaseManager;
 	@Autowired
 	private TestARepository testARepository;
 	@Autowired
@@ -90,8 +91,8 @@ public class ApplicationTests {
 	private DomainEntityManager domainEntityManager;
 	@Autowired
 	private DataWrapperFactory dataWrapperFactory;
-    @Autowired
-    private ShardDatabaseManagerImpl shardDatabaseManagerImpl;
+	@Autowired
+	private ShardDatabaseManagerImpl shardDatabaseManagerImpl;
 
 	//	@Test
 	public void dialect() {
@@ -111,7 +112,7 @@ public class ApplicationTests {
 		}
 	}
 
-//	@Test
+	//	@Test
 	public void findDomain() {
 		profiler.start("findDomain");
 		TestBDomain b = domainEntityManager.find(TestBDomain.class, 6301297863L);
@@ -125,7 +126,7 @@ public class ApplicationTests {
 
 	}
 
-//	@Test
+	//	@Test
 	public void findShard() {
 		profiler.start("findShard");
 		TestBShardEntity b = entityManager.find(TestBShardEntity.class, 768795301L);
@@ -142,7 +143,7 @@ public class ApplicationTests {
 		System.out.println("b4.getCList().size() " + b3.getCList().size());
 		System.out.println("b4.getCList().size() 2 " + b4.getCList().size());
 
-		List<TestCShardEntity> cList =  b.getCList();
+		List<TestCShardEntity> cList = b.getCList();
 		System.out.println("b.getCList()");
 		int size = cList.size();
 		System.out.println("cList.size() " + size);
@@ -155,59 +156,59 @@ public class ApplicationTests {
 		System.out.println(profiler.printTimeCounter());
 	}
 
-//    @Test
-    public void findMBatis() {
-        profiler.start("findMBatis");
-        TestBEntity b = testService.findBByIdMBatis(768795301L);
-        System.out.println("FIND B");
+	//    @Test
+	public void findMBatis() {
+		profiler.start("findMBatis");
+		TestBEntity b = testService.findBByIdMBatis(768795301L);
+		System.out.println("FIND B");
 
 
-        TestBEntity b2 = testService.findBByIdMBatis(769431601L);
-        TestBEntity b3 = testService.findBByIdMBatis(770067901L);
-        System.out.println("b3.getCList().size() " + b3.getCList().size());
-        TestBEntity b4 = testService.findBByIdMBatis(770067901L);
-        System.out.println("b4.getCList().size() " + b4.getCList().size());
-        System.out.println("b4.getCList().size() 2 " + b4.getCList().size());
+		TestBEntity b2 = testService.findBByIdMBatis(769431601L);
+		TestBEntity b3 = testService.findBByIdMBatis(770067901L);
+		System.out.println("b3.getCList().size() " + b3.getCList().size());
+		TestBEntity b4 = testService.findBByIdMBatis(770067901L);
+		System.out.println("b4.getCList().size() " + b4.getCList().size());
+		System.out.println("b4.getCList().size() 2 " + b4.getCList().size());
 
-        List<TestCEntity> cList =  b.getCList();
-        System.out.println("b.getCList()");
-        int size = cList.size();
-        System.out.println("cList.size() " + size);
-        TestCEntity c = b.getCList().get(0);
-        System.out.println("FIND C value " + c.getValue());
+		List<TestCEntity> cList = b.getCList();
+		System.out.println("b.getCList()");
+		int size = cList.size();
+		System.out.println("cList.size() " + size);
+		TestCEntity c = b.getCList().get(0);
+		System.out.println("FIND C value " + c.getValue());
 //		System.out.println("c.getB().getValue() " + c.getB().getValue());
 
-        profiler.stop();
-        System.out.println(profiler.printTimeCounter());
-    }
+		profiler.stop();
+		System.out.println(profiler.printTimeCounter());
+	}
 
-//    @Test
-    public void findStatement() {
-        profiler.start("findStatement");
-        TestBEntity b = testService.findBByIdStatement(768795301L);
-        System.out.println("FIND B");
+	//    @Test
+	public void findStatement() {
+		profiler.start("findStatement");
+		TestBEntity b = testService.findBByIdStatement(768795301L);
+		System.out.println("FIND B");
 
 
-        TestBEntity b2 = testService.findBByIdStatement(769431601L);
-        TestBEntity b3 = testService.findBByIdStatement(770067901L);
-        System.out.println("b3.getCList().size() " + b3.getCList().size());
-        TestBEntity b4 = testService.findBByIdStatement(770067901L);
-        System.out.println("b4.getCList().size() " + b4.getCList().size());
-        System.out.println("b4.getCList().size() 2 " + b4.getCList().size());
+		TestBEntity b2 = testService.findBByIdStatement(769431601L);
+		TestBEntity b3 = testService.findBByIdStatement(770067901L);
+		System.out.println("b3.getCList().size() " + b3.getCList().size());
+		TestBEntity b4 = testService.findBByIdStatement(770067901L);
+		System.out.println("b4.getCList().size() " + b4.getCList().size());
+		System.out.println("b4.getCList().size() 2 " + b4.getCList().size());
 
-        List<TestCEntity> cList =  b.getCList();
-        System.out.println("b.getCList()");
-        int size = cList.size();
-        System.out.println("cList.size() " + size);
-        TestCEntity c = b.getCList().get(0);
-        System.out.println("FIND C value " + c.getValue());
+		List<TestCEntity> cList = b.getCList();
+		System.out.println("b.getCList()");
+		int size = cList.size();
+		System.out.println("cList.size() " + size);
+		TestCEntity c = b.getCList().get(0);
+		System.out.println("FIND C value " + c.getValue());
 //		System.out.println("c.getB().getValue() " + c.getB().getValue());
 
-        profiler.stop();
-        System.out.println(profiler.printTimeCounter());
-    }
+		profiler.stop();
+		System.out.println(profiler.printTimeCounter());
+	}
 
-//    @Test
+	//    @Test
 	public void findJPA() {
 		profiler.start("findJPA");
 		TestBEntity b = testBRepository.findById(768795301L).orElse(null);
@@ -226,7 +227,7 @@ public class ApplicationTests {
 		System.out.println("b4.getCList().size() " + b4.getCList().size());
 		System.out.println("b4.getCList().size() 2 " + b4.getCList().size());
 
-		List<TestCEntity> cList =  b.getCList();
+		List<TestCEntity> cList = b.getCList();
 		System.out.println("b.getCList()");
 		int size = cList.size();
 		System.out.println("cList.size() " + size);
@@ -238,10 +239,10 @@ public class ApplicationTests {
 		System.out.println(profiler.printTimeCounter());
 	}
 
-//	@Test
+	//	@Test
 	public void findAllJPA() {
 		profiler.start("findAllJPA");
-		List<TestBEntity> bList = testBRepository.findAllByValueLike("JPA%");
+		List<TestBEntity> bList = testBRepository.findAllByValueLikeAndShardMapGreaterThanEqual("JPA%", 0L);
 		System.out.println("FIND B bList.size() = " + bList.size());
 /*
 		bList.forEach(b -> {
@@ -253,7 +254,7 @@ public class ApplicationTests {
 		System.out.println(profiler.printTimeCounter());
 	}
 
-//	@Test
+	//	@Test
 	public void findAllDomain() {
 		profiler.start("findAllDomain");
 
@@ -323,8 +324,6 @@ public class ApplicationTests {
 //		domainEntityManager.getTransaction().commit();
 
 
-
-
 //		System.out.println("FIND C bList.get(0).getCList().size() = " + bList.get(0).getTestList().size());
 
 		profiler.stop();
@@ -344,7 +343,7 @@ public class ApplicationTests {
 */
 	}
 
-//	@Test
+	//	@Test
 	public void findAllShard() {
 		profiler.start("findAllShard");
 		List<TestBShardEntity> bList = entityManager.findAll(
@@ -364,7 +363,7 @@ public class ApplicationTests {
 		System.out.println(profiler.printTimeCounter());
 	}
 
-//	@Test
+	//	@Test
 	public void findAllMBatis() {
 		profiler.start("findAllMBatis");
 		List<TestBEntity> bList = testService.findAllByValueLikeMBatis("MyBatis%");
@@ -380,7 +379,7 @@ public class ApplicationTests {
 		System.out.println(profiler.printTimeCounter());
 	}
 
-//	@Test
+	//	@Test
 	public void findAllStatement() {
 		profiler.start("findAllStatement");
 		List<TestBEntity> bList = testService.findAllBByValueLikeStatement("Statement%");
@@ -395,7 +394,7 @@ public class ApplicationTests {
 		System.out.println(profiler.printTimeCounter());
 	}
 
-//	@Test
+	//	@Test
 	public void skipLockedDomain() {
 		profiler.start("skipLockedDomain");
 		List<TestBDomain> bList = domainEntityManager.skipLocked(
@@ -408,7 +407,7 @@ public class ApplicationTests {
 		System.out.println(profiler.printTimeCounter());
 	}
 
-//	@Test
+	//	@Test
 	public void deleteDomain() {
 		List<TestBDomain> bList = domainEntityManager.findAll(
 				TestBDomain.class,
@@ -429,7 +428,7 @@ public class ApplicationTests {
 		domainEntityManager.getTransaction().commit();
 	}
 
-//	@Test
+	//	@Test
 	public void updateOther() {
 		profiler.start("saveOther");
 
@@ -452,7 +451,7 @@ public class ApplicationTests {
 		System.out.println(profiler.printTimeCounter());
 	}
 
-//	@Test
+	//	@Test
 	public void saveOther() {
 		profiler.start("saveOther");
 		List<TestOtherShardEntity> list = testShardService.generateOther(100);
@@ -466,7 +465,7 @@ public class ApplicationTests {
 		System.out.println(profiler.printTimeCounter());
 	}
 
-//	@Test
+	//	@Test
 	public void findAllOther() {
 		profiler.start("findAllOther");
 		List<TestOtherShardEntity> entities = entityManager.findAll(TestOtherShardEntity.class, "st=?", "3a21c0ed-dbc0-4fc1-a748-337bd7b9c01b");
@@ -476,9 +475,9 @@ public class ApplicationTests {
 	}
 
 
-//	@Test
+	//	@Test
 	public void saveJPA() {
-        databaseManager.sequenceNextVal();
+		databaseManager.sequenceNextVal();
 		profiler.start("testService.generate");
 		List<TestBEntity> testBEntities = testService.generate(1000, 100, null, "JPA5");
 		profiler.stop();
@@ -496,9 +495,9 @@ public class ApplicationTests {
 		System.out.println("testBEntities.size = " + testBEntities.size());
 	}
 
-//	@Test
+	//	@Test
 	public void saveMyBatis() {
-        databaseManager.sequenceNextVal();
+		databaseManager.sequenceNextVal();
 		profiler.start("testService.generate");
 		List<TestBEntity> testBEntities = testService.generate(1000, 100, null, "MyBatis5");
 		profiler.stop();
@@ -514,9 +513,9 @@ public class ApplicationTests {
 		System.out.println("testBEntities.size = " + testBEntities.size());
 	}
 
-//	@Test
+	//	@Test
 	public void saveStatement() {
-        databaseManager.sequenceNextVal();
+		databaseManager.sequenceNextVal();
 		profiler.start("testService.generate");
 		List<TestBEntity> testBEntities = testService.generate(1000, 100, null, "Statement5");
 		profiler.stop();
@@ -532,11 +531,11 @@ public class ApplicationTests {
 		System.out.println("testBEntities.size = " + testBEntities.size());
 	}
 
-//	@Test
+	//	@Test
 	public void saveShard() {
-        databaseManager.sequenceNextVal();
+		databaseManager.sequenceNextVal();
 		profiler.start("testShardService.generate");
-		List<TestBShardEntity>  testBEntities2 = testShardService.generate(1000, 100, "Shard5");
+		List<TestBShardEntity> testBEntities2 = testShardService.generate(1000, 100, "Shard5");
 		profiler.stop();
 		System.out.println(profiler.printTimeCounter());
 
@@ -590,7 +589,7 @@ public class ApplicationTests {
 	}
 
 
-//	@Test
+	//	@Test
 	public void deadLock() {
 		databaseManager.sequenceNextVal();
 		profiler.start("testShardService.generate");
@@ -614,11 +613,11 @@ public class ApplicationTests {
 	}
 
 
-//	@Test
+	//	@Test
 	public void saveDomain() {
 		databaseManager.sequenceNextVal();
 		profiler.start("saveDomain.generate");
-		List<TestBDomain> testBDomains = domainService.generate(1000, 100, "Domain");
+		List<TestBDomain> testBDomains = domainService.generate(10000, 100, "Domain");
 		profiler.stop();
 
 		profiler.start("saveDomain.save");
@@ -630,7 +629,7 @@ public class ApplicationTests {
 		System.out.println(profiler.printTimeCounter());
 
 		System.out.println("testBDomains.size = " + testBDomains.size());
-
+/*
 
 		TestBDomain b = testBDomains.get(0);
 		System.out.println("B ID = " + b.getId());
@@ -650,7 +649,7 @@ public class ApplicationTests {
 
 		history = domainEntityManager.getAttributeHistory(b, "sum");
 		System.out.println("2 history.size = " + history.size());
-
+*/
 /*
 		TestADomain a = b.getTestA();
 
@@ -699,7 +698,7 @@ public class ApplicationTests {
 	}
 
 
-//	@Test
+	//	@Test
 	public void bind() {
 		profiler.start("BIND.Query");
 		for (int i = 0; i < 100000; i++) {
@@ -763,55 +762,48 @@ public class ApplicationTests {
 		}
 
 
-
-
-
-
 	}
 
-//	@Test
+	//	@Test
 	public void testJson() {
 		profiler.start("testJson");
 		List<TestBEntity> testBEntities = testService.generate(2, 10, null, "Json");
 
 		try {
-            String jSonText;
-            TestAEntity a = new TestAEntity();
-            a.setId(2345L);
-            a.setValue("AValue");
+			String jSonText;
+			TestAEntity a = new TestAEntity();
+			a.setId(2345L);
+			a.setValue("AValue");
 
-            TestBEntity b = testBEntities.get(0);
+			TestBEntity b = testBEntities.get(0);
 
-            ObjectNode root = objectMapper.createObjectNode();
+			ObjectNode root = objectMapper.createObjectNode();
 
-            root.putPOJO("id", 1111L);
-            root.putPOJO("executeTime", b.getExecuteTime());
+			root.putPOJO("id", 1111L);
+			root.putPOJO("executeTime", b.getExecuteTime());
 
-            root.putPOJO("a", a);
-            jSonText = root.toString();
+			root.putPOJO("a", a);
+			jSonText = root.toString();
 
 
-            System.out.println("jSonText 0 = " + jSonText);
+			System.out.println("jSonText 0 = " + jSonText);
 
 /*
 			jSonText = objectMapper.writeValueAsString(testBEntities.get(0));
 			System.out.println("jSonText 1 = " + jSonText);
 */
 
-            testBEntities.get(0).setId(123L);
+			testBEntities.get(0).setId(123L);
 
 
 //            List<TestBEntity> bList = Arrays.asList(objectMapper.readValue(jSonText, TestBEntity[].class));
-            b = objectMapper.readValue(jSonText, TestBEntity.class);
+			b = objectMapper.readValue(jSonText, TestBEntity.class);
 
-            root = (ObjectNode) objectMapper.readTree(jSonText);
+			root = (ObjectNode) objectMapper.readTree(jSonText);
 
-            root.put("a", objectMapper.writeValueAsString(a));
-            jSonText = root.asText();
-            System.out.println("jSonText = " + jSonText);
-
-
-
+			root.put("a", objectMapper.writeValueAsString(a));
+			jSonText = root.asText();
+			System.out.println("jSonText = " + jSonText);
 
 
 		} catch (JsonProcessingException err) {
@@ -822,7 +814,7 @@ public class ApplicationTests {
 		System.out.println(profiler.printTimeCounter());
 	}
 
-//	@Test
+	//	@Test
 	public void testJson2() {
 		profiler.start("testJson2");
 
@@ -852,7 +844,7 @@ public class ApplicationTests {
 		System.out.println(profiler.printTimeCounter());
 	}
 
-	@Test
+	//	@Test
 	public void testJPAPersistenceContext() {
 		testLocal.set("MainThread");
 
@@ -896,4 +888,27 @@ public class ApplicationTests {
 
 		TestBEntity b = testBRepository.findById(27090062L).orElse(null);
 	}
+
+
+	@Test
+
+	public void testSaveUpd() {
+		TestBEntity b = testBRepository.findById(10999000001L).orElse(null);
+		TestBEntity b2 = testBRepository.findById(10999000001L).orElse(null);
+		if (b == b2) {
+			System.out.println("B == B2 is TRUE");
+		} else {
+			System.out.println("B == B2 is FALSE");
+		}
+		b.setValue("JPAAAA");
+		b2.setNewValue("JPAAAA");
+		System.out.println("1 value = " + b.getValue() + " newValue = " + b.getNewValue());
+		System.out.println("2 value = " + b2.getValue() + " newValue = " + b2.getNewValue());
+
+		testBRepository.save(b);
+		testBRepository.save(b2);
+		b = testBRepository.findById(10999000001L).orElse(null);
+		System.out.println("1 value = " + b.getValue() + " newValue = " + b.getNewValue());
+	}
+
 }
