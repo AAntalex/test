@@ -96,7 +96,7 @@ public class TestSchedulingService {
 //            processShard();
 //            processHibernate();
 
-                findAllShard();
+            findAllShard();
 //            findAllHibernate();
 
             profiler.stop();
