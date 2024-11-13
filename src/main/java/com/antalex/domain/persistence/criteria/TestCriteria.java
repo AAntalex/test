@@ -5,6 +5,11 @@ import com.antalex.domain.persistence.entity.shard.TestAShardEntity;
 import com.antalex.domain.persistence.entity.shard.TestBShardEntity;
 import com.antalex.domain.persistence.entity.shard.TestCShardEntity;
 import lombok.Data;
+import ru.vtb.pmts.db.annotation.Criteria;
+import ru.vtb.pmts.db.annotation.CriteriaAttribute;
+import ru.vtb.pmts.db.annotation.Join;
+
+import javax.persistence.criteria.JoinType;
 
 @Data
 
@@ -12,7 +17,7 @@ import lombok.Data;
         from = TestBShardEntity.class,
         alias = "b",
         joins = {
-                @LeftJoin(from = TestAShardEntity.class, alias = "a", on = "${a} = ${b.a}"),
+                @Join(from = TestAShardEntity.class, joinType = JoinType.LEFT, alias = "a", on = "${a} = ${b.a}"),
                 @Join(from = TestCShardEntity.class, alias = "c", on = "${c.b} = ${b}")
         },
         where = "${a.value} like 'Shard%'",
