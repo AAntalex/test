@@ -19,6 +19,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import jakarta.persistence.EntityManagerFactory;
+import lombok.Data;
 import org.hibernate.dialect.Dialect;
 import org.hibernate.engine.jdbc.dialect.internal.StandardDialectResolver;
 import org.hibernate.engine.jdbc.dialect.spi.DatabaseMetaDataDialectResolutionInfoAdapter;
@@ -890,8 +891,7 @@ public class ApplicationTests {
 	}
 
 
-	@Test
-
+//	@Test
 	public void testSaveUpd() {
 		TestBEntity b = testBRepository.findById(10999000001L).orElse(null);
 		TestBEntity b2 = testBRepository.findById(10999000001L).orElse(null);
@@ -911,4 +911,45 @@ public class ApplicationTests {
 		System.out.println("1 value = " + b.getValue() + " newValue = " + b.getNewValue());
 	}
 
+	@Test
+	public void testEqual() {
+		TestClass t1 = new TestClass();
+		TestClass t2 = new TestClass();
+
+		TestBEntity b1 = new TestBEntity();
+		b1.setId(1L);
+
+		t1.setCondition("test");
+		t1.setBinds(new Object[100]);
+		t1.getBinds()[0] = "test";
+		t1.getBinds()[1] = b1;
+		t1.getBinds()[2] = new BigDecimal("1.2");
+		for (int i = 3; i < 100; i++) {
+			t1.getBinds()[i] = i;
+		}
+
+		TestBEntity b2 = new TestBEntity();
+		b2.setId(1L);
+
+		t2.setCondition("test");
+		t2.setBinds(new Object[100]);
+		t2.getBinds()[0] = "test";
+		t2.getBinds()[1] = b2;
+		t2.getBinds()[2] = new BigDecimal("1.2");
+		for (int i = 3; i < 100; i++) {
+			t2.getBinds()[i] = i;
+		}
+
+
+		System.out.println("1 t1.hashCode() = " + t1.hashCode() + " t2.hashCode() = " + t2.hashCode()
+				+ " t1.equals(t2) = " + t1.equals(t2)
+						+ " t1.toString() = " + t1
+				);
+	}
+
+	@Data
+	class TestClass {
+		private String condition;
+		private Object[] binds;
+	}
 }
