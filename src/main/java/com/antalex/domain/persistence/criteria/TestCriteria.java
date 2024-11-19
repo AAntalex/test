@@ -29,7 +29,7 @@ import javax.persistence.criteria.JoinType;
                 fetch = FetchType.EAGER,
                 implement = TransactionalCacheManager.class,
                 key = {"b.value", "b.newValue"},
-                refreshTimeOut = 60
+                retentionTime = 60
         )
 )
 

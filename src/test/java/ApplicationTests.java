@@ -1,3 +1,4 @@
+import com.antalex.domain.persistence.criteria.TestCriteria;
 import com.antalex.domain.persistence.domain.TestADomain;
 import com.antalex.domain.persistence.domain.TestBDomain;
 import com.antalex.domain.persistence.domain.TestCDomain;
@@ -43,21 +44,22 @@ import ru.vtb.pmts.db.service.api.DataWrapperFactory;
 import ru.vtb.pmts.db.service.impl.managers.ShardDatabaseManagerImpl;
 
 import javax.persistence.FetchType;
+import javax.sql.rowset.serial.SerialBlob;
+import javax.sql.rowset.serial.SerialClob;
 import java.math.BigDecimal;
-import java.sql.Blob;
-import java.sql.Connection;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.sql.*;
 import java.sql.Date;
-import java.sql.PreparedStatement;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes = OptimizerApplication.class)
@@ -912,39 +914,93 @@ public class ApplicationTests {
 	}
 
 	@Test
+	public void testCriteria() {
+		profiler.start("findCriteria");
+
+/*
+		TestBDomain b = domainEntityManager.find(TestCriteria.class, "{a.value} = ?", "AAA");
+		List<TestBDomain> bList = domainEntityManager.findAll(TestCriteria.class, "a.C_VALUE = ?", "AAA");
+		Stream<TestBDomain> bStream = domainEntityManager.getCache(TestCriteria.class, 1, "TEST");
+
+		System.out.println("FIND B b.getValue() = " + b.getValue());
+*/
+
+		profiler.stop();
+		System.out.println(profiler.printTimeCounter());
+
+	}
+
+
+//	@Test
 	public void testEqual() {
 		TestClass t1 = new TestClass();
 		TestClass t2 = new TestClass();
 
-		TestBEntity b1 = new TestBEntity();
-		b1.setId(1L);
-
+		UUID uuid = UUID.randomUUID();
 		t1.setCondition("test");
-		t1.setBinds(new Object[100]);
-		t1.getBinds()[0] = "test";
-		t1.getBinds()[1] = b1;
-		t1.getBinds()[2] = new BigDecimal("1.2");
-		for (int i = 3; i < 100; i++) {
-			t1.getBinds()[i] = i;
-		}
+		t1.setBinds(new Object[16]);
 
-		TestBEntity b2 = new TestBEntity();
-		b2.setId(1L);
+		t1.getBinds()[0] = true;
+		t1.getBinds()[1] = (byte) 1;
+		t1.getBinds()[2] = 2d;
+		t1.getBinds()[3] = 3f;
+		t1.getBinds()[4] = (short) 4;
+		t1.getBinds()[5] = BigDecimal.valueOf(3.14);
+		t1.getBinds()[6] = 6;
+		t1.getBinds()[7] = 7;
+		t1.getBinds()[8] = new java.util.Date();
+		t1.getBinds()[9] = LocalDateTime.now();
+		t1.getBinds()[10] = OffsetDateTime.now();
+		t1.getBinds()[11] = new Time(System.currentTimeMillis());
+		t1.getBinds()[12] = new Timestamp(System.currentTimeMillis());
+
+		t1.getBinds()[13] = TestStatus.PROCESS;
+		try {
+			t1.getBinds()[14] = new URL("https://www.baeldung.com/java-url");
+		} catch (MalformedURLException err) {
+			throw new RuntimeException(err);
+		}
+		t1.getBinds()[15] = uuid;
+
 
 		t2.setCondition("test");
-		t2.setBinds(new Object[100]);
-		t2.getBinds()[0] = "test";
-		t2.getBinds()[1] = b2;
-		t2.getBinds()[2] = new BigDecimal("1.2");
-		for (int i = 3; i < 100; i++) {
-			t2.getBinds()[i] = i;
+		t2.setBinds(new Object[16]);
+
+		t2.getBinds()[0] = true;
+		t2.getBinds()[1] = (byte) 1;
+		t2.getBinds()[2] = 2d;
+		t2.getBinds()[3] = 3f;
+		t2.getBinds()[4] = (short) 4;
+		t2.getBinds()[5] = BigDecimal.valueOf(3.14);
+		t2.getBinds()[6] = 6;
+		t2.getBinds()[7] = 7;
+		t2.getBinds()[8] = new java.util.Date();
+		t2.getBinds()[9] = LocalDateTime.now();
+		t2.getBinds()[10] = OffsetDateTime.now();
+		t2.getBinds()[11] = new Time(System.currentTimeMillis());
+		t2.getBinds()[12] = new Timestamp(System.currentTimeMillis());
+
+		t2.getBinds()[13] = TestStatus.PROCESS;
+		try {
+			t2.getBinds()[14] = new URL("https://www.baeldung.com/java-url");
+		} catch (MalformedURLException err) {
+			throw new RuntimeException(err);
 		}
+		t2.getBinds()[15] = uuid;
+
+
 
 
 		System.out.println("1 t1.hashCode() = " + t1.hashCode() + " t2.hashCode() = " + t2.hashCode()
 				+ " t1.equals(t2) = " + t1.equals(t2)
 						+ " t1.toString() = " + t1
 				);
+
+		System.out.println("AAA 1 t1.getBinds().hashCode() = " + Arrays.hashCode(t1.getBinds()) + " t2.getBinds().hashCode() = " + Arrays.hashCode(t2.getBinds())
+				+ " t1.equals(t2) = " + Arrays.equals(t1.getBinds(), t2.getBinds())
+				+ " t1.getBinds().toString() = " + Arrays.toString(t1.getBinds())
+		);
+
 	}
 
 	@Data
