@@ -29,7 +29,7 @@ public class TestBShardEntity extends BaseShardEntity {
     private TestAShardEntity a;
     private String newValue;
     @ParentShard
-    @OneToMany
+    @OneToMany(fetch = FetchType.EAGER)
     @JoinColumn(name = "C_B_REF")
     private List<TestCShardEntity> cList = new ArrayList<>();
     private OffsetDateTime executeTime;

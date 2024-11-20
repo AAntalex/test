@@ -918,12 +918,14 @@ public class ApplicationTests {
 		profiler.start("findCriteria");
 
 /*
-		TestBDomain b = domainEntityManager.find(TestCriteria.class, "{a.value} = ?", "AAA");
-		List<TestBDomain> bList = domainEntityManager.findAll(TestCriteria.class, "a.C_VALUE = ?", "AAA");
-		Stream<TestBDomain> bStream = domainEntityManager.getCache(TestCriteria.class, 1, "TEST");
+
+		TestBDomain b = domainEntityManager.findByCriteria(TestCriteria.class, "{a.value} = ?", "AAA");
+		List<TestBDomain> bList = domainEntityManager.findAllByCriteria(TestCriteria.class, "a.C_VALUE = ?", "AAA");
+		Stream<TestBDomain> bStream = domainEntityManager.getCache(TestCriteria.class, 1L, "TEST");
 
 		System.out.println("FIND B b.getValue() = " + b.getValue());
 */
+
 
 		profiler.stop();
 		System.out.println(profiler.printTimeCounter());

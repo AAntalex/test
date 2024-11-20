@@ -6,7 +6,7 @@ import com.antalex.domain.persistence.entity.shard.TestBShardEntity;
 import com.antalex.domain.persistence.entity.shard.TestCShardEntity;
 import lombok.Data;
 
-import ru.vtb.pmts.db.annotation.CacheManager;
+import ru.vtb.pmts.db.annotation.CachePolicy;
 import ru.vtb.pmts.db.annotation.Criteria;
 import ru.vtb.pmts.db.annotation.CriteriaAttribute;
 import ru.vtb.pmts.db.annotation.Join;
@@ -25,7 +25,7 @@ import javax.persistence.criteria.JoinType;
                 @Join(from = TestCShardEntity.class, alias = "c", on = "${c.b} = ${b}")
         },
         where = "${a.value} like 'Shard%'",
-        cacheManager = @CacheManager(
+        cachePolicy = @CachePolicy(
                 fetch = FetchType.EAGER,
                 implement = TransactionalCacheManager.class,
                 key = {"b.value", "b.newValue"},
