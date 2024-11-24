@@ -1,0 +1,33 @@
+1. BRANCH (ID, CODE, LABEL)
+2. CLIENT (ID, NAME)
+3. CLIENT_CATEGORY (ID, CLIENT, CATEGORY)
+4. ACCOUNT (ID, CODE, CLIENT, SALDO, BRANCH)
+5. DOC (ID, ACC_DT, ACC_CT, SUM, NUM, DATE, BRANCH)
+6. EXT_DOC (ID, DOC, DATE, BEN)
+
+
+
+select ext.BEN, cat.CATEGORY
+from EXT_DOC ext,
+   , DOC doc
+   , ACCOUNT acc_dt
+   , ACCOUNT acc_ct
+   , CLIENT cl_ct
+   , CLIENT_CATEGORY cat
+   , BRANCH fil
+where   ext.DOC = doc.ID
+    and doc.ACC_DT(+) = acc_dt.ID
+    and doc.ACC_CT = acc_ct.ID
+    and acc_ct.CLIENT = cl_ct.ID
+    and cat.CLIENT = cl_ct.ID
+    and fil.ID = acc_dt.BRANCH
+    and doc.BRANCH = fil.id
+
+    and doc.DATE >= :date
+    and ext.DATE >= :date
+    and fil.CODE = :fil
+    and (
+           acc_dt.CODE like :num_dt
+        or acc_ct.CODE like :num_ct
+    )
+    and cl_ct.NAME like :client
