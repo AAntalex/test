@@ -1,10 +1,10 @@
 package com.antalex.domain.persistence.entity.hiber;
 
 
+import com.antalex.db.entity.abstraction.BaseShardEntity;
 import lombok.Data;
-import ru.vtb.pmts.db.entity.abstraction.BaseShardEntity;
 
-import jakarta.persistence.*;
+import javax.persistence.*;
 import java.time.LocalDateTime;
 
 @Table(name = "TEST_A", schema = "segment_integr")

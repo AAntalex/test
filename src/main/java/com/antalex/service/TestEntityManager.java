@@ -1,7 +1,6 @@
 package com.antalex.service;
 
-
-import ru.vtb.pmts.db.entity.abstraction.ShardInstance;
+import com.antalex.db.entity.abstraction.ShardInstance;
 
 public interface TestEntityManager {
     <T extends ShardInstance> void generateId(T entity);

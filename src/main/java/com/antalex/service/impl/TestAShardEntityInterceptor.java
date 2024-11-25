@@ -1,7 +1,7 @@
 package com.antalex.service.impl;
 
+import com.antalex.db.service.ShardEntityManager;
 import com.antalex.domain.persistence.entity.shard.TestAShardEntity;
-import ru.vtb.pmts.db.service.ShardEntityManager;
 
 import java.time.LocalDateTime;
 

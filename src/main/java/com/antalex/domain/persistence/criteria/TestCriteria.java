@@ -1,16 +1,15 @@
 package com.antalex.domain.persistence.criteria;
 
+import com.antalex.db.annotation.CachePolicy;
+import com.antalex.db.annotation.Criteria;
+import com.antalex.db.annotation.CriteriaAttribute;
+import com.antalex.db.annotation.Join;
+import com.antalex.db.service.impl.managers.TransactionalCacheManager;
 import com.antalex.domain.persistence.domain.TestBDomain;
 import com.antalex.domain.persistence.entity.shard.TestAShardEntity;
 import com.antalex.domain.persistence.entity.shard.TestBShardEntity;
 import com.antalex.domain.persistence.entity.shard.TestCShardEntity;
 import lombok.Data;
-
-import ru.vtb.pmts.db.annotation.CachePolicy;
-import ru.vtb.pmts.db.annotation.Criteria;
-import ru.vtb.pmts.db.annotation.CriteriaAttribute;
-import ru.vtb.pmts.db.annotation.Join;
-import ru.vtb.pmts.db.service.impl.managers.TransactionalCacheManager;
 
 import javax.persistence.FetchType;
 import javax.persistence.criteria.JoinType;

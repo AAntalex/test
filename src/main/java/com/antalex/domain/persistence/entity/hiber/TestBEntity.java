@@ -1,9 +1,9 @@
 package com.antalex.domain.persistence.entity.hiber;
 
+import javax.persistence.*;
 
-import jakarta.persistence.*;
+import com.antalex.db.entity.abstraction.BaseShardEntity;
 import lombok.Data;
-import ru.vtb.pmts.db.entity.abstraction.BaseShardEntity;
 
 import java.util.ArrayList;
 import java.util.Date;

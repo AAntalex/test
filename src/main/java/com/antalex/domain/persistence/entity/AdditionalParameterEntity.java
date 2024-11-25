@@ -1,7 +1,7 @@
 package com.antalex.domain.persistence.entity;
 
 import lombok.Data;
-import jakarta.persistence.*;
+import javax.persistence.*;
 
 @Table(name = "Z#VND_ADD_PARAMS")
 @Data

@@ -1,5 +1,6 @@
 package com.antalex.config;
 
+import com.antalex.db.service.ShardDataBaseManager;
 import jakarta.persistence.EntityManagerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -11,7 +12,6 @@ import org.springframework.orm.jpa.JpaVendorAdapter;
 import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
 import org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter;
 import org.springframework.transaction.PlatformTransactionManager;
-import ru.vtb.pmts.db.service.ShardDataBaseManager;
 
 import javax.sql.DataSource;
 import java.util.Properties;

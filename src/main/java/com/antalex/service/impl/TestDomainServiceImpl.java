@@ -1,5 +1,6 @@
 package com.antalex.service.impl;
 
+import com.antalex.db.service.DomainEntityManager;
 import com.antalex.domain.persistence.domain.Routing;
 import com.antalex.domain.persistence.domain.TestADomain;
 import com.antalex.domain.persistence.domain.TestBDomain;
@@ -7,7 +8,6 @@ import com.antalex.domain.persistence.domain.TestCDomain;
 import com.antalex.service.TestDomainService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import ru.vtb.pmts.db.service.DomainEntityManager;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;

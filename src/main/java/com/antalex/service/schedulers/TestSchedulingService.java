@@ -1,5 +1,7 @@
 package com.antalex.service.schedulers;
 
+import com.antalex.db.service.ShardDataBaseManager;
+import com.antalex.db.service.ShardEntityManager;
 import com.antalex.domain.persistence.entity.hiber.TestBEntity;
 import com.antalex.domain.persistence.entity.shard.TestBShardEntity;
 import com.antalex.domain.persistence.repository.TestBRepository;
@@ -19,8 +21,6 @@ import org.springframework.context.annotation.DependsOn;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.vtb.pmts.db.service.ShardDataBaseManager;
-import ru.vtb.pmts.db.service.ShardEntityManager;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;

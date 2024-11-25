@@ -1,5 +1,6 @@
 package com.antalex.service.impl;
 
+import com.antalex.db.service.ShardDataBaseManager;
 import com.antalex.domain.persistence.entity.hiber.TestAEntity;
 import com.antalex.domain.persistence.entity.hiber.TestBEntity;
 import com.antalex.domain.persistence.entity.hiber.TestCEntity;
@@ -14,7 +15,6 @@ import org.apache.ibatis.session.SqlSessionFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.vtb.pmts.db.service.ShardDataBaseManager;
 
 import javax.sql.DataSource;
 import java.sql.Connection;

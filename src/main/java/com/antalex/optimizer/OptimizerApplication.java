@@ -5,8 +5,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.ComponentScan;
 
 @SpringBootApplication(scanBasePackages = {
-        "com.antalex",
-        "ru.vtb.pmts.db"
+        "com.antalex"
 })
 public class OptimizerApplication {
     public static void main(String[] args) {

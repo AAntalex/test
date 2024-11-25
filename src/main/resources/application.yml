@@ -55,7 +55,7 @@ hibernate:
 
 logging:
   level:
-    ru.vtb.pmts.db: trace
+    com.antalex.db: trace
     com.antalex.service: trace
     org.hibernate.type:
       descriptor:

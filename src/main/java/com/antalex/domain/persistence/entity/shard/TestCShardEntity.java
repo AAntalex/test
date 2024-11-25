@@ -1,12 +1,12 @@
 package com.antalex.domain.persistence.entity.shard;
 
 
-import lombok.Data;
-import ru.vtb.pmts.db.annotation.ShardEntity;
-import ru.vtb.pmts.db.entity.abstraction.BaseShardEntity;
-
+import com.antalex.db.annotation.ShardEntity;
+import com.antalex.db.entity.abstraction.BaseShardEntity;
 import javax.persistence.Column;
 import javax.persistence.Table;
+import lombok.Data;
+
 import java.time.LocalDateTime;
 
 @Table(name = "TEST_C")

@@ -1,13 +1,13 @@
 package com.antalex.domain.persistence.entity.shard;
 
+import com.antalex.db.annotation.ParentShard;
+import com.antalex.db.annotation.ShardEntity;
+import com.antalex.db.entity.abstraction.BaseShardEntity;
+import com.antalex.db.model.enums.ShardType;
+import javax.persistence.*;
 import lombok.Data;
 import lombok.experimental.Accessors;
-import ru.vtb.pmts.db.annotation.ParentShard;
-import ru.vtb.pmts.db.annotation.ShardEntity;
-import ru.vtb.pmts.db.entity.abstraction.BaseShardEntity;
-import ru.vtb.pmts.db.model.enums.ShardType;
 
-import javax.persistence.*;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 

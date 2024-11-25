@@ -1,10 +1,10 @@
 package com.antalex.domain.persistence.domain;
 
+import com.antalex.db.annotation.Attribute;
+import com.antalex.db.annotation.DomainEntity;
+import com.antalex.db.domain.abstraction.BaseDomain;
 import com.antalex.domain.persistence.entity.shard.TestAShardEntity;
 import lombok.Data;
-import ru.vtb.pmts.db.annotation.Attribute;
-import ru.vtb.pmts.db.annotation.DomainEntity;
-import ru.vtb.pmts.db.domain.abstraction.BaseDomain;
 
 import java.time.LocalDateTime;
 

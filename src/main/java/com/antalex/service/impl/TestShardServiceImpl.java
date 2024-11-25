@@ -1,13 +1,13 @@
 package com.antalex.service.impl;
 
 
+import com.antalex.db.service.ShardDataBaseManager;
+import com.antalex.db.service.ShardEntityManager;
 import com.antalex.domain.persistence.entity.shard.*;
 import com.antalex.profiler.service.ProfilerService;
 import com.antalex.service.TestShardService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import ru.vtb.pmts.db.service.ShardDataBaseManager;
-import ru.vtb.pmts.db.service.ShardEntityManager;
 
 import javax.sql.rowset.serial.SerialBlob;
 import javax.sql.rowset.serial.SerialClob;
