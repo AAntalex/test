@@ -1,6 +1,6 @@
 package com.antalex.domain.persistence.entity.hiber;
 
-import javax.persistence.*;
+import jakarta.persistence.*;
 
 import com.antalex.db.entity.abstraction.BaseShardEntity;
 import lombok.Data;
@@ -9,14 +9,14 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-@Table(name = "TEST_B", schema = "segment_integr")
+@Table(name = "TEST_B", schema = "main_1")
 @Data
 @Entity
 public class TestBEntity extends BaseShardEntity {
     @Id
     @Column(name = "ID")
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "test_seq")
-    @SequenceGenerator(name = "test_seq", sequenceName = "test_seq_id", schema = "segment_integr", allocationSize = 1000000)
+    @SequenceGenerator(name = "test_seq", sequenceName = "test_seq_id", schema = "main_1", allocationSize = 1000000)
     private Long id;
     @Column(name = "SHARD_MAP")
     private Long shardMap;

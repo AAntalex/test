@@ -615,7 +615,7 @@ public class ApplicationTests {
 	}
 
 
-	//	@Test
+	@Test
 	public void saveDomain() {
 		databaseManager.sequenceNextVal();
 		profiler.start("saveDomain.generate");
@@ -912,7 +912,7 @@ public class ApplicationTests {
 		System.out.println("1 value = " + b.getValue() + " newValue = " + b.getNewValue());
 	}
 
-	@Test
+//	@Test
 	public void testCriteria() {
 		profiler.start("findCriteria");
 

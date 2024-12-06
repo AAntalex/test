@@ -74,7 +74,7 @@ public class TestSchedulingService {
         testService.saveTransactionalJPA(testBEntities);
     }
 
-    @Scheduled(initialDelay = 1, fixedDelayString = "${test.scheduler.intervalSec}", timeUnit = TimeUnit.SECONDS)
+//    @Scheduled(initialDelay = 1, fixedDelayString = "${test.scheduler.intervalSec}", timeUnit = TimeUnit.SECONDS)
     @Timed(value = "test.aaa.process", description = "Time to process test job", percentiles = {0.5,0.9})
     public void jobTestProcess() {
         if (Objects.isNull(counter)) {

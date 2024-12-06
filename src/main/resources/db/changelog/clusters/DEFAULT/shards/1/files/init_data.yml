@@ -1,6 +1,6 @@
 databaseChangeLog:
 - changeSet:
-    id: 'test$integr$shards_1_001'
+    id: 'test$default$shards_1_001'
     author: Antalex
     changes:
       - createSequence:

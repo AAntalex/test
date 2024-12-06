@@ -64,7 +64,7 @@ logging:
 shardDbConfig:
   processorTimeOut: 3600
   sequenceCacheSize: 1000000
-  sqlInClauseLimit: 900
+  sqlInClauseLimit: 90
   TransactionConfig:
     activeConnectionParallelLimit: 12
     parallelRun: true
@@ -91,6 +91,26 @@ shardDbConfig:
     checkMainShard: false
     checkClusterDefault: false
   clusters:
+    - name: DEFAULT
+      defaultCluster: true
+      shards:
+        - datasource:
+            url: jdbc:postgresql://localhost:5432/main_1
+            username: main_1
+            password: main_1
+        - datasource:
+            url: jdbc:postgresql://localhost:5432/main_2
+            username: main_2
+            password: main_2
+      activeConnectionParallelLimit: 6
+      sequenceCacheSize: 10000
+      hikari:
+        minimumIdle: 0
+        maximumPoolSize: 10
+        idleTimeout: 120
+
+
+
     - name: INTEGR
       shards:
         - datasource:

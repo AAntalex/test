@@ -1,3 +1,0 @@
-databaseChangeLog:
-  - include:
-      file: db/changelog/clusters/INTEGR/shards/1/files/init_data.yml
