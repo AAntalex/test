@@ -240,7 +240,7 @@ public class ApplicationTests {
 		System.out.println(profiler.printTimeCounter());
 	}
 
-	//	@Test
+	@Test
 	public void findAllDomain() {
 		profiler.start("findAllDomain");
 
@@ -252,6 +252,7 @@ public class ApplicationTests {
 		System.out.println("FIND B bList.size() = " + bList.size());
 */
 
+/*
 		Runnable target = () -> {
 			System.out.println("START SQL 1!");
 			List<TestBDomain> bList = domainEntityManager.findAll(
@@ -260,7 +261,22 @@ public class ApplicationTests {
 					"Domain%", "Domain%");
 			System.out.println("FIND B bList.size() = " + bList.size());
 		};
+		target.run();
+*/
 
+		List<TestBDomain> bList = domainEntityManager.findAll(
+				TestBDomain.class,
+				"${value} like ? and ${x0.newValue} like ?",
+				"Domain%", "Domain%");
+		System.out.println("FIND B bList.size() = " + bList.size());
+
+		Set<Long> ids = new HashSet<>();
+		bList.forEach(it -> it.getTestList().forEach(c -> ids.add(c.getId())));
+
+		System.out.println("All testList.size() = " + ids.size());
+
+
+/*
 		ExecutorService executorService = Executors.newFixedThreadPool(10);
 
 		Future future = null;
@@ -273,7 +289,7 @@ public class ApplicationTests {
 		} catch (Exception err) {
 			throw new ShardDataBaseException(err);
 		}
-
+*/
 
 /*
 		bList.forEach(b -> {
@@ -599,7 +615,7 @@ public class ApplicationTests {
 	}
 
 
-	@Test
+//	@Test
 	public void saveDomain() {
 		databaseManager.sequenceNextVal();
 		profiler.start("saveDomain.generate");
