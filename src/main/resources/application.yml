@@ -102,6 +102,11 @@ shardDbConfig:
             url: jdbc:postgresql://localhost:5432/main_2
             username: main_2
             password: main_2
+        - datasource:
+            driver: oracle.jdbc.driver.OracleDriver
+            url: jdbc:oracle:thin:@localhost:1521/eks
+            username: IBS
+            password: IBS
       activeConnectionParallelLimit: 6
       sequenceCacheSize: 10000
       hikari:
