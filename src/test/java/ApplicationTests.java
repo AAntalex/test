@@ -7,17 +7,11 @@ import com.antalex.db.service.ShardEntityManager;
 import com.antalex.db.service.api.DataWrapper;
 import com.antalex.db.service.api.DataWrapperFactory;
 import com.antalex.db.service.impl.managers.ShardDatabaseManagerImpl;
-import com.antalex.domain.persistence.criteria.TestCriteria;
-import com.antalex.domain.persistence.domain.TestADomain;
 import com.antalex.domain.persistence.domain.TestBDomain;
-import com.antalex.domain.persistence.domain.TestCDomain;
-import com.antalex.domain.persistence.entity.AdditionalParameterEntity;
 import com.antalex.domain.persistence.entity.hiber.TestAEntity;
 import com.antalex.domain.persistence.entity.hiber.TestBEntity;
 import com.antalex.domain.persistence.entity.hiber.TestCEntity;
 import com.antalex.domain.persistence.entity.shard.*;
-import com.antalex.domain.persistence.entity.shard.TestBShardEntity$Interceptor;
-import com.antalex.domain.persistence.repository.AdditionalParameterRepository;
 import com.antalex.domain.persistence.repository.TestARepository;
 import com.antalex.domain.persistence.repository.TestBRepository;
 import com.antalex.optimizer.OptimizerApplication;
@@ -36,15 +30,10 @@ import org.hibernate.engine.jdbc.dialect.spi.DatabaseMetaDataDialectResolutionIn
 import org.hibernate.engine.jdbc.dialect.spi.DialectResolver;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.postgresql.core.v3.QueryExecutorImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
-import org.springframework.transaction.annotation.Transactional;
 
-import javax.persistence.FetchType;
-import javax.sql.rowset.serial.SerialBlob;
-import javax.sql.rowset.serial.SerialClob;
 import java.math.BigDecimal;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -57,8 +46,6 @@ import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes = OptimizerApplication.class)
@@ -67,9 +54,6 @@ public class ApplicationTests {
 
 	@Autowired
 	private ProfilerService profiler;
-
-	@Autowired
-	private AdditionalParameterRepository additionalParameterRepository;
 
 	@Autowired
 	private ShardEntityManager entityManager;
