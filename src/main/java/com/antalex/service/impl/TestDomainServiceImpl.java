@@ -1,6 +1,7 @@
 package com.antalex.service.impl;
 
 import com.antalex.db.service.DomainEntityManager;
+import com.antalex.db.service.SharedTransactionManager;
 import com.antalex.domain.persistence.domain.Routing;
 import com.antalex.domain.persistence.domain.TestADomain;
 import com.antalex.domain.persistence.domain.TestBDomain;
@@ -8,6 +9,7 @@ import com.antalex.domain.persistence.domain.TestCDomain;
 import com.antalex.service.TestDomainService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -20,6 +22,8 @@ import java.util.List;
 public class TestDomainServiceImpl implements TestDomainService {
     @Autowired
     private DomainEntityManager domainEntityManager;
+    @Autowired
+    private SharedTransactionManager transactionManager;
 
     @Override
     public List<TestBDomain> generate(int cnt, int cntArray, String prefix) {
@@ -69,6 +73,21 @@ public class TestDomainServiceImpl implements TestDomainService {
         return bList;
     }
 
+    @Override
+    @Transactional
+    public List<TestBDomain> findAllB() {
+        List<TestBDomain> bList = domainEntityManager.findAll(
+                TestBDomain.class,
+                "${value} like ? and ${x0.newValue} like ?",
+                "Domain%", "Domain%");
+
+        List<TestBDomain> bList2 = domainEntityManager.findAll(
+                TestBDomain.class,
+                "${value} like ? and ${x0.newValue} like ?",
+                "Domain%", "Domain%");
+
+        return bList2;
+    }
     @Override
     public void save(List<TestBDomain> testBEntities) {
         domainEntityManager.saveAll(testBEntities);

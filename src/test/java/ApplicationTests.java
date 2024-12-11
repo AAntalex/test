@@ -33,6 +33,7 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.net.MalformedURLException;
@@ -240,9 +241,11 @@ public class ApplicationTests {
 		System.out.println(profiler.printTimeCounter());
 	}
 
-	@Test
+//	@Test
 	public void findAllDomain() {
 		profiler.start("findAllDomain");
+
+		testService.test();
 
 		/*
 		List<TestBDomain> bList = domainEntityManager.findAll(
@@ -264,11 +267,9 @@ public class ApplicationTests {
 		target.run();
 */
 
-		List<TestBDomain> bList = domainEntityManager.findAll(
-				TestBDomain.class,
-				"${value} like ? and ${x0.newValue} like ?",
-				"Domain%", "Domain%");
-		System.out.println("FIND B bList.size() = " + bList.size());
+
+
+		List<TestBDomain> bList = domainService.findAllB();
 
 		Set<Long> ids = new HashSet<>();
 		bList.forEach(it -> it.getTestList().forEach(c -> ids.add(c.getId())));
@@ -476,12 +477,17 @@ public class ApplicationTests {
 		System.out.println(profiler.printTimeCounter());
 	}
 
+	@Transactional
+	public void saveJPA(List<TestBEntity> testBEntities) {
+		testBEntities.forEach(testBRepository::save);
+		System.out.println("AAA testBEntities.size() = " + testBEntities.size());
+	}
 
-	//	@Test
+//	@Test
 	public void saveJPA() {
 		databaseManager.sequenceNextVal();
 		profiler.start("testService.generate");
-		List<TestBEntity> testBEntities = testService.generate(1000, 100, null, "JPA5");
+		List<TestBEntity> testBEntities = testService.generate(10000, 100, null, "JPA5");
 		profiler.stop();
 		System.out.println(profiler.printTimeCounter());
 
@@ -533,11 +539,11 @@ public class ApplicationTests {
 		System.out.println("testBEntities.size = " + testBEntities.size());
 	}
 
-	//	@Test
+	@Test
 	public void saveShard() {
 		databaseManager.sequenceNextVal();
 		profiler.start("testShardService.generate");
-		List<TestBShardEntity> testBEntities2 = testShardService.generate(1000, 100, "Shard5");
+		List<TestBShardEntity> testBEntities2 = testShardService.generate(10000, 100, "Shard");
 		profiler.stop();
 		System.out.println(profiler.printTimeCounter());
 

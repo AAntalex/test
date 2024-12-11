@@ -11,4 +11,4 @@ databaseChangeLog:
           maxValue: 1000000000000
           minValue: 0
           sequenceName: test_seq_id
-          startValue: 10000000000
+          startValue: 100000000000

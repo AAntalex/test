@@ -24,4 +24,5 @@ public interface TestService {
     TestBEntity findBByIdStatement(Long id);
     List<TestBEntity> findAllBByValueLikeStatement(String value);
     List<TestCEntity> findAllCStatement(Long id, PreparedStatement preparedStatement);
+    void test();
 }

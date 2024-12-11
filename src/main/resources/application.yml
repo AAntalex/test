@@ -64,7 +64,7 @@ logging:
 shardDbConfig:
   processorTimeOut: 3600
   sequenceCacheSize: 1000000
-  sqlInClauseLimit: 90
+  sqlInClauseLimit: 30
   TransactionConfig:
     activeConnectionParallelLimit: 12
     parallelRun: true

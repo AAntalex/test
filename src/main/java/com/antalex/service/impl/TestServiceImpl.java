@@ -96,8 +96,7 @@ public class TestServiceImpl implements TestService{
 
     @Override
     public void saveJPA(List<TestBEntity> testBEntities) {
-//        testBRepository.saveAll(testBEntities);
-        testBEntities.forEach(testBRepository::save);
+        testBRepository.saveAll(testBEntities);
     }
 
     @Override
@@ -136,6 +135,13 @@ public class TestServiceImpl implements TestService{
         } finally {
             sqlSession.close();
         }
+    }
+
+    @Override
+    @Transactional
+    public void test() {
+        profiler.startTimeCounter("TEST", "AAA");
+        profiler.fixTimeCounter();
     }
 
     @Override

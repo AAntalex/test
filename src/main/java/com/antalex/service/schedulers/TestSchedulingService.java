@@ -52,7 +52,7 @@ public class TestSchedulingService {
         List<TestBShardEntity> testBEntities = entityManager.findAll(
                 TestBShardEntity.class,
                 "${value} like ?",
-                "Domain%");
+                "Shard%");
         log.trace("AAA testBEntities.count: {}", testBEntities.size());
     }
 
@@ -74,7 +74,7 @@ public class TestSchedulingService {
         testService.saveTransactionalJPA(testBEntities);
     }
 
-//    @Scheduled(initialDelay = 1, fixedDelayString = "${test.scheduler.intervalSec}", timeUnit = TimeUnit.SECONDS)
+    @Scheduled(initialDelay = 1, fixedDelayString = "${test.scheduler.intervalSec}", timeUnit = TimeUnit.SECONDS)
     @Timed(value = "test.aaa.process", description = "Time to process test job", percentiles = {0.5,0.9})
     public void jobTestProcess() {
         if (Objects.isNull(counter)) {
@@ -96,8 +96,8 @@ public class TestSchedulingService {
 //            processShard();
 //            processHibernate();
 
-            findAllShard();
-//            findAllHibernate();
+//            findAllShard();
+            findAllHibernate();
 
             profiler.stop();
             System.out.println(profiler.printTimeCounter());
