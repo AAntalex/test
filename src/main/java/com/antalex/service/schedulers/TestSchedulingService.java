@@ -29,6 +29,7 @@ import java.time.ZoneId;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 @Slf4j
@@ -52,14 +53,18 @@ public class TestSchedulingService {
         List<TestBShardEntity> testBEntities = entityManager.findAll(
                 TestBShardEntity.class,
                 "${value} like ?",
-                "Shard%");
-        log.trace("AAA testBEntities.count: {}", testBEntities.size());
+                "Domain%");
+        AtomicInteger cnt = new AtomicInteger(0);
+        testBEntities.forEach(b -> cnt.set(cnt.get() + b.getCList().size()));
+        log.trace("AAA testBEntities.count: {}, cList.count: {}", testBEntities.size(), cnt.get());
     }
 
     @Transactional
     protected void findAllHibernate() {
         List<TestBEntity> testBEntities = testBRepository.findAllByValueLike("JPA%");
-        log.trace("AAA testBEntities.count: {}", testBEntities.size());
+        AtomicInteger cnt = new AtomicInteger(0);
+        testBEntities.forEach(b -> cnt.set(cnt.get() + b.getCList().size()));
+        log.trace("AAA testBEntities.count: {}, cList.count: {}", testBEntities.size(), cnt.get());
     }
 
     @Transactional

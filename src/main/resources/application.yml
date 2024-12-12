@@ -1,10 +1,10 @@
 #dialect: org.hibernate.dialect.PostgreSQLDialect
-#dialect: org.hibernate.dialect.Oracle10gDialect
+#dialect: org.hibernate.dialect.Oracle12cDialect
 
 test:
   scheduler:
     scheduler-thread-count: 10
-    intervalSec: 10
+    intervalSec: 20
 
 spring:
   liquibase:
@@ -42,7 +42,7 @@ management:
         enabled: true
 
 hibernate:
-  dialect: org.hibernate.dialect.PostgreSQLDialect
+  dialect: org.hibernate.dialect.Oracle12cDialect
   jdbc:
     batch_size: 1000000
   order_inserts: true
@@ -55,8 +55,8 @@ hibernate:
 
 logging:
   level:
-    com.antalex.db: trace
-    com.antalex.service: trace
+    #com.antalex.db: trace
+    #com.antalex.service: trace
     org.hibernate.type:
       descriptor:
         sql.BasicBinder: INFO
@@ -64,7 +64,7 @@ logging:
 shardDbConfig:
   processorTimeOut: 3600
   sequenceCacheSize: 1000000
-  sqlInClauseLimit: 30
+  #sqlInClauseLimit: 30
   TransactionConfig:
     activeConnectionParallelLimit: 12
     parallelRun: true
@@ -107,7 +107,7 @@ shardDbConfig:
             url: jdbc:oracle:thin:@localhost:1521/eks
             username: IBS
             password: IBS
-      activeConnectionParallelLimit: 6
+      #activeConnectionParallelLimit: 6
       sequenceCacheSize: 10000
       hikari:
         minimumIdle: 0

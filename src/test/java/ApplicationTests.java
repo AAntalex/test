@@ -539,7 +539,7 @@ public class ApplicationTests {
 		System.out.println("testBEntities.size = " + testBEntities.size());
 	}
 
-	@Test
+//	@Test
 	public void saveShard() {
 		databaseManager.sequenceNextVal();
 		profiler.start("testShardService.generate");
@@ -621,7 +621,7 @@ public class ApplicationTests {
 	}
 
 
-//	@Test
+	@Test
 	public void saveDomain() {
 		databaseManager.sequenceNextVal();
 		profiler.start("saveDomain.generate");

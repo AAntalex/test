@@ -7,7 +7,7 @@ import lombok.Data;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
-@Table(name = "TEST_A", schema = "main_1")
+@Table(name = "TEST_A"/*, schema = "main_1"*/)
 @Data
 @Entity
 public class TestAEntity extends BaseShardEntity {
@@ -15,7 +15,7 @@ public class TestAEntity extends BaseShardEntity {
     @Column(name = "ID")
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "test_seq")
 //    @SequenceGenerator(name = "test_seq", sequenceName = "SEQ_ID", allocationSize = 1)
-    @SequenceGenerator(name = "seq_id", sequenceName = "test_seq_id", schema = "main_1", allocationSize = 1000000)
+    @SequenceGenerator(name = "seq_id", sequenceName = "test_seq_id", allocationSize = 1000000)
     private Long id;
     @Column(name = "SHARD_MAP")
     private Long shardMap;
