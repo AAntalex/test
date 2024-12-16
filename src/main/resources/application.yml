@@ -65,9 +65,8 @@ shardDbConfig:
   processorTimeOut: 3600
   sequenceCacheSize: 1000000
   #sqlInClauseLimit: 30
-  TransactionConfig:
-    activeConnectionParallelLimit: 12
-    parallelRun: true
+  #activeConnectionParallelLimit: 10
+  parallelRun: true
   LockProcessor:
     timeOut: 10
     delay: 1
@@ -161,8 +160,7 @@ shardDbConfig:
           hikari:
             minimumIdle: 30
             maximumPoolSize: 200
-          TransactionConfig:
-            activeConnectionParallelLimit: 100
+          activeConnectionParallelLimit: 100
     - name: COMMON_INTEGR
       shards:
         - datasource:
@@ -175,8 +173,7 @@ shardDbConfig:
       hikari:
         minimumIdle: 10
         maximumPoolSize: 20
-      TransactionConfig:
-        activeConnectionParallelLimit: 10
+      activeConnectionParallelLimit: 10
       shards:
         - datasource:
             driver: oracle.jdbc.driver.OracleDriver
