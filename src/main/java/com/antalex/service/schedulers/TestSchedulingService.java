@@ -1,5 +1,6 @@
 package com.antalex.service.schedulers;
 
+import com.antalex.db.model.DataStorage;
 import com.antalex.db.service.ShardDataBaseManager;
 import com.antalex.db.service.ShardEntityManager;
 import com.antalex.domain.persistence.entity.hiber.TestBEntity;
@@ -8,6 +9,8 @@ import com.antalex.domain.persistence.repository.TestBRepository;
 import com.antalex.profiler.service.ProfilerService;
 import com.antalex.service.TestService;
 import com.antalex.service.TestShardService;
+import com.antalex.service.impl.Test1Repository;
+import com.antalex.service.impl.Test2Repository;
 import io.micrometer.core.annotation.Timed;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Gauge;
@@ -27,6 +30,7 @@ import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -45,15 +49,28 @@ public class TestSchedulingService {
     private final TestBRepository testBRepository;
     private final ProfilerService profiler;
 
+    private final Test1Repository test1Repository;
+    private final Test2Repository test2Repository;
+
     private AtomicLong counter;
     private AtomicLong counterSpeed;
 
     @Transactional
     protected void findAllShard() {
+/*
+        test1Repository.setEntityManager(entityManager);
+        test2Repository.setEntityManager(entityManager);
+        List<TestBShardEntity> testBEntities = test2Repository.findAll(
+                (Map<String, DataStorage>) null,
+                null,
+                "${value} like ?",
+                "Shard%");
+*/
+
         List<TestBShardEntity> testBEntities = entityManager.findAll(
                 TestBShardEntity.class,
                 "${value} like ?",
-                "Domain%");
+                "Shard%");
         AtomicInteger cnt = new AtomicInteger(0);
         testBEntities.forEach(b -> cnt.set(cnt.get() + b.getCList().size()));
         log.trace("AAA testBEntities.count: {}, cList.count: {}", testBEntities.size(), cnt.get());
@@ -101,8 +118,8 @@ public class TestSchedulingService {
 //            processShard();
 //            processHibernate();
 
-//            findAllShard();
-            findAllHibernate();
+            findAllShard();
+//            findAllHibernate();
 
             profiler.stop();
             System.out.println(profiler.printTimeCounter());

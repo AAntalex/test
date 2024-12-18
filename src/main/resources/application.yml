@@ -42,7 +42,7 @@ management:
         enabled: true
 
 hibernate:
-  dialect: org.hibernate.dialect.Oracle12cDialect
+  dialect: org.hibernate.dialect.PostgreSQLDialect
   jdbc:
     batch_size: 1000000
   order_inserts: true
@@ -56,7 +56,7 @@ hibernate:
 logging:
   level:
     #com.antalex.db: trace
-    #com.antalex.service: trace
+    com.antalex.service: trace
     org.hibernate.type:
       descriptor:
         sql.BasicBinder: INFO
@@ -64,10 +64,9 @@ logging:
 shardDbConfig:
   processorTimeOut: 3600
   sequenceCacheSize: 1000000
-  #sqlInClauseLimit: 30
-  TransactionConfig:
-    activeConnectionParallelLimit: 12
-    parallelRun: true
+  sqlInClauseLimit: 30
+  #activeConnectionParallelLimit: 10
+  parallelRun: true
   LockProcessor:
     timeOut: 10
     delay: 1
