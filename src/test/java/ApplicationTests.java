@@ -34,6 +34,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.reactive.function.client.WebClient;
 
 import java.math.BigDecimal;
 import java.net.MalformedURLException;
@@ -621,7 +622,7 @@ public class ApplicationTests {
 	}
 
 
-	@Test
+//	@Test
 	public void saveDomain() {
 		databaseManager.sequenceNextVal();
 		profiler.start("saveDomain.generate");
@@ -1014,5 +1015,39 @@ public class ApplicationTests {
 	class TestClass {
 		private String condition;
 		private Object[] binds;
+	}
+
+
+	@Test
+	public void findOne() {
+		WebClient webClient = WebClient.builder().baseUrl("http://localhost:8080")
+				.build();
+
+		profiler.start("findOne");
+		int cnt = 0;
+
+
+
+
+		for (int i = 0; i < 10000; i++) {
+			TestCShardEntity c = entityManager.find(TestCShardEntity.class, 1566180000L);
+			if (c != null) cnt++;
+		}
+
+
+
+/*
+		for (int i = 0; i < 10000; i++) {
+			cnt = cnt +
+					webClient.get().uri("/api/v1/test").retrieve().bodyToMono(Integer.class).block();;
+		}
+*/
+
+
+		System.out.println("FIND cnt = " + cnt);
+
+		profiler.stop();
+		System.out.println(profiler.printTimeCounter());
+
 	}
 }
