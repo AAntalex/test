@@ -66,6 +66,7 @@ shardDbConfig:
   sequenceCacheSize: 1000000
   sqlInClauseLimit: 30
   #activeConnectionParallelLimit: 10
+  percentActiveConnectionParallelLimit: 30
   parallelRun: true
   LockProcessor:
     timeOut: 10
@@ -84,7 +85,7 @@ shardDbConfig:
     maximumPoolSize: 20
     idleTimeout: 60
   checks:
-    checkShardID: true
+    checkShardID: false
     checkClusterID: true
     checkClusterName: true
     checkMainShard: false
@@ -106,6 +107,11 @@ shardDbConfig:
             url: jdbc:oracle:thin:@localhost:1521/eks
             username: IBS
             password: IBS
+          id: 2
+        - remote:
+            url: http://localhost:8080
+            owner: IBS
+          id: 1
       #activeConnectionParallelLimit: 6
       sequenceCacheSize: 10000
       hikari:
