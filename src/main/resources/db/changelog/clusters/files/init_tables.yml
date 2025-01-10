@@ -29,6 +29,9 @@ databaseChangeLog:
               name: ST
               type: VARCHAR(40)
           - column:
+                name: PREV_ST
+                type: VARCHAR(40)
+          - column:
               name: SHARD_MAP
               type: bigint
           - column:
@@ -56,6 +59,9 @@ databaseChangeLog:
           - column:
               name: ST
               type: VARCHAR(40)
+          - column:
+                name: PREV_ST
+                type: VARCHAR(40)
           - column:
               name: SHARD_MAP
               type: bigint
@@ -99,6 +105,9 @@ databaseChangeLog:
               name: ST
               type: VARCHAR(40)
           - column:
+                name: PREV_ST
+                type: VARCHAR(40)
+          - column:
               name: SHARD_MAP
               type: bigint
           - column:
@@ -140,6 +149,9 @@ databaseChangeLog:
           - column:
               name: ST
               type: VARCHAR(40)
+          - column:
+                name: PREV_ST
+                type: VARCHAR(40)
           - column:
               name: SHARD_MAP
               type: bigint
