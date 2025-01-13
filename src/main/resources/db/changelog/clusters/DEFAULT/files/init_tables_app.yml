@@ -182,6 +182,9 @@ databaseChangeLog:
             - column:
                 name: C_NUM
                 type: int
+            - column:
+                name: C_DATE
+                type: date
       - createIndex:
           columns:
             - column:
@@ -203,9 +206,11 @@ databaseChangeLog:
       - createIndex:
           columns:
             - column:
+                name:  C_DATE
+            - column:
                 name:  C_NUM
             - column:
                 name:  C_SUM
-          indexName:  IDX_MAIN_DOCUM_NUM_SUM
+          indexName:  IDX_MAIN_DOCUM_DATE_NUM_SUM
           tableName:  T_MAIN_DOCUM
 

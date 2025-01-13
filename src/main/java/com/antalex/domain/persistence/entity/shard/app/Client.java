@@ -10,10 +10,10 @@ import javax.persistence.*;
 
 @Table(
        indexes = {
-                @Index(columnList = "value")
+                @Index(columnList = "name")
         })
 @Data
-@Accessors(chain = true)
+@Accessors(chain = true, fluent = true)
 @ShardEntity(type = ShardType.SHARDABLE)
 public class Client extends BaseShardEntity {
     private String name;

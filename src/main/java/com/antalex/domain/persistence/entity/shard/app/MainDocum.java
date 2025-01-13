@@ -13,7 +13,7 @@ import java.time.OffsetDateTime;
 
 @Table(
        indexes = {
-               @Index(columnList = "num,sum"),
+               @Index(columnList = "date,num,sum"),
                @Index(columnList = "dateProv")
         })
 @Data
@@ -22,6 +22,7 @@ import java.time.OffsetDateTime;
 public class MainDocum extends BaseShardEntity {
     private Integer num;
     private BigDecimal sum;
+    private OffsetDateTime date;
     private OffsetDateTime dateProv;
     @ParentShard
     @OneToOne(fetch = FetchType.LAZY)

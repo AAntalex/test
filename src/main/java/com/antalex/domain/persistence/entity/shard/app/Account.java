@@ -17,7 +17,7 @@ import java.time.OffsetDateTime;
                @Index(columnList = "dateOpen")
         })
 @Data
-@Accessors(chain = true)
+@Accessors(chain = true, fluent = true)
 @ShardEntity(type = ShardType.SHARDABLE)
 public class Account extends BaseShardEntity {
     private String code;
