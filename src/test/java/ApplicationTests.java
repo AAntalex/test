@@ -12,10 +12,12 @@ import com.antalex.domain.persistence.entity.hiber.TestAEntity;
 import com.antalex.domain.persistence.entity.hiber.TestBEntity;
 import com.antalex.domain.persistence.entity.hiber.TestCEntity;
 import com.antalex.domain.persistence.entity.shard.*;
+import com.antalex.domain.persistence.entity.shard.app.MainDocum;
 import com.antalex.domain.persistence.repository.TestARepository;
 import com.antalex.domain.persistence.repository.TestBRepository;
 import com.antalex.optimizer.OptimizerApplication;
 import com.antalex.profiler.service.ProfilerService;
+import com.antalex.service.GenerateService;
 import com.antalex.service.TestDomainService;
 import com.antalex.service.TestService;
 import com.antalex.service.TestShardService;
@@ -81,6 +83,8 @@ public class ApplicationTests {
 	private DataWrapperFactory dataWrapperFactory;
 	@Autowired
 	private ShardDatabaseManagerImpl shardDatabaseManagerImpl;
+	@Autowired
+	private GenerateService<MainDocum> mainDocumGenerateService;
 
 	//	@Test
 	public void dialect() {
@@ -1018,7 +1022,7 @@ public class ApplicationTests {
 	}
 
 
-	@Test
+//	@Test
 	public void findOne() {
 		WebClient webClient = WebClient.builder().baseUrl("http://localhost:8080")
 				.build();
@@ -1050,4 +1054,21 @@ public class ApplicationTests {
 		System.out.println(profiler.printTimeCounter());
 
 	}
+
+	@Test
+	public void saveMainDocum() {
+		profiler.start("generateMainDocum");
+		List<MainDocum> list = mainDocumGenerateService.generate("40702810X", 100000, 10000, 1000);
+		profiler.stop();
+		System.out.println(profiler.printTimeCounter());
+
+		profiler.start("saveMainDocum");
+		entityManager.saveAll(list);
+		profiler.stop();
+
+		shardDatabaseManagerImpl.saveTransactionInfo();
+
+		System.out.println(profiler.printTimeCounter());
+	}
+
 }

@@ -10,6 +10,7 @@ import lombok.experimental.Accessors;
 import javax.persistence.*;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import java.util.Date;
 
 @Table(
        indexes = {
@@ -17,12 +18,12 @@ import java.time.OffsetDateTime;
                @Index(columnList = "dateProv")
         })
 @Data
-@Accessors(chain = true)
+@Accessors(chain = true, fluent = true)
 @ShardEntity(type = ShardType.MULTI_SHARDABLE)
 public class MainDocum extends BaseShardEntity {
     private Integer num;
     private BigDecimal sum;
-    private OffsetDateTime date;
+    private Date date;
     private OffsetDateTime dateProv;
     @ParentShard
     @OneToOne(fetch = FetchType.LAZY)
