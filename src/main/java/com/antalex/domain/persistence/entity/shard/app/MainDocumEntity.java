@@ -20,7 +20,7 @@ import java.util.Date;
 @Data
 @Accessors(chain = true, fluent = true)
 @ShardEntity(type = ShardType.MULTI_SHARDABLE)
-public class MainDocum extends BaseShardEntity {
+public class MainDocumEntity extends BaseShardEntity {
     private Integer num;
     private BigDecimal sum;
     private Date date;
@@ -28,9 +28,9 @@ public class MainDocum extends BaseShardEntity {
     @ParentShard
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn
-    private Account accDt;
+    private AccountEntity accDt;
     @ParentShard
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn
-    private Account accCt;
+    private AccountEntity accCt;
 }

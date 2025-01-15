@@ -12,7 +12,7 @@ import com.antalex.domain.persistence.entity.hiber.TestAEntity;
 import com.antalex.domain.persistence.entity.hiber.TestBEntity;
 import com.antalex.domain.persistence.entity.hiber.TestCEntity;
 import com.antalex.domain.persistence.entity.shard.*;
-import com.antalex.domain.persistence.entity.shard.app.MainDocum;
+import com.antalex.domain.persistence.entity.shard.app.MainDocumEntity;
 import com.antalex.domain.persistence.repository.TestARepository;
 import com.antalex.domain.persistence.repository.TestBRepository;
 import com.antalex.optimizer.OptimizerApplication;
@@ -84,7 +84,7 @@ public class ApplicationTests {
 	@Autowired
 	private ShardDatabaseManagerImpl shardDatabaseManagerImpl;
 	@Autowired
-	private GenerateService<MainDocum> mainDocumGenerateService;
+	private GenerateService<MainDocumEntity> mainDocumGenerateService;
 
 	//	@Test
 	public void dialect() {
@@ -1058,7 +1058,7 @@ public class ApplicationTests {
 	@Test
 	public void saveMainDocum() {
 		profiler.start("generateMainDocum");
-		List<MainDocum> list = mainDocumGenerateService.generate("40702810X", 100000, 10000, 1000);
+		List<MainDocumEntity> list = mainDocumGenerateService.generate("40702810X", 100000, 10000, 1000);
 		profiler.stop();
 		System.out.println(profiler.printTimeCounter());
 

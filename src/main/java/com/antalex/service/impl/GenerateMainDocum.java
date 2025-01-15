@@ -1,10 +1,10 @@
 package com.antalex.service.impl;
 
 import com.antalex.db.service.ShardEntityManager;
-import com.antalex.domain.persistence.entity.shard.app.Account;
-import com.antalex.domain.persistence.entity.shard.app.Client;
-import com.antalex.domain.persistence.entity.shard.app.ClientCategory;
-import com.antalex.domain.persistence.entity.shard.app.MainDocum;
+import com.antalex.domain.persistence.entity.shard.app.AccountEntity;
+import com.antalex.domain.persistence.entity.shard.app.ClientEntity;
+import com.antalex.domain.persistence.entity.shard.app.ClientCategoryEntity;
+import com.antalex.domain.persistence.entity.shard.app.MainDocumEntity;
 import com.antalex.service.GenerateService;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
@@ -20,37 +20,37 @@ import java.util.stream.IntStream;
 
 @Service
 @RequiredArgsConstructor
-public class GenerateMainDocum implements GenerateService<MainDocum> {
+public class GenerateMainDocum implements GenerateService<MainDocumEntity> {
     private final ShardEntityManager entityManager;
 
     @Override
-    public List<MainDocum> generate(String accountPrefix, int cnt, int cntAccount, int cntClient) {
-        ClientCategory categoryVip =
-                Optional.ofNullable(entityManager.find(ClientCategory.class, "${code}=?", "VIP"))
+    public List<MainDocumEntity> generate(String accountPrefix, int cnt, int cntAccount, int cntClient) {
+        ClientCategoryEntity categoryVip =
+                Optional.ofNullable(entityManager.find(ClientCategoryEntity.class, "${code}=?", "VIP"))
                         .orElseGet(() -> {
-                            ClientCategory clientCategory = entityManager.newEntity(ClientCategory.class);
-                            clientCategory.setCode("VIP");
-                            return clientCategory;
+                            ClientCategoryEntity clientCategoryEntity = entityManager.newEntity(ClientCategoryEntity.class);
+                            clientCategoryEntity.setCode("VIP");
+                            return clientCategoryEntity;
                         });
 
-        List<Client> clients = entityManager.findAll(Client.class);
-        clients.addAll(
-                IntStream.rangeClosed(clients.size() + 1, cntClient)
+        List<ClientEntity> clientEntities = entityManager.findAll(ClientEntity.class);
+        clientEntities.addAll(
+                IntStream.rangeClosed(clientEntities.size() + 1, cntClient)
                         .mapToObj(idx ->
-                                entityManager.newEntity(Client.class)
+                                entityManager.newEntity(ClientEntity.class)
                                         .name("CLIENT" + idx)
                                         .category(idx % 100 == 1 ? categoryVip : null)
                         )
                         .toList()
         );
-        entityManager.updateAll(clients);
-        List<Client> sortClients = clients.stream().sorted(Comparator.comparing(Client::name)).toList();
+        entityManager.updateAll(clientEntities);
+        List<ClientEntity> sortClientEntities = clientEntities.stream().sorted(Comparator.comparing(ClientEntity::name)).toList();
 
-        List<Account> accounts = entityManager.findAll(Account.class);
+        List<AccountEntity> accounts = entityManager.findAll(AccountEntity.class);
         accounts.addAll(
                 IntStream.rangeClosed(accounts.size() + 1, cntAccount)
                         .mapToObj(idx ->
-                                entityManager.newEntity(Account.class)
+                                entityManager.newEntity(AccountEntity.class)
                                         .code(
                                                 accountPrefix +
                                                         StringUtils.leftPad(
@@ -60,18 +60,18 @@ public class GenerateMainDocum implements GenerateService<MainDocum> {
                                         )
                                         .saldo(BigDecimal.ZERO)
                                         .dateOpen(OffsetDateTime.now())
-                                        .client(sortClients.get(idx % cntClient))
+                                        .clientEntity(sortClientEntities.get(idx % cntClient))
                         )
                         .toList()
         );
         entityManager.updateAll(accounts);
-        List<Account> sortAccounts = accounts.stream().sorted(Comparator.comparing(Account::code)).toList();
+        List<AccountEntity> sortAccounts = accounts.stream().sorted(Comparator.comparing(AccountEntity::code)).toList();
 
-        List<MainDocum> documents = entityManager.findAll(MainDocum.class);
+        List<MainDocumEntity> documents = entityManager.findAll(MainDocumEntity.class);
         documents.addAll(
                 IntStream.rangeClosed(documents.size() + 1, cnt)
                         .mapToObj(idx ->
-                                entityManager.newEntity(MainDocum.class)
+                                entityManager.newEntity(MainDocumEntity.class)
                                         .num(idx)
                                         .sum(new BigDecimal("1.01"))
                                         .date(new Date())
