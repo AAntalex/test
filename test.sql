@@ -90,3 +90,29 @@ where
   and drc.C_CR_DATE >= :start_date and drc.C_CR_DATE >= :end_date
   and	drc.C_ELDOCNUM like :eldoc_num
   and md.C_DATE_PROV >= :start_date and md.C_DATE_PROV >= :end_date
+
+
+SELECT md.C_NUM num, md.C_SUM sum, md.C_DATE date, acc_dt.C_CODE acc_dt, acc_ct.C_CODE acc_ct, cl_dt.C_NAME client_dt, cl_ct.C_NAME client_ct
+FROM T_MAIN_DOCUM md
+    JOIN T_ACCOUNT acc_dt on acc_dt.ID = md.C_ACC_DT
+    JOIN T_ACCOUNT acc_ct on acc_ct.ID = md.C_ACC_CT
+    JOIN T_CLIENT cl_ct on cl_ct.ID = acc_ct.C_CLIENT
+    JOIN T_CLIENT cl_dt on cl_dt.ID = acc_dt.C_CLIENT
+    LEFT JOIN T_CLIENT_CATEGORY cl_cat on cl_cat.ID = cl_ct.C_CATEGORY
+where md.C_DATE_PROV >= '2025-01-14 00:00'::timestamp
+  and cl_cat.C_CODE = 'VIP'
+  and acc_dt.C_CODE like '40702810%9'
+
+explain analyze
+SELECT md.C_NUM num, md.C_SUM sum, md.C_DATE date, acc_dt.C_CODE acc_dt, acc_ct.C_CODE acc_ct, cl_dt.C_NAME client_dt, cl_ct.C_NAME client_ct
+FROM T_MAIN_DOCUM md
+    JOIN T_ACCOUNT acc_dt on acc_dt.ID = md.C_ACC_DT
+    JOIN T_ACCOUNT acc_ct on acc_ct.ID = md.C_ACC_CT
+    JOIN T_CLIENT cl_ct on cl_ct.ID = acc_ct.C_CLIENT
+    JOIN T_CLIENT cl_dt on cl_dt.ID = acc_dt.C_CLIENT
+    LEFT JOIN T_CLIENT_CATEGORY cl_cat on cl_cat.ID = cl_ct.C_CATEGORY
+where cl_cat.C_CODE = 'VIP'
+   or acc_dt.C_CODE = '40702810X00000000002'
+
+(p1 or p2 and p3), p2 = TRUE  (true or false and true) = (false or true and false) == false = false == true
+((p1 or p2) and p3), p2 = FALSE ((true or false) and true) = ((false or true) and false) == true = false == false
