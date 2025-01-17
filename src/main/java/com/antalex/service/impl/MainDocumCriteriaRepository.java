@@ -7,7 +7,7 @@ import com.antalex.db.service.ShardEntityManager;
 import com.antalex.db.service.api.ResultQuery;
 import com.antalex.db.service.impl.managers.TransactionalCacheManager;
 import com.antalex.domain.persistence.criteria.MainDocumCriteria;
-import com.antalex.domain.persistence.entity.shard.app.MainDocumEntity;
+import com.antalex.domain.persistence.entity.shard.app.MainDocum;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -28,7 +28,7 @@ public class MainDocumCriteriaRepository implements CriteriaRepository<MainDocum
     @Override
     public Stream<MainDocumCriteria> get(Object... binds) {
         ResultQuery result = entityManager
-                .createQuery(MainDocumEntity.class, QUERY, QueryType.SELECT)
+                .createQuery(MainDocum.class, QUERY, QueryType.SELECT)
                 .bindAll(binds)
                 .getResult();
         try {

@@ -44,14 +44,6 @@ shardDbConfig:
       defaultCluster: true
       shards:
         - datasource:
-            url: jdbc:postgresql://localhost:5432/main_1
-            username: main_1
-            password: main_1
-        - datasource:
-            url: jdbc:postgresql://localhost:5432/main_2
-            username: main_2
-            password: main_2
-        - datasource:
-            url: jdbc:postgresql://localhost:5432/main_3
-            username: main_3
-            password: main_3
+            url: jdbc:postgresql://localhost:5432/test
+            username: test
+            password: test

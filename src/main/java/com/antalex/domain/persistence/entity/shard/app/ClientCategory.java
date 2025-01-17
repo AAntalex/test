@@ -10,6 +10,6 @@ import javax.persistence.*;
 @Table
 @Data
 @ShardEntity(type = ShardType.REPLICABLE)
-public class ClientCategoryEntity extends BaseShardEntity {
+public class ClientCategory extends BaseShardEntity {
     private String code;
 }
