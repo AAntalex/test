@@ -24,8 +24,11 @@ import com.antalex.service.TestShardService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.common.collect.ImmutableSet;
 import jakarta.persistence.EntityManagerFactory;
 import lombok.Data;
+import org.apache.commons.lang3.CharSet;
+import org.apache.logging.log4j.util.Chars;
 import org.hibernate.dialect.Dialect;
 import org.hibernate.engine.jdbc.dialect.internal.StandardDialectResolver;
 import org.hibernate.engine.jdbc.dialect.spi.DatabaseMetaDataDialectResolutionInfoAdapter;
@@ -38,11 +41,13 @@ import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import javax.xml.stream.events.Characters;
 import java.math.BigDecimal;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.sql.*;
 import java.sql.Date;
+import java.text.ParseException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
@@ -50,6 +55,8 @@ import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes = OptimizerApplication.class)
@@ -1055,7 +1062,7 @@ public class ApplicationTests {
 
 	}
 
-	@Test
+	//@Test
 	public void saveMainDocum() {
 		profiler.start("generateMainDocum");
 		List<MainDocum> list = mainDocumGenerateService.generate("40702810X", 100000, 10000, 1000);
@@ -1069,6 +1076,175 @@ public class ApplicationTests {
 		shardDatabaseManagerImpl.saveTransactionInfo();
 
 		System.out.println(profiler.printTimeCounter());
+	}
+
+	//@Test
+	public void regExpTest() {
+		String condition = "        a1.Id = ? \n" +
+				"   and (\n" +
+				"        (\n" +
+				"            a2.C_DEST like 'A1.ID = ? AND (A2.C_DEST like ''AAA%'' or a3.C_DATE >= :date)%' or a2.C_DEST like 'AAA%'" +
+				"         or a3.C_DATE >= ?\n" +
+				"        ) \n" +
+				"        OR (1=1)\n" +
+				"       )\n";
+
+//		Pattern pattern = Pattern.compile("(?<=[\\(\\{\\['\"]).+(?=[\\)\\}\\]'\"])");
+
+		//Pattern pattern = Pattern.compile("'.+?'");
+
+		Pattern pattern = Pattern.compile("\r");
+
+		Matcher matcher = pattern.matcher(condition);
+
+
+		System.out.println("Start RegExp");
+		while (matcher.find()) {
+			System.out.println(matcher.group());
+		}
+
+		System.out.println(condition.replaceAll("[  \n]", " "));
+	}
+
+	int getEndWord(char[] chars, int offset) {
+		for (int i = offset; i < chars.length; i++) {
+			if (
+					i == chars.length - 1 ||
+					!(chars[i+1] >= 'a' && chars[i+1] <= 'z' ||
+							chars[i+1] >= 'A' && chars[i+1] <= 'Z' ||
+							chars[i+1] >= '0' && chars[i+1] <= '9' ||
+							chars[i+1] == '_' || chars[i+1] == '$'))
+			{
+				return i;
+			}
+		}
+		return chars.length;
+	}
+
+	int getEndString(char[] chars, int offset) {
+		char quote = chars[offset];
+		if (quote != Chars.QUOTE && quote != Chars.DQUOTE) {
+			return -1;
+		}
+		int quotesCount = 0;
+		for (int i = offset+1; i < chars.length; i++) {
+			if (chars[i] == quote) {
+				if (++quotesCount % 2 == 1 && (i == chars.length - 1 || chars[i + 1] != quote)) return i;
+			} else {
+				quotesCount = 0;
+			}
+		}
+		throw new RuntimeException(
+				String.format(
+						"Отсутсвует закрывающая кавычка %c в тексте; %s",
+						quote,
+						String.copyValueOf(chars, offset, chars.length - offset)
+				)
+		);
+	}
+
+	int getEndParenthesis(char[] chars, int offset) {
+		char parenthesis = chars[offset];
+		char endParenthesis;
+		if (parenthesis == '(') {
+			endParenthesis = ')';
+		} else {
+			return -1;
+		}
+		for (int i = offset+1; i < chars.length; i++) {
+			if (chars[i] == endParenthesis) return i;
+			if (chars[i] == parenthesis) {
+				i = getEndParenthesis(chars, i);
+				continue;
+			}
+			if (chars[i] == Chars.QUOTE) {
+				i = getEndString(chars, i);
+			}
+		}
+		throw new RuntimeException(
+				String.format(
+						"Отсутсвует закрывающая скобка %c в тексте; %s",
+						endParenthesis,
+						String.copyValueOf(chars, offset, chars.length - offset)
+				)
+		);
+	}
+
+	String parseCondition(String condition) {
+		Set<Character> escapeCharacters = Set.of(Chars.LF, Chars.CR, Chars.TAB, Chars.SPACE);
+
+		StringBuilder result = new StringBuilder();
+		StringBuilder predicate = new StringBuilder();
+		String token = "";
+		char[] chars = condition.toCharArray();
+		char lastChar = 0;
+
+		for (int i = 0; i < chars.length; i++) {
+			if (escapeCharacters.contains(chars[i])) continue;
+			if (chars[i] == Chars.QUOTE) {
+				int endPos = getEndString(chars, i);
+				String currentString = String.copyValueOf(chars, i, endPos - i + 1);
+				result.append(currentString);
+				predicate.append(currentString);
+				i = endPos;
+				continue;
+			}
+
+			String curToken = "";
+			if (chars[i] == Chars.DQUOTE) {
+				int endPos = getEndString(chars, i);
+				curToken = String.copyValueOf(chars, i, endPos - i + 1);
+				i = endPos;
+			}
+			if (chars[i] >= '_' || chars[i] >= 'a' && chars[i] <= 'z' || chars[i] >= 'A' && chars[i] <= 'Z') {
+				int endPos = getEndWord(chars, i);
+				curToken = String.copyValueOf(chars, i, endPos - i + 1).toUpperCase();
+				i = endPos;
+			}
+
+			if (!curToken.isEmpty()) {
+				if ("OR".equals(curToken) || "AND".equals(curToken)) {
+					result
+							.append(" ").append(curToken).append(" ");
+					System.out.println(predicate);
+					predicate = new StringBuilder();
+				} else {
+					result.append(curToken);
+					predicate.append(curToken);
+					if (!token.isEmpty() && lastChar == '.') {
+						token = token + '.' + curToken;
+					} else {
+						token = curToken;
+					}
+				}
+				continue;
+			}
+
+
+
+
+			result.append(Character.toUpperCase(chars[i]));
+			predicate.append(Character.toUpperCase(chars[i]));
+
+			lastChar = chars[i];
+		}
+		return result.toString();
+	}
+
+	@Test
+	public void regExpTest2() {
+		String condition = "        a1.Id = ? \n" +
+				"   and (upper (a1.C_DEST) = 'ASD' and\n" +
+				"        (\n" +
+				"            \"a2\".C_DEST like 	'A1.ID = ?  AND (A2.C_DEST like 	''AAA%'' " +
+				"or a3.C_DATE >= :date)%' or a2.C_DEST like 'AAA%'" +
+				"         or a3.C_DATE >= ?\n" +
+				"        ) \n" +
+				"        OR (1=1)\n" +
+				"       )\n";
+
+
+		System.out.println(parseCondition(condition));
 	}
 
 }

@@ -56,3 +56,13 @@ FROM T_MAIN_DOCUM md
   JOIN T_ACCOUNT acc_dt on acc_dt.ID = md.C_ACC_DT
   JOIN T_CLIENT cl_dt on cl_dt.ID = acc_dt.C_CLIENT
 where md.C_DATE_PROV >= '2025-01-14 00:00'::timestamp and acc_dt.C_CODE like '40702810%9'
+
+
+        a1.Id = ?
+   and (
+        (
+            a2.C_DEST like 'A1.ID = ? AND (A2.C_DEST like ''AAA%'' or a3.C_DATE >= :date)%'
+         or a3.C_DATE >= ?
+        )
+        OR 1=1
+       )

@@ -28,7 +28,7 @@ shardDbConfig:
   liquibase:
     changeLogSrc: classpath:db/changelog
     changeLogName: db.changelog-master.yaml
-    enabled: true
+    enabled: false
   hikari:
     minimumIdle: 0
     maximumPoolSize: 20
