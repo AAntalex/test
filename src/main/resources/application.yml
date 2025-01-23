@@ -5,7 +5,7 @@ test:
 
 spring:
   profiles:
-    active: ${PROFILE:postgres}
+    active: ${PROFILE:ora}
   liquibase:
     enabled: false
   jpa:

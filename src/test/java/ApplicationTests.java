@@ -27,8 +27,10 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.ImmutableSet;
 import jakarta.persistence.EntityManagerFactory;
 import lombok.Data;
+import lombok.experimental.Accessors;
 import org.apache.commons.lang3.CharSet;
 import org.apache.logging.log4j.util.Chars;
+import org.apache.logging.log4j.util.Strings;
 import org.hibernate.dialect.Dialect;
 import org.hibernate.engine.jdbc.dialect.internal.StandardDialectResolver;
 import org.hibernate.engine.jdbc.dialect.spi.DatabaseMetaDataDialectResolutionInfoAdapter;
@@ -1170,81 +1172,176 @@ public class ApplicationTests {
 		);
 	}
 
-	String parseCondition(String condition) {
+	@Data
+	@Accessors(chain = true, fluent = true)
+	class BooleanExpression {
+		private StringBuilder expression = new StringBuilder();
+		private List<BooleanExpression> expressions = new ArrayList<>();
+		private Set<String> aliases = new HashSet<>();
+		boolean isAnd;
+		boolean isNot;
+	}
+
+	BooleanExpression cloneUpExpression(BooleanExpression source, boolean isAnd) {
+		BooleanExpression result = new BooleanExpression();
+		result
+				.expression(source.expression())
+				.expressions(source.expressions())
+				.aliases(source.aliases())
+				.isNot(source.isNot());
+		source.aliases(new HashSet<>());
+		source.expressions(new ArrayList<>());
+		source.expressions().add(result);
+		source.isAnd(isAnd);
+		source.expression().append("p1");
+		return result;
+	}
+
+	void concatExpression(BooleanExpression left, BooleanExpression right, boolean isAnd) {
+		if (left.expressions().isEmpty()) {
+			BooleanExpression additional = new BooleanExpression();
+			additional
+					.expression(left.expression())
+					.aliases(left.aliases())
+					.isNot(left.isNot());
+			left.aliases(new HashSet<>());
+			left.expressions().add(additional);
+			left.isAnd(isAnd);
+			left.expression().append("p1");
+		}
+		if (left.isAnd() == isAnd) {
+			left.expressions().add(right);
+			left.expression()
+					.append(isAnd ? " AND " : " OR ")
+					.append("p")
+					.append(left.expressions().size());
+		}
+	}
+
+	String parseCondition(String condition, BooleanExpression booleanExpression, List<String> predicates) {
 		Set<Character> escapeCharacters = Set.of(Chars.LF, Chars.CR, Chars.TAB, Chars.SPACE);
 
-		StringBuilder result = new StringBuilder();
-		StringBuilder predicate = new StringBuilder();
-		String token = "";
+		BooleanExpression resultExpression, currentExpression = booleanExpression;
+
+		String token = Strings.EMPTY;
 		char[] chars = condition.toCharArray();
 		char lastChar = 0;
 
 		for (int i = 0; i < chars.length; i++) {
-			if (escapeCharacters.contains(chars[i])) continue;
-			if (chars[i] == Chars.QUOTE) {
+			Character curChar = chars[i];
+			if (escapeCharacters.contains(curChar)) continue;
+			if (curChar == Chars.QUOTE) {
 				int endPos = getEndString(chars, i);
 				String currentString = String.copyValueOf(chars, i, endPos - i + 1);
-				result.append(currentString);
-				predicate.append(currentString);
+				currentExpression
+						.expression()
+						.append(token.isEmpty() ? "" :  " ")
+						.append(currentString);
 				i = endPos;
+				lastChar = chars[i];
 				continue;
 			}
 
-			String curToken = "";
-			if (chars[i] == Chars.DQUOTE) {
+			String curToken = Strings.EMPTY;
+			if (curChar == Chars.DQUOTE) {
 				int endPos = getEndString(chars, i);
 				curToken = String.copyValueOf(chars, i, endPos - i + 1);
 				i = endPos;
 			}
-			if (chars[i] >= '_' || chars[i] >= 'a' && chars[i] <= 'z' || chars[i] >= 'A' && chars[i] <= 'Z') {
+			if (curChar >= '_' || curChar >= 'a' && curChar <= 'z' || curChar >= 'A' && curChar <= 'Z') {
 				int endPos = getEndWord(chars, i);
 				curToken = String.copyValueOf(chars, i, endPos - i + 1).toUpperCase();
 				i = endPos;
 			}
-
 			if (!curToken.isEmpty()) {
 				if ("OR".equals(curToken) || "AND".equals(curToken)) {
-					result
-							.append(" ").append(curToken).append(" ");
-					System.out.println(predicate);
-					predicate = new StringBuilder();
-				} else {
-					result.append(curToken);
-					predicate.append(curToken);
-					if (!token.isEmpty() && lastChar == '.') {
-						token = token + '.' + curToken;
-					} else {
-						token = curToken;
+					if ("AND".equals(curToken)) {
+
+						if (resultExpression.expressions().size() > 0 && resultExpression.isAnd()) {
+
+						}
+						resultExpression.expressions()
 					}
+
+
+					resultExpression = new BooleanExpression();
+					resultExpression.expression()
+							.append("p")
+							.append(predicates.size())
+							.append(" ").append(curToken).append(" ");
+					resultExpression.expressions().add(currentExpression);
+					resultExpression.isAnd("AND".equals(curToken));
+
+					predicates.add(currentExpression.expression().toString());
+
+					System.out.println("PREDICATE: p" + predicates.size() + " = " + currentExpression.expression());
+
+
+					expression = new StringBuilder();
+
+					token = Strings.EMPTY;
+
+					System.out.println("RESULT: " + resultExpression);
+				} else {
+					expression
+							.append(lastChar == '.' ? "." : (token.isEmpty() ? "" :  " "))
+							.append(curToken);
+					token = curToken;
 				}
+				lastChar = chars[i];
+				continue;
+			}
+			if (curChar == '.' && !token.isEmpty()) {
+				System.out.println("ALIAS: " + token);
+
+
+				currentExpression.aliases.add(token);
+				lastChar = chars[i];
 				continue;
 			}
 
+			token = Strings.EMPTY;
 
 
 
-			result.append(Character.toUpperCase(chars[i]));
-			predicate.append(Character.toUpperCase(chars[i]));
+			expression.append(Character.toUpperCase(curChar));
 
 			lastChar = chars[i];
 		}
-		return result.toString();
+
+
+		predicates.add(expression.toString());
+		resultExpression
+				.append("p")
+				.append(predicates.size());
+
+
+
+
+		return resultExpression.expression().toString();
 	}
 
 	@Test
 	public void regExpTest2() {
 		String condition = "        a1.Id = ? \n" +
-				"   and (upper (a1.C_DEST) = 'ASD' and\n" +
+				"   and (upper (a1.C_DEST) = ('ASD') and\n" +
 				"        (\n" +
 				"            \"a2\".C_DEST like 	'A1.ID = ?  AND (A2.C_DEST like 	''AAA%'' " +
-				"or a3.C_DATE >= :date)%' or a2.C_DEST like 'AAA%'" +
+				"or a3.C_DATE >= :date)%' or a2.C_DEST like 'Aaa%'" +
 				"         or a3.C_DATE >= ?\n" +
 				"        ) \n" +
 				"        OR (1=1)\n" +
 				"       )\n";
 
 
-		System.out.println(parseCondition(condition));
+		List<String> predicates = new ArrayList<>();
+		String res = parseCondition(condition, predicates);
+		System.out.println(res);
+
+		for (int i = 0; i < predicates.size(); i++) {
+			res = res.replace("p" + (i+1), predicates.get(i));
+		}
+		System.out.println("RES: " + res);
 	}
 
 }
