@@ -59,6 +59,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes = OptimizerApplication.class)
@@ -1182,53 +1183,65 @@ public class ApplicationTests {
 		boolean isNot;
 	}
 
-	BooleanExpression cloneUpExpression(BooleanExpression source, boolean isAnd) {
-		BooleanExpression result = new BooleanExpression();
-		result
+	String expressionToString(BooleanExpression expression) {
+		if (expression.expressions().isEmpty()) {
+			return (expression.isNot() ? "NOT " : "") + expression.expression();
+		}
+		return
+				(!expression.isAnd() ? "(" : "") +
+						expression
+								.expressions()
+								.stream()
+								.map(this::expressionToString)
+								.collect(Collectors.joining(expression.isAnd() ? " AND " : " OR ")) +
+						(!expression.isAnd() ? ")" : "");
+	}
+
+	void cloneUpExpression(BooleanExpression source, boolean isAnd) {
+		BooleanExpression child = new BooleanExpression();
+		child
 				.expression(source.expression())
 				.expressions(source.expressions())
 				.aliases(source.aliases())
+				.isAnd(source.isAnd())
 				.isNot(source.isNot());
 		source.aliases(new HashSet<>());
+		source.expression(new StringBuilder());
 		source.expressions(new ArrayList<>());
-		source.expressions().add(result);
+		source.expressions().add(child);
 		source.isAnd(isAnd);
+		source.isNot(false);
 		source.expression().append("p1");
-		return result;
 	}
 
-	void concatExpression(BooleanExpression left, BooleanExpression right, boolean isAnd) {
-		if (left.expressions().isEmpty()) {
-			BooleanExpression additional = new BooleanExpression();
-			additional
-					.expression(left.expression())
-					.aliases(left.aliases())
-					.isNot(left.isNot());
-			left.aliases(new HashSet<>());
-			left.expressions().add(additional);
-			left.isAnd(isAnd);
-			left.expression().append("p1");
+	void concatExpression(BooleanExpression left, BooleanExpression right, boolean isAnd, boolean isNot) {
+		right.isNot(isNot && !right.isNot() || !isNot && right.isNot());
+		if (left.expressions().isEmpty() || left.isAnd() && !isAnd) {
+			cloneUpExpression(left, isAnd);
+		}
+		if (!left.isAnd() && isAnd) {
+			concatExpression(left.expressions().get(left.expressions().size() - 1), right, true, false);
 		}
 		if (left.isAnd() == isAnd) {
 			left.expressions().add(right);
 			left.expression()
-					.append(isAnd ? " AND " : " OR ")
+					.append(isAnd || isNot ? " AND " : " OR ")
+					.append(right.isNot() ? "NOT " : "")
 					.append("p")
 					.append(left.expressions().size());
 		}
 	}
 
-	String parseCondition(String condition, BooleanExpression booleanExpression, List<String> predicates) {
+	void parseCondition(String condition, BooleanExpression expression) {
 		Set<Character> escapeCharacters = Set.of(Chars.LF, Chars.CR, Chars.TAB, Chars.SPACE);
-
-		BooleanExpression resultExpression, currentExpression = booleanExpression;
-
+		BooleanExpression currentExpression = expression;
+		boolean isNot = expression.isNot();
 		String token = Strings.EMPTY;
 		char[] chars = condition.toCharArray();
 		char lastChar = 0;
 
 		for (int i = 0; i < chars.length; i++) {
-			Character curChar = chars[i];
+			char curChar = chars[i];
 			if (escapeCharacters.contains(curChar)) continue;
 			if (curChar == Chars.QUOTE) {
 				int endPos = getEndString(chars, i);
@@ -1241,49 +1254,34 @@ public class ApplicationTests {
 				lastChar = chars[i];
 				continue;
 			}
-
+			if (curChar == '(') {
+				int endPos = getEndParenthesis(chars, i);
+				parseCondition(String.copyValueOf(chars, i + 1, endPos - i - 1), currentExpression);
+				lastChar = chars[i];
+				continue;
+			}
 			String curToken = Strings.EMPTY;
 			if (curChar == Chars.DQUOTE) {
 				int endPos = getEndString(chars, i);
 				curToken = String.copyValueOf(chars, i, endPos - i + 1);
 				i = endPos;
 			}
-			if (curChar >= '_' || curChar >= 'a' && curChar <= 'z' || curChar >= 'A' && curChar <= 'Z') {
+			if (curChar == '_' || curChar >= 'a' && curChar <= 'z' || curChar >= 'A' && curChar <= 'Z') {
 				int endPos = getEndWord(chars, i);
 				curToken = String.copyValueOf(chars, i, endPos - i + 1).toUpperCase();
 				i = endPos;
 			}
 			if (!curToken.isEmpty()) {
 				if ("OR".equals(curToken) || "AND".equals(curToken)) {
-					if ("AND".equals(curToken)) {
-
-						if (resultExpression.expressions().size() > 0 && resultExpression.isAnd()) {
-
-						}
-						resultExpression.expressions()
-					}
-
-
-					resultExpression = new BooleanExpression();
-					resultExpression.expression()
-							.append("p")
-							.append(predicates.size())
-							.append(" ").append(curToken).append(" ");
-					resultExpression.expressions().add(currentExpression);
-					resultExpression.isAnd("AND".equals(curToken));
-
-					predicates.add(currentExpression.expression().toString());
-
-					System.out.println("PREDICATE: p" + predicates.size() + " = " + currentExpression.expression());
-
-
-					expression = new StringBuilder();
-
+					currentExpression = new BooleanExpression();
+					concatExpression(expression, currentExpression, "AND".equals(curToken), isNot);
 					token = Strings.EMPTY;
-
-					System.out.println("RESULT: " + resultExpression);
+				} else if ("NOT".equals(curToken)) {
+					currentExpression.isNot(!currentExpression.isNot());
+					token = Strings.EMPTY;
 				} else {
-					expression
+					currentExpression
+							.expression()
 							.append(lastChar == '.' ? "." : (token.isEmpty() ? "" :  " "))
 							.append(curToken);
 					token = curToken;
@@ -1291,34 +1289,17 @@ public class ApplicationTests {
 				lastChar = chars[i];
 				continue;
 			}
+			
 			if (curChar == '.' && !token.isEmpty()) {
 				System.out.println("ALIAS: " + token);
-
-
-				currentExpression.aliases.add(token);
+				currentExpression.aliases().add(token);
 				lastChar = chars[i];
 				continue;
 			}
-
 			token = Strings.EMPTY;
-
-
-
-			expression.append(Character.toUpperCase(curChar));
-
+			currentExpression.expression().append(Character.toUpperCase(curChar));
 			lastChar = chars[i];
 		}
-
-
-		predicates.add(expression.toString());
-		resultExpression
-				.append("p")
-				.append(predicates.size());
-
-
-
-
-		return resultExpression.expression().toString();
 	}
 
 	@Test
@@ -1330,18 +1311,18 @@ public class ApplicationTests {
 				"or a3.C_DATE >= :date)%' or a2.C_DEST like 'Aaa%'" +
 				"         or a3.C_DATE >= ?\n" +
 				"        ) \n" +
-				"        OR (1=1)\n" +
+				"        AND NOT (b1.	\"c_col\" =1 and b2.C_COL2 = 2 or b3.C_COL3= 3)\n" +
+				"        AND NOT (c1	.\"c_col\" = 1 or c2.C_COL2 = 2 AND Not c3.C_COL3= 3)\n" +
+				"        AND ((D1.C_1 = 1 OR C2.C_2 = 2) AND D3.C_3 = 3)\n" +
+				"        OR Not (1=1)\n" +
 				"       )\n";
 
 
-		List<String> predicates = new ArrayList<>();
-		String res = parseCondition(condition, predicates);
-		System.out.println(res);
+		BooleanExpression expression = new BooleanExpression();
+		parseCondition(condition, expression);
 
-		for (int i = 0; i < predicates.size(); i++) {
-			res = res.replace("p" + (i+1), predicates.get(i));
-		}
-		System.out.println("RES: " + res);
+		System.out.println("RES: " + expressionToString(expression));
+
 	}
 
 }
