@@ -1264,14 +1264,9 @@ public class ApplicationTests {
 					needParenthesis = true;
 				}
 				parseCondition(String.copyValueOf(chars, i + 1, endPos - i - 1), currentExpression);
-				if (expression == currentExpression || !currentExpression.expressions.isEmpty()) {
+				if (expression == currentExpression && !currentExpression.expressions.isEmpty()) {
 					cloneUpExpression(expression, true);
 				}
-
-
-
-
-
 				if (needParenthesis) {
 					currentExpression.expression().append(")");
 				}
@@ -1313,7 +1308,6 @@ public class ApplicationTests {
 				lastChar = chars[i];
 				continue;
 			}
-			
 			if (curChar == '.' && !token.isEmpty()) {
 				System.out.println("ALIAS: " + token);
 				currentExpression.aliases().add(token);
