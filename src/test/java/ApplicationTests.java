@@ -1216,17 +1216,19 @@ public class ApplicationTests {
 
 	void concatExpression(BooleanExpression left, BooleanExpression right, boolean isAnd, boolean isNot) {
 		right.isNot(isNot && !right.isNot() || !isNot && right.isNot());
-		if (left.expressions().isEmpty() || left.isAnd() && !isAnd) {
+		if (left.expressions().isEmpty() ||
+				!isNot && left.isAnd() && !isAnd ||
+				isNot && !left.isAnd() && isAnd)
+		{
 			cloneUpExpression(left, isAnd);
 		}
-		if (!left.isAnd() && isAnd) {
-			concatExpression(left.expressions().get(left.expressions().size() - 1), right, true, false);
+		if (!isNot && !left.isAnd() && isAnd || isNot && left.isAnd() && !isAnd) {
+			concatExpression(left.expressions().get(left.expressions().size() - 1), right, isAnd, false);
 		}
 		if (left.isAnd() == isAnd) {
 			left.expressions().add(right);
 			left.expression()
-					.append(isAnd || isNot ? " AND " : " OR ")
-					.append(right.isNot() ? "NOT " : "")
+					.append(isAnd ? " AND " : " OR ")
 					.append("p")
 					.append(left.expressions().size());
 		}
@@ -1256,7 +1258,24 @@ public class ApplicationTests {
 			}
 			if (curChar == '(') {
 				int endPos = getEndParenthesis(chars, i);
+				boolean needParenthesis = false;
+				if (!currentExpression.expression().isEmpty()) {
+					currentExpression.expression().append("(");
+					needParenthesis = true;
+				}
 				parseCondition(String.copyValueOf(chars, i + 1, endPos - i - 1), currentExpression);
+				if (expression == currentExpression || !currentExpression.expressions.isEmpty()) {
+					cloneUpExpression(expression, true);
+				}
+
+
+
+
+
+				if (needParenthesis) {
+					currentExpression.expression().append(")");
+				}
+				i = endPos;
 				lastChar = chars[i];
 				continue;
 			}
@@ -1274,7 +1293,12 @@ public class ApplicationTests {
 			if (!curToken.isEmpty()) {
 				if ("OR".equals(curToken) || "AND".equals(curToken)) {
 					currentExpression = new BooleanExpression();
-					concatExpression(expression, currentExpression, "AND".equals(curToken), isNot);
+					concatExpression(
+							expression,
+							currentExpression,
+							isNot && "OR".equals(curToken) || !isNot && "AND".equals(curToken),
+							isNot
+					);
 					token = Strings.EMPTY;
 				} else if ("NOT".equals(curToken)) {
 					currentExpression.isNot(!currentExpression.isNot());
@@ -1304,18 +1328,34 @@ public class ApplicationTests {
 
 	@Test
 	public void regExpTest2() {
-		String condition = "        a1.Id = ? \n" +
-				"   and (upper (a1.C_DEST) = ('ASD') and\n" +
-				"        (\n" +
-				"            \"a2\".C_DEST like 	'A1.ID = ?  AND (A2.C_DEST like 	''AAA%'' " +
-				"or a3.C_DATE >= :date)%' or a2.C_DEST like 'Aaa%'" +
-				"         or a3.C_DATE >= ?\n" +
-				"        ) \n" +
-				"        AND NOT (b1.	\"c_col\" =1 and b2.C_COL2 = 2 or b3.C_COL3= 3)\n" +
-				"        AND NOT (c1	.\"c_col\" = 1 or c2.C_COL2 = 2 AND Not c3.C_COL3= 3)\n" +
-				"        AND ((D1.C_1 = 1 OR C2.C_2 = 2) AND D3.C_3 = 3)\n" +
-				"        OR Not (1=1)\n" +
-				"       )\n";
+		String condition = "(a1.Id = ? or a1.C_COL = ?)\n" +
+				"and\n" +
+				"  (\n" +
+				"    upper (a1.C_DEST) = ('ASD')\n" +
+				"    and (\n" +
+				"        \"a2\".C_DEST like 'A1.ID = ?  AND (A2.C_DEST like \t''AAA%'' or a3.C_DATE >= :date)%'\n" +
+				"      or a2.C_DEST like 'Aaa%'\n" +
+				"      or a3.C_DATE >= ?\n" +
+				"    )\n" +
+				"    AND NOT (\n" +
+				"          b1.\"c_col\" =1\n" +
+				"      and Not b2.C_COL2 = 2\n" +
+				"      or b3.C_COL3= 3\n" +
+				"    )\n" +
+				"    AND NOT (\n" +
+				"        c1.\"c_col\" = 1\n" +
+				"     or c2.C_COL2 = 2\n" +
+				"     AND Not c3.C_COL3= 3\n" +
+				"    )\n" +
+				"    AND (\n" +
+				"          (\n" +
+				"               D1.C_1 = 1\n" +
+				"            OR C2.C_2 = 2\n" +
+				"          )\n" +
+				"      AND (D3.C_3 = 3 and D4.C_4 = 4)\n" +
+				"    )\n" +
+				"    OR Not (1=1)\n" +
+				"  )";
 
 
 		BooleanExpression expression = new BooleanExpression();
