@@ -25,6 +25,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.ImmutableSet;
+import com.sun.tools.attach.VirtualMachine;
 import jakarta.persistence.EntityManagerFactory;
 import lombok.Data;
 import lombok.experimental.Accessors;
@@ -1352,11 +1353,23 @@ public class ApplicationTests {
 				"  )";
 
 
+		VirtualMachine vm = VirtualMachine.attach();
+
 		BooleanExpression expression = new BooleanExpression();
 		parseCondition(condition, expression);
 
 		System.out.println("RES: " + expressionToString(expression));
 
+	}
+
+	//@Test
+	public void testPID() {
+		long pid = ProcessHandle.current().pid();
+		try {
+			VirtualMachine vm = VirtualMachine.attach(String.valueOf(pid));
+		} catch (Exception err) {
+			err.printStackTrace();
+		}
 	}
 
 }
