@@ -1117,7 +1117,7 @@ public class ApplicationTests {
 					!(chars[i+1] >= 'a' && chars[i+1] <= 'z' ||
 							chars[i+1] >= 'A' && chars[i+1] <= 'Z' ||
 							chars[i+1] >= '0' && chars[i+1] <= '9' ||
-							chars[i+1] == '_' || chars[i+1] == '$'))
+							chars[i+1] == '_' || chars[i+1] == '$' || chars[i+1] == '#'))
 			{
 				return i;
 			}
