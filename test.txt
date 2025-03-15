@@ -662,18 +662,20 @@ b & (^a | c) =
 
 ^a & f | a & b & c =
 (^a & f | a) & (^a & f | b) & (^a & f | c) =
-(f | a) & (^a & f | b) & (^a & f | c) =
-(f & ^a & f | f & b | a & ^a & f | a & b) & (^a & f | c) =
-(f & ^a | f & b | a & b) & (^a & f | c) =
-^a & f | ^a & f & f & b | ^a & f & a & b | f & ^a & c | f & b & c | a & b & c =
- ^a & f | f & ^a & c | f & b & c | a & b & c =
- ^a & f | f & b & c | a & b & c
+(^a & f | a) & (^a & f | b) & (^a & f | c) =
+(^a & f & ^a & f | ^a & f & b | a & ^a & f | a & b) & (^a & f | c) =
+(f & ^a | ^a & f & b | a & b) & (^a & f | c) =
+
+^a & f | f & ^a & c | ^a & f & b | ^a & f & c & b  | a & b & ^a & f | a & b & c =
+ ^a & f | f & ^a & c | ^a & f & b | a & b & c =
+ ^a & f | a & b & c
  ^a & f | b & c & (a | f)
 
 
 
 
-
+a & d | ^a & b & c & d | ^a & b & c =
+a & d | b & c & d | ^a & b & c
 
 
 
@@ -717,4 +719,40 @@ a & b & c | ^a & ^b
 
 ^c | (a & c) | ^(a | c | ^b)
 ^c | a | ^a & ^c & b
+
+a & b | a & ^b = a & b | a
+
+
+^a & d | a & b & c & d | a & b & c | a & d & f & g | d & f & g & x  =
+^a & d | b & c & d | a & b & c | a & d & f & g | d & f & g & x =
+^a & d | b & c & d | a & b & c | d & f & g
+
+
+
+^a & d | a & b & c & d | a & b & c | a & d & f & g | d & f & g & x
+= ^a & d | a & b & c | a & d & f & g | d & f & g & x   =
+^a & d | a & b & c | d & f & g | d & f & g & x =
+^a & d | a & b & c | d & f & g
+
+
+a & b | ^a & ^b
+
+
+= ^a | b & c | b^ & c & d
+
+
+^a & f | a & b & c =
+(^a & f | a) & (^a & f | b) & (^a & f | c) =
+(f | a) & (^a & f | b) & (^a & f | c) =
+(f & ^a & f | f & b | a & ^a & f | a & b) & (^a & f | c) =
+(f & ^a | f & b | a & b) & (^a & f | c) =
+^a & f | ^a & f & f & b | ^a & f & a & b | f & ^a & c | f & b & c | a & b & c =
+ ^a & f | f & ^a & c | f & b & c | a & b & c =
+ ^a & f | f & b & c | a & b & c
+
+
+a & b | ^b & c & d | ^a =
+b | ^b & c & d | ^a =
+b | c & d | ^a
+
 
