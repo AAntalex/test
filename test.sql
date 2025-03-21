@@ -232,7 +232,7 @@ where '30102%' = acc_ct.C_CODE and acc_dt.C_CODE like '40701810%'
 
 +++++++++++++++++++++++++++
 
-SELECT md.C_NUM num, md.C_SUM sum, md.C_DATE date, acc_dt.C_CODE acc_dt, cl_dt.C_NAME client_dt, md.C_ACC_CT /*key*/
+SELECT md.C_NUM num, md.C_SUM sum, md.C_DATE date, acc_dt.C_CODE acc_dt, cl_dt.C_NAME client_dt, md.ID, md.C_ACC_DT, md.C_ACC_CT /*key*/
 FROM T_MAIN_DOCUM md
     JOIN T_ACCOUNT acc_dt on acc_dt.ID = md.C_ACC_DT
     JOIN T_CLIENT cl_dt on cl_dt.ID = acc_dt.C_CLIENT
