@@ -1352,9 +1352,6 @@ public class ApplicationTests {
 				"    OR Not (1=1)\n" +
 				"  )";
 
-
-		VirtualMachine vm = VirtualMachine.attach();
-
 		BooleanExpression expression = new BooleanExpression();
 		parseCondition(condition, expression);
 

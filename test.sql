@@ -232,7 +232,7 @@ where '30102%' = acc_ct.C_CODE and acc_dt.C_CODE like '40701810%'
 
 +++++++++++++++++++++++++++
 
-SELECT md.C_NUM num, md.C_SUM sum, md.C_DATE date, acc_dt.C_CODE acc_dt, cl_dt.C_NAME client_dt, md.ID, md.C_ACC_DT, md.C_ACC_CT /*key*/
+SELECT md.C_NUM num, md.C_SUM sum, md.C_DATE date, acc_dt.C_CODE acc_dt, cl_dt.C_NAME client_dt,     md.ID, md.C_ACC_DT, md.C_ACC_CT /*key*/
 FROM T_MAIN_DOCUM md
     JOIN T_ACCOUNT acc_dt on acc_dt.ID = md.C_ACC_DT
     JOIN T_CLIENT cl_dt on cl_dt.ID = acc_dt.C_CLIENT
@@ -244,7 +244,7 @@ FROM T_ACCOUNT acc_ct
     LEFT JOIN T_CLIENT_CATEGORY cl_cat on cl_cat.ID = cl_ct.C_CATEGORY
 where acc_ct.C_CODE = '30102%' and acc_ct.ID in (:IDS /*key*/)
 ||
-SELECT md.C_NUM num, md.C_SUM sum, md.C_DATE date, acc_ct.C_CODE acc_ct, cl_ct.C_NAME client_ct, md.C_ACC_DT /*key*/
+SELECT md.C_NUM num, md.C_SUM sum, md.C_DATE date, acc_ct.C_CODE acc_ct, cl_ct.C_NAME client_ct,     md.ID, md.C_ACC_CT, md.C_ACC_DT /*key*/
 FROM T_MAIN_DOCUM md
     JOIN T_ACCOUNT acc_ct on acc_ct.ID = md.C_ACC_CT
     JOIN T_CLIENT cl_ct on cl_ct.ID = acc_ct.C_CLIENT
