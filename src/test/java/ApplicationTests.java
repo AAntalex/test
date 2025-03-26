@@ -1323,6 +1323,15 @@ public class ApplicationTests {
 
 	@Test
 	public void regExpTest2() {
+
+		List<TestBShardEntity> bList = entityManager.findAll(
+				TestBShardEntity.class,
+				"id in (:1, :2, :3)",
+				699230133001L, 693000126000L, 2709012978002L);
+
+		System.out.println("RES: " + bList.size());
+
+/*
 		String condition = "(a1.Id = ? or a1.C_COL = ?)\n" +
 				"and\n" +
 				"  (\n" +
@@ -1356,6 +1365,7 @@ public class ApplicationTests {
 		parseCondition(condition, expression);
 
 		System.out.println("RES: " + expressionToString(expression));
+*/
 
 	}
 

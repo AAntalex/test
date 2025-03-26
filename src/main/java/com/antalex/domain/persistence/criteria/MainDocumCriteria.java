@@ -28,7 +28,7 @@ import java.util.Date;
                 @Join(from = Client.class, alias = "cl_dt", on = "${id} = ${acc_dt.client}"),
                 @Join(from = ClientCategory.class, alias = "cl_cat", on = "${id} = ${cl_ct.category}"),
         },
-        where = "{md.dateProv} >= ? and ${cl_cat.code} = 'VIP' and {acc_dt.code} like '40702810%3'"
+        where = "${ext_doc.date} >= ? and ({md.dateProv} >= ? and ${cl_cat.code} = 'VIP' or {acc_dt.code} like '40702810%3')"
 )
 public class MainDocumCriteria {
     @CriteriaAttribute("${md.num}")
